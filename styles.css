@@ -1,0 +1,11 @@
+#canvas {
+  position: absolute;
+  height: 100%; width: 100%;
+  z-index: 1;
+}
+
+#test {
+  color: red;
+  position: absolute;
+  z-index: 2;
+}
