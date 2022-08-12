@@ -126,34 +126,34 @@ class Shader {
       this.programInfo.uniformLocations[uniformInfo.name] = this.gl.getUniformLocation(shaderProgram, uniformInfo.name);
     }
 
-    await this.CreateObject("object.txt");
+    //I'm not thrilled about 'await' being needed, as you can only call it in async functions. Might find some workaround later.
+    await this.CreateObject("prism.txt", "texture.png", [0.0, 0.0, 6.0]);
+    await this.CreateObject("object.txt", "door.png", [6.0, 0.0, 0.0]);
 
     this.AdditionalSetup();
   }
 
-  //TIDYING STATUS: DEEP ORANGE
-  async CreateObject(url) { //Messy. Clean this up later.
+  //TIDYING STATUS: ORANGE
+  async CreateObject(url, texUrl, pos) { //Messy. Clean this up later.
     let obj = new ObjectData();
     let stringAttributes = await obj.LoadObject(url);
 
-    //What does this do?
+    //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
     obj.vao = this.gl.createVertexArray();
     this.gl.bindVertexArray(obj.vao);
 
     //Should setting these buffers be done in the object?
     obj.buffers[0] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(stringAttributes[0]));
-    this.SetVertexAttribArray(this.programInfo.attribLocations.aVertexPosition, 3, this.gl.FLOAT, false, 12, 0);
+    this.SetVertexAttribArray(this.programInfo.attribLocations.aVertexPosition, 3, this.gl.FLOAT, false, 12, 0); //bad magic numbers are bad
 
     //Loads texture, activates, and binds it. Not sure, think this could be it's own function. Also shouldn't the object load it's texture?
-    obj.texture = await this.LoadTexture("texture.png");
-    this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, obj.texture);
+    obj.texture = await this.LoadTexture(texUrl);
+    //this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
+    //this.gl.bindTexture(this.gl.TEXTURE_2D, obj.texture);
 
     obj.buffers[2] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(stringAttributes[2]));
     this.SetVertexAttribArray(this.programInfo.attribLocations.aTexturePosition, 2, this.gl.FLOAT, false, 8, 0); //Feels like this data should be downloaded when an object is loaded
     obj.buffers[1] = this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(stringAttributes[1]));
-
-    this.gl.activeTexture(this.gl.TEXTURE0); // + i
 
     //Adds object to an array of objects
     /*
@@ -162,7 +162,7 @@ class Shader {
 
     let _vec = vec3.fromValues(valx, 0, valz);
     */
-    let newObj = new Object(obj, new RotPos([6.0, 0.0, 0.0]));
+    let newObj = new Object(obj, new RotPos(pos));
     this.objects.push(newObj);
   }
 
@@ -189,6 +189,8 @@ class Shader {
   async LoadTexture(url) {
     //Creates texture and binds it to WebGL
     let texture = this.gl.createTexture();
+    this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
+    console.log(this.gl.TEXTURE0 + this.objects.length);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
     //Loads image
@@ -237,10 +239,6 @@ class Shader {
       false,
       this.viewMatrix);
 
-    // Tell the shader we bound the texture to texture unit 0
-    this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
-
-    this.gl.bindVertexArray(this.objects[0].object.vao); //WTF? Why does this work now?
     activeShaders.push(this);
     if (loopStarted === false) {
       loopStarted = true;
@@ -264,8 +262,12 @@ class Shader {
     const vertexCount = 36; //Should be done automatically for each object
 
     for (let objectNum = 0; objectNum < this.objects.length; objectNum++) {
-      
-      
+
+      this.gl.bindVertexArray(this.objects[objectNum].object.vao);
+
+      //Tell opengl which texture we're currently using, then tell our shader which texture we're using
+      this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
+      this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
 
       //Sets position of object (Not orientation and scale yet, sadly)
       this.gl.uniformMatrix4fv(
@@ -283,6 +285,8 @@ class Object {
   constructor(object, rotpos) {
     this.object = object;
     this.rotpos = rotpos;
+
+    this.translationMatrix = mat4.create();
     mat4.fromTranslation(this.translationMatrix, this.rotpos.position);;
   }
 }
