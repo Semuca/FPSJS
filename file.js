@@ -5,6 +5,7 @@ let activeShaders = [];
 let loopStarted = false;
 let pointerLockActivation = 0;
 
+let rotX = 0;
 let rotY = 0;
 
 const FORWARD = vec3.fromValues(1, 0, 0); // Maybe these are all right? Idk, haven't really checked
@@ -132,7 +133,7 @@ class Shader {
 
   //TIDYING STATUS: DEEP ORANGE
   async CreateObject(url) { //Messy. Clean this up later.
-    let obj = new Object();
+    let obj = new ObjectData();
     let stringAttributes = await obj.LoadObject(url);
 
     //What does this do?
@@ -155,7 +156,14 @@ class Shader {
     this.gl.activeTexture(this.gl.TEXTURE0); // + i
 
     //Adds object to an array of objects
-    this.objects.push(obj);
+    /*
+    let valx = Math.floor(Math.random() * 100) - 50;
+    let valz = Math.floor(Math.random() * 100) - 50;
+
+    let _vec = vec3.fromValues(valx, 0, valz);
+    */
+    let newObj = new Object(obj, new RotPos([6.0, 0.0, 0.0]));
+    this.objects.push(newObj);
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
@@ -214,9 +222,6 @@ class Shader {
     const projectionMatrix = mat4.create(); //This is just camera settings
     mat4.perspective(projectionMatrix, fieldOfView, aspectRatio, zNear, zFar);
 
-    this.modelMatrix = mat4.create(); //This should be for every object. Can't it just be determined from the rotpos of the object?
-    mat4.translate(this.modelMatrix, this.modelMatrix, [0.0, 0.0, -6.0]);
-
     this.viewMatrix = mat4.create(); //And this is just determined from the rotpos from the camera
     mat4.translate(this.viewMatrix, this.viewMatrix, this.rotpos.position);
 
@@ -232,15 +237,10 @@ class Shader {
       false,
       this.viewMatrix);
 
-    this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.uModelMatrix,
-      false,
-      this.modelMatrix);
-
     // Tell the shader we bound the texture to texture unit 0
     this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
 
-    this.gl.bindVertexArray(this.objects[0].vao); //WTF? Why does this work now?
+    this.gl.bindVertexArray(this.objects[0].object.vao); //WTF? Why does this work now?
     activeShaders.push(this);
     if (loopStarted === false) {
       loopStarted = true;
@@ -252,25 +252,42 @@ class Shader {
     //Clear canvas before drawing
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-    let _vec = vec3.create();
-    let angle = quat.getAxisAngle(_vec, this.rotpos.rotation);
-
-    //console.log(_vec);
-    //console.log(angle);
-
+    //Implement this when I figure out how quaternions work
+    /*
     mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
     this.gl.uniformMatrix4fv( //I don't know how necessary this is
       this.programInfo.uniformLocations.uViewMatrix,
       false,
-      this.viewMatrix);
+      this.viewMatrix);*/
 
     const offset = 0;
     const vertexCount = 36; //Should be done automatically for each object
-    this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
+
+    for (let objectNum = 0; objectNum < this.objects.length; objectNum++) {
+      
+      
+
+      //Sets position of object (Not orientation and scale yet, sadly)
+      this.gl.uniformMatrix4fv(
+        this.programInfo.uniformLocations.uModelMatrix,
+        false,
+        this.objects[objectNum].translationMatrix);
+
+      this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
+    }
   }
 }
 
-class Object { //Shouldn't this have a rotpos?
+//Instance of object
+class Object {
+  constructor(object, rotpos) {
+    this.object = object;
+    this.rotpos = rotpos;
+    mat4.fromTranslation(this.translationMatrix, this.rotpos.position);;
+  }
+}
+
+class ObjectData { //Shouldn't this have a rotpos?
   constructor() {
     this.buffers = [];
     this.texture = null;
@@ -342,7 +359,7 @@ function RenderLoop(now) {
     if (activeShaders.length > 1) {
       activeShaders[i].gl.useProgram(activeShaders[i].programInfo.program);
     }
-    /*
+    
     //This whole movement script means nothing if we can't see anything
     let movZ = (pressedKeys[keyEnums["KeyW"]] - pressedKeys[keyEnums["KeyS"]]) / 10;
     vec3.add(activeShaders[i].rotpos.position, activeShaders[i].rotpos.position, [movZ * Math.cos(rotX / 180), 0.0, movZ * Math.sin(rotX / 180)]);
@@ -362,7 +379,7 @@ function RenderLoop(now) {
       activeShaders[i].programInfo.uniformLocations.uViewMatrix,
       false,
       activeShaders[i].viewMatrix);
-    */
+    
     activeShaders[i].DrawScene();
   }
 
@@ -425,7 +442,8 @@ document.addEventListener("mousemove", e => {
     return;
   }
 
-  rotY += e.movementY / 540;
+  rotY += e.movementY;
+  rotX += e.movementX;
 
   /*
   quat.rotateY(activeShaders[0].rotpos.rotation, activeShaders[0].rotpos.rotation, e.movementX / 180);
