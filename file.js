@@ -1,3 +1,6 @@
+import "./queue.js";
+import { Queue } from "./queue.js"; //why are there two?
+
 //// DEBUG:
 //const test = document.getElementById("test");
 let time = 0;
@@ -17,7 +20,7 @@ class Window {
   //Constructor requires an identifier for a canvas, and the names of the server vertexShader and fragmentShader files
   //  Later, I should just make this take in any vertex/fragment shader string
   //TIDYING STATUS: GREEN
-  constructor(canvasID, vsName, fsName) {
+  constructor(canvasID) {
     this.canvas = document.getElementById(canvasID);
     this.gl = this.canvas.getContext("webgl2");
 
@@ -27,14 +30,14 @@ class Window {
       return;
     }
 
-    this.shaders = []; //Not entirely set on how I wand the window to be constructed
-    if (vsName != undefined && fsName != undefined) {
-      this.AddShader(vsName, fsName);
-    }
+    this.shaders = []; //Not entirely set on how I want the window to be constructed, or the relationships between shaders, windows, the canvas and cameras, yet
   }
 
-  AddShader(vsName, fsName) {
-    this.shaders.push(new Shader(this.gl, vsName, fsName));
+  //Not entirely set on the structure here, maybe think about it later
+  AddShader(vsSource, fsSource) {
+    let shader = new Shader(this.gl);
+    shader.CompileProgram(vsSource, fsSource);
+    this.shaders.push(shader);
   }
 }
 
@@ -44,58 +47,31 @@ class Camera {
 }
 
 class Shader {
-  //Constructor requires webgl context, and the urls of the vertex/fragment shader
+  //Should start bringing private variables into these classes
+
+  //Constructor requires webgl context
   //TIDYING STATUS: GREEN
-  constructor(gl, vertexUrl, fragmentUrl) {
+  constructor(gl) {
     this.gl = gl;
     this.objects = [];
     this.rotpos = new RotPos();
-    this.GetShaderSource(vertexUrl, fragmentUrl);
-  }
-
-  //Loads the vertex and fragment shader source code //Maybe needs a more accurate name
-  //TIDYING STATUS: GREEN
-  async GetShaderSource(vertexUrl, fragmentUrl) {
-    const vSource = await LoadFileText(vertexUrl);
-    const fSource = await LoadFileText(fragmentUrl);
-
-    this.CompileProgram(vSource, fSource);
-  }
-
-  //Loads a vertex/fragment shader from source code and return it's id
-  //TIDYING STATUS: GREEN
-  LoadShader(type, source) {
-    //Create shader
-    const shader = this.gl.createShader(type);
-
-    //Pass in source code and compile
-    this.gl.shaderSource(shader, source);
-    this.gl.compileShader(shader);
-
-    //Handle errors
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      alert("An error occured compiling the shaders: " + this.gl.getShaderInfoLog(shader));
-      this.gl.deleteShader(shader);
-      return null;
-    }
-
-    return shader;
+    this.queue = new Queue();
   }
 
   //Compiles a shader program from source code
   //TIDYING STATUS: GREEN
-  async CompileProgram(vertexSource, fragmentSource) {
+  CompileProgram(vertexSource, fragmentSource) {
     //Automatically cull backfaces for now, change later if needed
     this.gl.enable(this.gl.CULL_FACE);
 
     //If there's already a shader program in here, deallocate the memory
     if (this.programInfo === null) {
-      console.log("painis");
+      console.log("painis"); //Really?
     }
 
     //Loads shaders from source urls
-    const vertexShader = this.LoadShader(this.gl.VERTEX_SHADER, vertexSource);
-    const fragmentShader = this.LoadShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+    const vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
+    const fragmentShader = this.CreateShader(this.gl.FRAGMENT_SHADER, fragmentSource);
 
     //Attaches shaders, links the program
     const shaderProgram = this.gl.createProgram();
@@ -135,27 +111,51 @@ class Shader {
     this.AdditionalSetup();
   }
 
+  //Loads a vertex/fragment shader from source code and return it's id
+  //TIDYING STATUS: GREEN
+  CreateShader(type, source) { //Is this a good name? What's it really 'loading'? Load, in my mind, should be reserved for fetching data
+    //Create shader
+    const shader = this.gl.createShader(type);
+
+    //Pass in source code and compile
+    this.gl.shaderSource(shader, source);
+    this.gl.compileShader(shader);
+
+    //Handle errors
+    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+      alert("An error occured compiling the shaders: " + this.gl.getShaderInfoLog(shader));
+      this.gl.deleteShader(shader);
+      return null;
+    }
+
+    return shader;
+  }
+
+  //Adds an object to the queue to process
+  AddObject(obj) {
+    this.queue.enqueue(obj);
+  }
+
+  //Brings an object from data into opengl
   //TIDYING STATUS: ORANGE
-  async CreateObject(url, texUrl, pos) { //Messy. Clean this up later.
+  CreateObject(_obj) { //Messy. Clean this up later.
     let obj = new ObjectData();
-    let stringAttributes = await obj.LoadObject(url);
+    obj.buffers = new Array(_obj.str);
 
     //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
     obj.vao = this.gl.createVertexArray();
     this.gl.bindVertexArray(obj.vao);
 
     //Should setting these buffers be done in the object?
-    obj.buffers[0] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(stringAttributes[0]));
+    obj.buffers[0] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(_obj.str[0]));
     this.SetVertexAttribArray(this.programInfo.attribLocations.aVertexPosition, 3, this.gl.FLOAT, false, 12, 0); //bad magic numbers are bad
 
     //Loads texture, activates, and binds it. Not sure, think this could be it's own function. Also shouldn't the object load it's texture?
-    obj.texture = await this.LoadTexture(texUrl);
-    //this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
-    //this.gl.bindTexture(this.gl.TEXTURE_2D, obj.texture);
+    obj.texture = this.CreateTexture(_obj.tex);
 
-    obj.buffers[2] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(stringAttributes[2]));
+    obj.buffers[2] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(_obj.str[2]));
     this.SetVertexAttribArray(this.programInfo.attribLocations.aTexturePosition, 2, this.gl.FLOAT, false, 8, 0); //Feels like this data should be downloaded when an object is loaded
-    obj.buffers[1] = this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(stringAttributes[1]));
+    obj.buffers[1] = this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(_obj.str[1]));
 
     //Adds object to an array of objects
     /*
@@ -164,7 +164,7 @@ class Shader {
 
     let _vec = vec3.fromValues(valx, 0, valz);
     */
-    let newObj = new Object(obj, new RotPos(pos));
+    let newObj = new Object(obj, new RotPos(_obj.pos));
     this.objects.push(newObj);
   }
 
@@ -187,18 +187,15 @@ class Shader {
   }
 
   //Loads texture into WebGL
-  //TIDYING STATUS: ORANGE
-  async LoadTexture(url) {
+  //TIDYING STATUS: YELLOW
+  CreateTexture(tex) { //Argument needs a better name
     //Creates texture and binds it to WebGL
     let texture = this.gl.createTexture();
     this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
-    //Loads image
-    const image = await LoadImage(url);
-
     //Puts image into texture
-    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex);
     this.gl.generateMipmap(this.gl.TEXTURE_2D); //WebGL 1 can only mipmap even-height and width textures. I know this is webgl2, but should think about compatability
 
     //Adjusts texture parameters
@@ -248,6 +245,11 @@ class Shader {
   }
 
   DrawScene() {
+    while (this.queue.length != 0) {
+      const obj = this.queue.dequeue();
+      this.CreateObject(obj);
+    }
+
     //Clear canvas before drawing
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
@@ -288,7 +290,7 @@ class Object {
     this.rotpos = rotpos;
 
     this.translationMatrix = mat4.create();
-    mat4.fromTranslation(this.translationMatrix, this.rotpos.position);;
+    mat4.fromTranslation(this.translationMatrix, this.rotpos.position);
   }
 }
 
@@ -297,30 +299,6 @@ class ObjectData { //Shouldn't this have a rotpos?
     this.buffers = [];
     this.texture = null;
     this.vao = null;
-  }
-  //Basic and probably slow object loading system, nature of storage means there's quite a bit
-  //of string manipulation to be done when loading. Should probably fix later, but it's not that big of a deal for now.
-  //TIDYING STATUS: DEEP ORANGE
-  async LoadObject(url) {
-    //Load data
-    let data = await LoadFileText(url);
-
-    let stringAttributes = data.split("\r\n\r\n");
-
-    for (var i = 0; i < stringAttributes.length; i++) {
-      stringAttributes[i] = stringAttributes[i].replace(/\n/g, "");
-      stringAttributes[i] = stringAttributes[i].replace(/ /g, "");
-      stringAttributes[i] = stringAttributes[i].split(",");
-    }
-    
-    for (var i = 0; i < stringAttributes.length; i++) {
-      for (var j = 0; j < stringAttributes[i].length; j++) {
-        stringAttributes[i][j] = parseFloat(stringAttributes[i][j]);
-      }
-    }
-
-    this.buffers = new Array(stringAttributes.length);
-    return stringAttributes;
   }
 }
 
@@ -391,6 +369,28 @@ function RenderLoop(now) {
   requestAnimationFrame(RenderLoop);
 }
 
+//Basic and probably slow object loading system, nature of storage means there's quite a bit
+//of string manipulation to be done when loading. Should probably fix later, but it's not that big of a deal for now.
+//Like the rest of the async stuff, should probably be handled outside all the main classes
+//TIDYING STATUS: DEEP ORANGE
+function ProcessObjectData(data) {
+  let stringAttributes = data.split("\r\n\r\n");
+
+  for (var i = 0; i < stringAttributes.length; i++) {
+    stringAttributes[i] = stringAttributes[i].replace(/\n/g, "");
+    stringAttributes[i] = stringAttributes[i].replace(/ /g, "");
+    stringAttributes[i] = stringAttributes[i].split(",");
+  }
+    
+  for (var i = 0; i < stringAttributes.length; i++) {
+    for (var j = 0; j < stringAttributes[i].length; j++) {
+      stringAttributes[i][j] = parseFloat(stringAttributes[i][j]);
+    }
+  }
+
+  return stringAttributes;
+}
+
 //Loads values from text files given by the url
 //TIDYING STATUS: GREEN
 async function LoadFileText(url) {
@@ -408,16 +408,29 @@ async function LoadImage(url) {
     img.onerror = reject;
     img.src = url;
   });
-  return await val;
+  return await val; //I'm not sure if this await is needed, i need to read more on promises
+}
+
+async function LoadShader(window, vsUrl, fsUrl) {
+  const vSource = await LoadFileText(vsUrl);
+  const fSource = await LoadFileText(fsUrl);
+
+  window.AddShader(vSource, fSource);
+}
+
+async function LoadObject(shader, url, texUrl, pos) {
+  let data = await LoadFileText(url);
+  let stringAttributes = ProcessObjectData(data);
+  let image = await LoadImage(texUrl);
+  shader.AddObject({str: stringAttributes, tex: image, pos: pos});
 }
 
 //Everything above should be seperated into it's own module.
-const temp = new Window("canvas", "vertexShader.vs", "fragmentShader.fs");
-    //I'm not thrilled about 'await' being needed, as you can only call it in async functions. Might find some workaround later.
-temp.shaders[0].CreateObject("prism.txt", "texture.png", [0.0, 0.0, 6.0]);
-//const val = temp.AddShader("vertexShader.vs", "fragmentShader.fs");
-temp.shaders[0].CreateObject("object.txt", "door.png", [6.0, 0.0, 0.0]);
-
+const temp = new Window("canvas");
+LoadShader(temp, "vertexShader.vs", "fragmentShader.fs").then( (response) => {
+  LoadObject(temp.shaders[0], "prism.txt", "texture.png", [0.0, 0.0, 6.0]);
+  LoadObject(temp.shaders[0], "object.txt", "door.png", [6.0, 0.0, 0.0]);
+});
 
 //What's the difference between window.addeventlistener and document.addeventlistener
 window.addEventListener("click", function(e) {
