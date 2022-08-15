@@ -27,8 +27,14 @@ class Window {
       return;
     }
 
-    //Maybe shaders shouldn't automatically be set for the window?
-    this.shader = new Shader(this.gl, vsName, fsName);
+    this.shaders = []; //Not entirely set on how I wand the window to be constructed
+    if (vsName != undefined && fsName != undefined) {
+      this.AddShader(vsName, fsName);
+    }
+  }
+
+  AddShader(vsName, fsName) {
+    this.shaders.push(new Shader(this.gl, vsName, fsName));
   }
 }
 
@@ -126,10 +132,6 @@ class Shader {
       this.programInfo.uniformLocations[uniformInfo.name] = this.gl.getUniformLocation(shaderProgram, uniformInfo.name);
     }
 
-    //I'm not thrilled about 'await' being needed, as you can only call it in async functions. Might find some workaround later.
-    await this.CreateObject("prism.txt", "texture.png", [0.0, 0.0, 6.0]);
-    await this.CreateObject("object.txt", "door.png", [6.0, 0.0, 0.0]);
-
     this.AdditionalSetup();
   }
 
@@ -190,7 +192,6 @@ class Shader {
     //Creates texture and binds it to WebGL
     let texture = this.gl.createTexture();
     this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
-    console.log(this.gl.TEXTURE0 + this.objects.length);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
     //Loads image
@@ -412,6 +413,11 @@ async function LoadImage(url) {
 
 //Everything above should be seperated into it's own module.
 const temp = new Window("canvas", "vertexShader.vs", "fragmentShader.fs");
+    //I'm not thrilled about 'await' being needed, as you can only call it in async functions. Might find some workaround later.
+temp.shaders[0].CreateObject("prism.txt", "texture.png", [0.0, 0.0, 6.0]);
+//const val = temp.AddShader("vertexShader.vs", "fragmentShader.fs");
+temp.shaders[0].CreateObject("object.txt", "door.png", [6.0, 0.0, 0.0]);
+
 
 //What's the difference between window.addeventlistener and document.addeventlistener
 window.addEventListener("click", function(e) {
