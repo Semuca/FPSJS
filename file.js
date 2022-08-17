@@ -283,15 +283,19 @@ class Shader {
       this.viewMatrix);*/
 
     const offset = 0;
-    const vertexCount = 36; //Should be done automatically for each object
+    //const vertexCount = 36; //Should be done automatically for each object
 
     for (let objectNum = 0; objectNum < this.objects.length; objectNum++) {
+      //const offset = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][3]; //ew ew ew ew ew
+      const vertexCount = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][1] * this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][2];
 
       this.gl.bindVertexArray(this.objects[objectNum].vao);
 
       //Tell opengl which texture we're currently using, then tell our shader which texture we're using
-      this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
-      this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
+      if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
+        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
+      }
 
       //Sets position of object (Not orientation and scale yet, sadly)
       this.gl.uniformMatrix4fv(
@@ -299,7 +303,11 @@ class Shader {
         false,
         this.objects[objectNum].translationMatrix);
 
-      this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
+      if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+        this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
+      } else {
+        this.gl.drawArrays(this.gl.LINES, offset, vertexCount);
+      }
     }
   }
 }
@@ -457,7 +465,7 @@ async function LoadObject(shader, url, texUrl, pos) {
   let stringAttributes = ProcessObjectData(data);
   let image = await LoadImage(texUrl);
   //shader.AddObject({str: stringAttributes, tex: image, pos: pos});
-  shader.AddObject(new Object({ //Hardcoded, I know, but can fix that later
+  shader.AddObject(new Objec({ //Hardcoded, I know, but can fix that later
     "ARRAY_BUFFER" : {
       "aVertexPosition" : [stringAttributes[0], 3, 12, 0],
       "aTexturePosition" : [stringAttributes[2], 2, 8, 0]
@@ -492,7 +500,7 @@ LoadShader(temp, "vertexShader.vs", "fragmentShader.fs").then( (response) => {
   LoadObject(temp.shaders[0], "object.txt", "door.png", new RotPos([6.0, 0.0, 0.0]));
 });
 LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 2, 0]} }, new RotPos()));
+  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos()));
 });
 
 //What's the difference between window.addeventlistener and document.addeventlistener
