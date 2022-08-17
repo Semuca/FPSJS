@@ -111,9 +111,9 @@ class Shader {
 
   //Loads a vertex/fragment shader from source code and return it's id
   //TIDYING STATUS: GREEN
-  CreateShader(type, source) { //Is this a good name? What's it really 'loading'? Load, in my mind, should be reserved for fetching data
+  CreateShader(type, source) {
     //Create shader
-    const shader = this.gl.createShader(type);
+    const shader = this.gl.createShader(type); //Maybe should rename these variables. They aren't 'shaders', they're ids to shaders
 
     //Pass in source code and compile
     this.gl.shaderSource(shader, source);
@@ -177,19 +177,6 @@ class Shader {
       obj.texture = this.CreateTexture(obj.objectData["TEXTURE"]);
     }
 
-    /*
-    //Should setting these buffers be done in the object?
-    obj.buffers[0] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(_obj.str[0]));
-    this.SetVertexAttribArray(this.programInfo.attribLocations.aVertexPosition, 3, this.gl.FLOAT, false, 12, 0); //bad magic numbers are bad
-
-    //Loads texture, activates, and binds it. Not sure, think this could be it's own function. Also shouldn't the object load it's texture?
-    obj.texture = this.CreateTexture(_obj.tex);
-
-    obj.buffers[2] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(_obj.str[2]));
-    this.SetVertexAttribArray(this.programInfo.attribLocations.aTexturePosition, 2, this.gl.FLOAT, false, 8, 0); //Feels like this data should be downloaded when an object is loaded
-    obj.buffers[1] = this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(_obj.str[1]));
-    */
-
     this.objects.push(obj);
   }
 
@@ -213,7 +200,7 @@ class Shader {
 
   //Loads texture into WebGL
   //TIDYING STATUS: YELLOW
-  CreateTexture(tex) { //Argument needs a better name
+  CreateTexture(tex) {
     //Creates texture and binds it to WebGL
     let texture = this.gl.createTexture();
     this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length); //I should have some way of storing which textures are currently occupied. However for now it's not that big of an issue
@@ -346,9 +333,7 @@ class RotPos {
   }
 
   get forward() {
-    let localForward = vec3.create();
-    vec3.getAxisAngle(localForward, this.rotation);
-    return localForward;
+    
   }
 
   get right() {
@@ -356,9 +341,9 @@ class RotPos {
   }
 
   get up() {
-    let localUp = vec3.create();
-    let localForward = this.forward;
-    vec3.cross(localUp, );
+    let localForward = vec3.create();
+    vec3.getAxisAngle(localForward, this.rotation);
+    return localForward;
   }
 }
 
