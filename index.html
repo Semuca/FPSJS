@@ -10,11 +10,26 @@
   </head>
 
   <body>
+    <!--aspect ratio changes when you remove width and height!-->
     <canvas id="canvas" width="1920" height="1080"></canvas>
     <!--<p id="test">nul</p>!-->
-  </body>
 
-  <script type="module" src="queue.js"></script>
+    <textarea id="texty" placeholder="Type your shader code here..." spellcheck="false" hidden>
+attribute vec4 aVertexPosition;
+attribute vec2 aTexturePosition;
+      
+uniform mat4 uProjectionMatrix;
+uniform mat4 uModelMatrix;
+uniform mat4 uViewMatrix;
+      
+varying highp vec2 vTextureCoord;
+      
+void main() {
+  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * aVertexPosition;
+  vTextureCoord = aTexturePosition;
+}
+      </textarea>
+  </body>
 
   <script type="module" src="file.js" defer></script>
 </html>

@@ -1,11 +1,16 @@
+body {margin: 0;}
+
 #canvas {
   position: absolute;
   height: 100%; width: 100%;
   z-index: 1;
 }
 
-#test {
-  color: red;
+#texty {
   position: absolute;
+  border-width: 0;
+  padding: 0;
+  height: 50%; width: 100%;
+  background-color: rgba(156, 156, 156, 0.5);
   z-index: 2;
 }
