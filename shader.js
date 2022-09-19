@@ -78,6 +78,7 @@ export class Shader {
     this.gl.compileShader(this.vertexShader);
     this.gl.linkProgram(this.shaderProgram);
     this.AssembleProgramInfo();
+
     this.AdditionalSetup();
   }
 
@@ -254,6 +255,7 @@ export class Shader {
 
     this.RecalculateProjMatrix();
   }
+  
   DrawScene() {
     while (this.queue.length != 0) {
       const obj = this.queue.dequeue();

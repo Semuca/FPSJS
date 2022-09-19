@@ -1,16 +1,14 @@
-
 import {Window, Shader, Objec, RotPos} from "./shader.js";
 
 let terminal = document.getElementById("texty");
 
-//// DEBUG:
-//const test = document.getElementById("test");
 let time = 0;
 let pointerLockActivation = 0;
 let isPaused = false;
 
 let rotX = 0;
 let rotY = 0;
+
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop(now) {
@@ -33,10 +31,10 @@ function RenderLoop(now) {
       activeShaders[i].gl.useProgram(activeShaders[i].shaderProgram);
     }
     
-    //This whole movement script means nothing if we can't see anything
     let movZ = (pressedKeys[keyEnums["KeyW"]] - pressedKeys[keyEnums["KeyS"]]) / 10;
     vec3.add(activeShaders[i].rotpos.position, activeShaders[i].rotpos.position, [movZ * Math.cos(rotX / 180), 0.0, movZ * Math.sin(rotX / 180)]);
 
+    
     let _vec = vec3.fromValues(Math.cos(rotX / 180), 10 * Math.sin(-rotY / 540), Math.sin(rotX / 180)); //All this should be done on a mousemove event
     let _cameraRight = vec3.create();
     let _cameraUp = vec3.fromValues(0.0, 1.0, 0.0);
@@ -121,17 +119,17 @@ async function LoadImage(url) {
 
 //Loads a shader from url data
 async function LoadShader(window, vsUrl, fsUrl) {
-  const vSource = await LoadFileText(vsUrl);
-  const fSource = await LoadFileText(fsUrl);
+  const vSource = await LoadFileText("Shaders/" + vsUrl);
+  const fSource = await LoadFileText("Shaders/" + fsUrl);
 
   window.AddShader(vSource, fSource);
 }
 
 //Loads an object from url data
 async function LoadObject(shader, url, texUrl, pos) {
-  let data = await LoadFileText(url);
+  let data = await LoadFileText("Models/" + url);
   let stringAttributes = ProcessObjectData(data);
-  let image = await LoadImage(texUrl);
+  let image = await LoadImage("Textures/" + texUrl);
   //shader.AddObject({str: stringAttributes, tex: image, pos: pos});
   shader.AddObject(new Objec({ //Hardcoded, I know, but can fix that later
     "ARRAY_BUFFER" : {
@@ -154,6 +152,12 @@ LoadShader(temp, "vertexShader.vs", "fragmentShader.fs").then( (response) => {
 LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
   temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
 });
+/*
+LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
+  temp.shaders[2].AddObject(new Objec());
+});*/
+
+requestAnimationFrame(RenderLoop);
 
 requestAnimationFrame(RenderLoop);
 
@@ -217,41 +221,15 @@ document.addEventListener("mousemove", e => {
   if (document.pointerLockElement === null || isPaused === true) {
     return;
   }
-
-  rotY += e.movementY;
   rotX += e.movementX;
+  rotY += e.movementY;
 
-  /*
-  quat.rotateY(activeShaders[0].rotpos.rotation, activeShaders[0].rotpos.rotation, e.movementX / 180);
-  
-  let localForward = vec3.create();
-  quat.getAxisAngle(localForward, activeShaders[0].rotpos.rotation);
+});
 
-  let globalUp = vec3.fromValues(0, 1, 0); //Should be global const
-  
-  let localRight = vec3.create(); //This is only true because the camera is stable, should change this later to be based more on the quaternion itself
-  vec3.cross(localRight, localForward, globalUp);
-
-  quat.setAxisAngle(activeShaders[0].rotpos.rotation, localRight, rotY);
-
-  //Need to generate a vector on the xy plane that is also a cross product of the current orientation, then rotate the quaternion along that
-  //i.e rotate along the local left of the camera
-  //quat.rotateX(activeShaders[0].rotpos.rotation, activeShaders[0].rotpos.rotation, e.movementY / 540);
-  */
-
-  /*
-  if (rotY + e.movementY > -140) {
-    if (rotY + e.movementY < 140) {
-      quat.rotateX(activeShaders[0].rotpos.rotation, activeShaders[0].rotpos.rotation, e.movementY / 540);
-      rotY += e.movementY;
-    } else {
-      quat.rotateX(activeShaders[0].rotpos.rotation, activeShaders[0].rotpos.rotation, 140 - rotY / 540);
-      rotY = 140;
-    }
-  } else {
-    quat.rotateX(activeShaders[0].rotpos.rotation, activeShaders[0].rotpos.rotation, 140 + rotY / 540);
-    rotY = -140;
-  }*/
+document.addEventListener("onresize", e => {
+  for (let i = 0; i < array.length; i++) {
+    temp.shaders[i].gl.viewport(0, 0, temp.shaders[i].gl.canvas.width, temp.shaders[i].gl.canvas.height);
+  }
 });
 
 window.addEventListener("resize", e => {
