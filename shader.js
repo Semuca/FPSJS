@@ -1,4 +1,4 @@
-import {Queue} from "./queue.js";
+import { Queue } from "./queue.js";
 
 //What is placed on the page.
 export class Window {
@@ -54,43 +54,30 @@ export class Shader {
     }
 
     //Loads shaders from source urls
-    const vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
-    const fragmentShader = this.CreateShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+    this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
+    this.fragmentShader = this.CreateShader(this.gl.FRAGMENT_SHADER, fragmentSource);
 
     //Attaches shaders, links the program
-    const shaderProgram = this.gl.createProgram();
-    this.gl.attachShader(shaderProgram, vertexShader);
-    this.gl.attachShader(shaderProgram, fragmentShader);
-    this.gl.linkProgram(shaderProgram);
+    this.shaderProgram = this.gl.createProgram();
+    this.gl.attachShader(this.shaderProgram, this.vertexShader);
+    this.gl.attachShader(this.shaderProgram, this.fragmentShader);
+    this.gl.linkProgram(this.shaderProgram);
 
     //Ensures OpenGL has loaded correctly
-    if (!this.gl.getProgramParameter(shaderProgram, this.gl.LINK_STATUS)) {
-      alert('Unable to initialize the shader program: ' + this.gl.getProgramInfoLog(shaderProgram));
+    if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
+      alert('Unable to initialize the shader program: ' + this.gl.getProgramInfoLog(this.shaderProgram));
       return null;
     }
 
-    //Set up program info object      --- MAYBE PUT THIS INTO ITS OWN FUNCTION
-    this.programInfo = {
-      program: shaderProgram,
-      attribLocations: {},
-      uniformLocations: {},
-    };
+    this.AssembleProgramInfo();
+    this.AdditionalSetup();
+  }
 
-    //Fills program info object with attribute and uniform locations
-    const attribCount = this.gl.getProgramParameter(shaderProgram, this.gl.ACTIVE_ATTRIBUTES);
-    const uniformCount = this.gl.getProgramParameter(shaderProgram, this.gl.ACTIVE_UNIFORMS);
-
-    //Fill attribute locations in programInfo so we can send data to them later
-    for (var i = 0; i < attribCount; i++) {
-      const attribInfo = this.gl.getActiveAttrib(shaderProgram, i);
-      this.programInfo.attribLocations[attribInfo.name] = this.gl.getAttribLocation(shaderProgram, attribInfo.name);
-    }
-
-    //Fill uniform locations in programInfo so we can send data to them later
-    for (var i = 0; i < uniformCount; i++) {
-      const uniformInfo = this.gl.getActiveUniform(shaderProgram, i);
-      this.programInfo.uniformLocations[uniformInfo.name] = this.gl.getUniformLocation(shaderProgram, uniformInfo.name);
-    }
+  ReplaceVertexShader(source) {
+    this.gl.shaderSource(this.vertexShader, source);
+    this.gl.compileShader(this.vertexShader);
+    this.gl.linkProgram(this.shaderProgram);
+    this.AssembleProgramInfo();
 
     this.AdditionalSetup();
   }
@@ -115,6 +102,31 @@ export class Shader {
     return shader;
   }
 
+  AssembleProgramInfo() {
+    //Set up program info object
+    this.programInfo = {
+      attribLocations: {},
+      uniformLocations: {},
+    };
+
+    //Fills program info object with attribute and uniform locations
+    const attribCount = this.gl.getProgramParameter(this.shaderProgram, this.gl.ACTIVE_ATTRIBUTES);
+    const uniformCount = this.gl.getProgramParameter(this.shaderProgram, this.gl.ACTIVE_UNIFORMS);
+
+    //Fill attribute locations in programInfo so we can send data to them later
+    for (var i = 0; i < attribCount; i++) {
+      const attribInfo = this.gl.getActiveAttrib(this.shaderProgram, i);
+      this.programInfo.attribLocations[attribInfo.name] = this.gl.getAttribLocation(this.shaderProgram, attribInfo.name);
+    }
+
+    //Fill uniform locations in programInfo so we can send data to them later
+    for (var i = 0; i < uniformCount; i++) {
+      const uniformInfo = this.gl.getActiveUniform(this.shaderProgram, i);
+      this.programInfo.uniformLocations[uniformInfo.name] = this.gl.getUniformLocation(this.shaderProgram, uniformInfo.name);
+    }
+
+  }
+
   //Adds an Objec to the queue to process and connect the object to the shader
   AddObject(obj) {
     this.queue.enqueue(obj);
@@ -129,6 +141,7 @@ export class Shader {
     //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
     obj.vao = this.gl.createVertexArray();
     this.gl.bindVertexArray(obj.vao);
+    obj.shader = this;
 
     //Input: _obj should have javascript object, where labels that exactly match the attribInfo labels link to data that allows the gl context to assign a buffer
     /*
@@ -203,6 +216,16 @@ export class Shader {
     return texture;
   }
 
+  RecalculateProjMatrix() {
+    mat4.perspective(this.projectionMatrix, this.fieldOfView, this.aspectRatio, this.zNear, this.zFar);
+
+    this.gl.useProgram(this.shaderProgram);
+    this.gl.uniformMatrix4fv(
+      this.programInfo.uniformLocations.uProjectionMatrix,
+      false,
+      this.projectionMatrix);
+  }
+
   //Needs a better name. A lot of this can be tidied up by moving it to the camera class
   AdditionalSetup() {
     //Various miscellaneous options
@@ -210,37 +233,42 @@ export class Shader {
     this.gl.clearDepth(1.0); //Clear everything
     this.gl.enable(this.gl.DEPTH_TEST); //Enable depth testing
     this.gl.depthFunc(this.gl.LEQUAL); //Near things obscure far things
+    
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height); //This needs to be repeated on canvas size change
 
-    const fieldOfView = 45 * Math.PI / 180;
-    const aspectRatio = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
-    const zNear = 0.1;
-    const zFar = 100.0;
+    this.fieldOfView = 45 * Math.PI / 180; // I would like the field of view to be directly proportional to the screen size, but can't figure it out right now
+    this.aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
+    this.zNear = 0.1;
+    this.zFar = 100.0;
 
-    const projectionMatrix = mat4.create(); //This is just camera settings
-    mat4.perspective(projectionMatrix, fieldOfView, aspectRatio, zNear, zFar);
+    this.projectionMatrix = mat4.create(); //This is just camera settings
 
     this.viewMatrix = mat4.create(); //And this is just determined from the rotpos from the camera
     mat4.translate(this.viewMatrix, this.viewMatrix, this.rotpos.position);
 
-    this.gl.useProgram(this.programInfo.program);
-
-    this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.uProjectionMatrix,
-      false,
-      projectionMatrix);
+    this.gl.useProgram(this.shaderProgram);
 
     this.gl.uniformMatrix4fv(
       this.programInfo.uniformLocations.uViewMatrix,
       false,
       this.viewMatrix);
-  }
 
-DrawScene() {
+    this.RecalculateProjMatrix();
+  }
+  
+  DrawScene() {
     while (this.queue.length != 0) {
       const obj = this.queue.dequeue();
       this.CreateObject(obj);
     }
+
+    //Implement this when I figure out how quaternions work
+    /*
+    mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
+    this.gl.uniformMatrix4fv( //I don't know how necessary this is
+      this.programInfo.uniformLocations.uViewMatrix,
+      false,
+      this.viewMatrix);*/
 
     const offset = 0;
     //const vertexCount = 36; //Should be done automatically for each object
@@ -255,56 +283,93 @@ DrawScene() {
       if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
         this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
         this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
-    }
+      }
 
-      //Sets position of object (Not orientation and scale yet, sadly)
-    this.gl.uniformMatrix4fv(
+      //Sets position of object with orientation (no scale yet)
+      this.gl.uniformMatrix4fv(
         this.programInfo.uniformLocations.uModelMatrix,
         false,
-        this.objects[objectNum].translationMatrix);
+        this.objects[objectNum].GetMatrix());
 
-        if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+      if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
         this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
-        } else {
+      } else {
         this.gl.drawArrays(this.gl.LINES, offset, vertexCount);
-        }
+      }
     }
-}
+  }
 }
 
 //Instance of object
 export class Objec {
-    constructor(objectData, rotpos) {
-        this.objectData = objectData;
-        this.rotpos = rotpos;
+  constructor(objectData, rotpos) {
+    this.objectData = objectData;
+    this.rotpos = rotpos;
 
-        this.buffers = [];
-        this.texture = null;
-        this.vao = null;
+    this.buffers = [];
+    this.texture = null;
+    this.vao = null;
+    this.shader = null;
 
-        this.translationMatrix = mat4.create();
-        mat4.fromTranslation(this.translationMatrix, this.rotpos.position);
-    }
+    this.matrix = mat4.create();
+  }
 
-    OutputData() {
-      let keys = Object.keys(obj.objectData);
-      for (let i = 0; i < keys.length; i++) {
-        const key = obj.objectData[keys[i]];
-        for (let j = 0; j < key.length; j++) {
-          const element = array[j];
-          
-        }
-      }
+  GetMatrix() {
+    mat4.fromRotationTranslation(this.matrix, this.rotpos.rotation, this.rotpos.position);
+    return this.matrix;
+  }
 
-    }
+  //Don't know if this is a good function to keep, but for debug purposes I need it           Also I know I shouldn't have bufferVal, but it's a debug parameter
+  ModifyAttribute(attrib, bufferVal, updatedAttrib) {
+    this.objectData["ARRAY_BUFFER"][attrib][0] = updatedAttrib;
+    this.shader.gl.bindBuffer(this.shader.gl.ARRAY_BUFFER, this.buffers[bufferVal]);
+    this.shader.gl.bufferData(this.shader.gl.ARRAY_BUFFER, new Float32Array(updatedAttrib), this.shader.gl.STATIC_DRAW);
+
+    //this.gl.bindBuffer(bufferType, buffer);
+    //this.gl.bufferData(bufferType, data, this.gl.STATIC_DRAW); //Static_draw is hardcoded?
+  }
 }
 
-  //A position and rotation that is used for every physical thing in a scene
-  //TIDYING STATUS: GREEN
+/*
+class ObjectData { //Shouldn't this have a rotpos?
+  constructor() {
+    
+
+    //Should store the information that is generic to all objects of a certain type (i.e attribute information, texture) so we don't need to re-load them
+  }
+}*/
+
+//A position and rotation that is used for every physical thing in a scene
+//TIDYING STATUS: GREEN
 export class RotPos {
-    //Constructor passing in position and rotation
-    constructor(position, rotation) {
-        this.position = (position === undefined) ? vec3.create() : position;
-        this.rotation = (rotation === undefined) ? quat.create() : rotation;
-    }
+  //Constructor passing in position and rotation
+  constructor(position, rotation) {
+    this.position = (position === undefined) ? vec3.create() : position;
+    this.rotation = (rotation === undefined) ? quat.create() : rotation;
+  }
+
+  get forward() { //You know, I don't think I like writing with glMatrix library. Maybe make my own?
+    const up = this.up;
+    /*
+    let forward = vec3.create();
+
+    if ((up[0] < 0 && up[2] < 0) || (up[0] > 0 && up[2] > 0)) { //For the chunks of 3d space where x and z coordinate space are both positive or both negative:
+      forward[1] = Math.cos(Math.asin(Math.abs(up[1]))); //Angle of up vector is theta, then the angle of forward vector is 90 - theta, height is sin(90 - theta) = cos(theta)
+      if (up[0] > 0) {
+        forward[1] *= -1; //Height is negative
+      }
+      forward[0] = Math.sqrt((1 - forward[1]) / (Math.pow(up[2] / up[0], 2) + 1));
+      forward[2] = Math.sqrt((1 - forward[1]) / (Math.pow(up[0] / up[2], 2) + 1));
+    }*/
+  }
+
+  get right() {
+
+  }
+
+  get up() {
+    let localForward = vec3.create();
+    vec3.getAxisAngle(localForward, this.rotation);
+    return localForward;
+  }
 }

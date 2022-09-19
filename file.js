@@ -1,7 +1,10 @@
-import {Window, Objec, RotPos} from "./shader.js";
+import {Window, Shader, Objec, RotPos} from "./shader.js";
+
+let terminal = document.getElementById("texty");
 
 let time = 0;
 let pointerLockActivation = 0;
+let isPaused = false;
 
 let rotX = 0;
 let rotY = 0;
@@ -25,7 +28,7 @@ function RenderLoop(now) {
 
   for (var i = 0; i < activeShaders.length; i++) {
     if (activeShaders.length > 1) {
-      activeShaders[i].gl.useProgram(activeShaders[i].programInfo.program);
+      activeShaders[i].gl.useProgram(activeShaders[i].shaderProgram);
     }
     
     let movZ = (pressedKeys[keyEnums["KeyW"]] - pressedKeys[keyEnums["KeyS"]]) / 10;
@@ -48,10 +51,28 @@ function RenderLoop(now) {
       false,
       activeShaders[i].viewMatrix);
     
+
+
+
+    if (temp.shaders[0].objects.length > 0 && temp.shaders[1].objects.length > 0) {
+
+      let vec = vec3.create();
+      quat.getAxisAngle(vec, temp.shaders[0].objects[0].rotpos.rotation);
+
+      if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] &&
+          vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] &&
+          vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
+        temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, vec[0], vec[1], vec[2]]);
+      }
+    }
+
+
     activeShaders[i].DrawScene();
   }
 
-  requestAnimationFrame(RenderLoop);
+  if (isPaused === false) {
+    requestAnimationFrame(RenderLoop);
+  }
 }
 
 //Basic and probably slow object loading system, nature of storage means there's quite a bit
@@ -122,30 +143,14 @@ async function LoadObject(shader, url, texUrl, pos) {
   }, pos));
 }
 
-    /*
-
-    E.g. for object.txt, _obj =
-
-    {
-      "ARRAY_BUFFER" : {
-        "aVertexPosition" : {data, numComponents (in a unit), stride, offset},
-        "aTexturePosition" :      "             "               "               "
-      },
-      "ELEMENT_ARRAY_BUFFER" : {data},
-      "TEXTURE" : {img}
-    }
-    
-    I have no idea if this will turn out to be the most efficient system, but I'm doing it for now
-    */
-
 //Everything above should be seperated into it's own module.
 const temp = new Window("canvas");
 LoadShader(temp, "vertexShader.vs", "fragmentShader.fs").then( (response) => {
-  LoadObject(temp.shaders[0], "prism.txt", "texture.png", new RotPos([0.0, 0.0, 6.0]));
-  LoadObject(temp.shaders[0], "object.txt", "door.png", new RotPos([6.0, 0.0, 0.0]));
+  LoadObject(temp.shaders[0], "prism.txt", "texture.png", new RotPos([6.0, 0.0, 0.0]));
+  LoadObject(temp.shaders[0], "object.txt", "door.png", new RotPos([0.0, 0.0, 6.0]));
 });
 LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos()));
+  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
 });
 /*
 LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
@@ -154,8 +159,10 @@ LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (resp
 
 requestAnimationFrame(RenderLoop);
 
+requestAnimationFrame(RenderLoop);
+
 //What's the difference between window.addeventlistener and document.addeventlistener
-window.addEventListener("click", function(e) {
+canvas.addEventListener("click", function(e) {
   if (document.pointerLockElement === null) { //Might need to add mozPointerLock, whatever that is
     const now = performance.now();
     if (now - pointerLockActivation > 2500) { //I wouldn't consider this a good solution, but it seems to be the only one that removes a DOMerror
@@ -170,20 +177,48 @@ const keyEnums = {"KeyW":0, "KeyA":1, "KeyS":2, "KeyD":3}; //Why do I need to us
 let pressedKeys = [0, 0, 0, 0];
 
 window.addEventListener("keydown", e => {
+  if (isPaused === true) {
+
+    if (e.code === "KeyC" && document.pointerLockElement != null) {
+      temp.shaders[0].ReplaceVertexShader(terminal.value);
+    }
+
+    return;
+  }
   setPressedKey(e.code, 1);
+
+  if (e.code === 'Digit1') {
+    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
+  }
+  if (e.code === 'Digit2') {
+    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
+  }
+  if (e.code === 'Digit3') {
+    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
+  }
+  if (e.code === 'Digit4') {
+    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
+  }
+  if (e.code === 'Digit5') {
+    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
+  }
+  if (e.code === 'Digit6') {
+    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
+  }
+  //Modify object 0 of shader 0 to rotate
 });
 window.addEventListener("keyup", e => {
   setPressedKey(e.code, 0);
 });
 
 function setPressedKey(code, value) {
-  if (keyEnums[code] || code === "KeyW") {
+  if ((keyEnums[code] || code === "KeyW")) {
     pressedKeys[keyEnums[code]] = value;
   }
 }
 
 document.addEventListener("mousemove", e => {
-  if (document.pointerLockElement === null) {
+  if (document.pointerLockElement === null || isPaused === true) {
     return;
   }
   rotX += e.movementX;
@@ -197,9 +232,27 @@ document.addEventListener("onresize", e => {
   }
 });
 
+window.addEventListener("resize", e => {
+  for (let i = 0; i < temp.shaders.length; i++) {
+    temp.shaders[i].gl.viewport(0, 0, temp.canvas.width, temp.canvas.height);
+    temp.shaders[i].aspectRatio = temp.canvas.width / temp.canvas.height;
+    temp.shaders[i].RecalculateProjMatrix();
+  }
+});
+
+
 document.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     toggleFullScreen();
+  } else if (e.key === "`") {
+    isPaused = !isPaused
+    if (isPaused === false) {
+      //Unpause the game
+      terminal.hidden = true;
+      requestAnimationFrame(RenderLoop);
+    } else {
+      terminal.hidden = false;
+    }
   }
 }, false);
 
