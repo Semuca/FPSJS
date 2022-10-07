@@ -1,4 +1,5 @@
 import {Window, Shader, Objec, RotPos} from "./shader.js";
+import {PhysicsScene, PhysicsObjec} from "./physics.js";
 
 let terminal = document.getElementById("texty");
 
@@ -158,11 +159,13 @@ async function LoadWireframe(shader, url, pos) {
   }, pos));
 }
 
+let physicsScene = new PhysicsScene();
+
 //Everything above should be seperated into it's own module.
 const temp = new Window("canvas");
 LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  LoadWireframe(temp.shaders[0], "linePrism.txt", new RotPos([6.0, 0.0, 0.0]));
-  LoadWireframe(temp.shaders[0], "linePrism.txt", new RotPos([0.0, 0.0, 6.0]));
+  LoadWireframe(temp.shaders[0], "lineObject.txt", new RotPos([6.0, 0.0, 0.0]));
+  LoadWireframe(temp.shaders[0], "lineObject.txt", new RotPos([0.0, 0.0, 6.0]));
 });
 /*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
   temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
@@ -201,9 +204,31 @@ window.addEventListener("keydown", e => {
   }
   //setPressedKey(e.code, 1);
 
+  if (e.code === 'KeyB') {
+    //temp
+    temp.shaders[0].objects[0].physics = new PhysicsObjec(temp.shaders[0].objects[0], physicsScene);
+    temp.shaders[0].objects[1].physics = new PhysicsObjec(temp.shaders[0].objects[1], physicsScene);
+  }
+
   if (e.code === 'KeyA') {
-    console.log(temp.shaders[0].objects[0].rotpos.position);
-    vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.3, 0.0, 0.0])
+    temp.shaders[0].objects[0].physics.Move([0.3, 0.0, 0.0]);
+    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.3, 0.0, 0.0])
+    //console.log(temp.shaders[0].objects[0].rotpos.position);
+  }
+  if (e.code === 'KeyW') {
+    temp.shaders[0].objects[0].physics.Move([0.0, 0.0, 0.3]);
+    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.0, 0.0, 0.3])
+    //console.log(temp.shaders[0].objects[0].rotpos.position);
+  }
+  if (e.code === 'KeyS') {
+    temp.shaders[0].objects[0].physics.Move([0.0, 0.0, -0.3]);
+    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.0, 0.0, -0.3])
+    //console.log(temp.shaders[0].objects[0].rotpos.position);
+  }
+  if (e.code === 'KeyD') {
+    temp.shaders[0].objects[0].physics.Move([-0.3, 0.0, 0.0]);
+    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [-0.3, 0.0, 0.0])
+    //console.log(temp.shaders[0].objects[0].rotpos.position);
   }
 
   if (e.code === 'Digit1') {

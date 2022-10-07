@@ -280,7 +280,7 @@ export class Shader {
 
     for (let objectNum = 0; objectNum < this.objects.length; objectNum++) {
       //const offset = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][3]; //ew ew ew ew ew
-      const vertexCount = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][1] * this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][2];
+      const vertexCount = this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"][0].length;
 
       this.gl.bindVertexArray(this.objects[objectNum].vao);
 
@@ -315,6 +315,8 @@ export class Objec {
     this.texture = null;
     this.vao = null;
     this.shader = null;
+
+    this.physics = null;
 
     this.matrix = mat4.create();
   }
