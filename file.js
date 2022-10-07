@@ -31,6 +31,7 @@ function RenderLoop(now) {
       activeShaders[i].gl.useProgram(activeShaders[i].shaderProgram);
     }
     
+    /*
     let movZ = (pressedKeys[keyEnums["KeyW"]] - pressedKeys[keyEnums["KeyS"]]) / 10;
     vec3.add(activeShaders[i].rotpos.position, activeShaders[i].rotpos.position, [movZ * Math.cos(rotX / 180), 0.0, movZ * Math.sin(rotX / 180)]);
 
@@ -65,7 +66,7 @@ function RenderLoop(now) {
         temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, vec[0], vec[1], vec[2]]);
       }
     }
-
+    */
 
     activeShaders[i].DrawScene();
   }
@@ -143,21 +144,33 @@ async function LoadObject(shader, url, texUrl, pos) {
   }, pos));
 }
 
+async function LoadWireframe(shader, url, pos) {
+  let data = await LoadFileText("Models/" + url);
+  let stringAttributes = ProcessObjectData(data);
+
+  //shader.AddObject({str: stringAttributes, tex: image, pos: pos});
+  shader.AddObject(new Objec({ //Hardcoded, I know, but can fix that later
+    "ARRAY_BUFFER" : {
+      "aVertexPosition" : [stringAttributes[0], 3, 12, 0]
+    },
+
+    "ELEMENT_ARRAY_BUFFER" : [stringAttributes[1]]
+  }, pos));
+}
+
 //Everything above should be seperated into it's own module.
 const temp = new Window("canvas");
-LoadShader(temp, "vertexShader.vs", "fragmentShader.fs").then( (response) => {
-  LoadObject(temp.shaders[0], "prism.txt", "texture.png", new RotPos([6.0, 0.0, 0.0]));
-  LoadObject(temp.shaders[0], "object.txt", "door.png", new RotPos([0.0, 0.0, 6.0]));
-});
 LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
+  LoadWireframe(temp.shaders[0], "linePrism.txt", new RotPos([6.0, 0.0, 0.0]));
+  LoadWireframe(temp.shaders[0], "linePrism.txt", new RotPos([0.0, 0.0, 6.0]));
 });
+/*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
+  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
+});*/
 /*
 LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
   temp.shaders[2].AddObject(new Objec());
 });*/
-
-requestAnimationFrame(RenderLoop);
 
 requestAnimationFrame(RenderLoop);
 
@@ -173,8 +186,9 @@ canvas.addEventListener("click", function(e) {
   }
 });
 
+/*
 const keyEnums = {"KeyW":0, "KeyA":1, "KeyS":2, "KeyD":3}; //Why do I need to use this system?
-let pressedKeys = [0, 0, 0, 0];
+let pressedKeys = [0, 0, 0, 0];*/
 
 window.addEventListener("keydown", e => {
   if (isPaused === true) {
@@ -185,7 +199,12 @@ window.addEventListener("keydown", e => {
 
     return;
   }
-  setPressedKey(e.code, 1);
+  //setPressedKey(e.code, 1);
+
+  if (e.code === 'KeyA') {
+    console.log(temp.shaders[0].objects[0].rotpos.position);
+    vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.3, 0.0, 0.0])
+  }
 
   if (e.code === 'Digit1') {
     quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
@@ -207,6 +226,8 @@ window.addEventListener("keydown", e => {
   }
   //Modify object 0 of shader 0 to rotate
 });
+
+/*
 window.addEventListener("keyup", e => {
   setPressedKey(e.code, 0);
 });
@@ -225,6 +246,7 @@ document.addEventListener("mousemove", e => {
   rotY += e.movementY;
 
 });
+*/
 
 document.addEventListener("onresize", e => {
   for (let i = 0; i < array.length; i++) {
