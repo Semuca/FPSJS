@@ -12,47 +12,76 @@ export class PhysicsScene {
         return this.pobjecs.length - 1; //an id that can be used to destroy the pobjec
     }
 
-    ProposedMove(newPosition, pobjecID) {
+    ProposedMove(position, movement, pobjecID) {
+        let newPos = [0.0, 0.0, 0.0];
+        newPos[0] = position[0] + movement[0]; //Really need to create my own math library, this is not on
+        newPos[1] = position[1] + movement[1];
+        newPos[2] = position[2] + movement[2];
+
         for (let i = 0; i < this.pobjecs.length; i++) {
             if (pobjecID == i) {
                 continue;
             }
 
-            if (this.CheckForCollision(newPosition, i) == true) {
-                return i;
+            if (this.CheckForCollision(newPos, i) == true) {
+                //The old position will have the point where the two cubes intersect, the new one won't. How do I get the point where they intersect?
+                //The point of intersection will have a position on that line (LERP)
+                //The point of intersection will be where the two sides in 1d space line up first. i.e where abs(pos.x/y/z - pobjPos.x/y/z) = 2 as first t: 0->1
+
+                //For x... abs( pos.x + k * move.x - pobjPos.x ) = 2. This exists because we've checked this exists
+                //          If the math inside abs is positive, pos.x + k * move.x - pobjPos.x = 2      =>      k = (2 + pobjPos.x - pos.x) / move.x
+                //          If the math inside abs is negative, -pos.x - k * move.x + pobjPos.x = 2     =>      -k * move.x = 2 - pobjPos.x + pos.x   =>      k = (pobjPos.x - pos.x - 2) / move.x
+                
+                let x_t = 1;
+                let y_t = 1;
+                let z_t = 1;
+                let xCollisionPoint = 0;
+                let yCollisionPoint = 0;
+                let zCollisionPoint = 0;
+
+                if (Math.abs(position[0] - this.pobjecs[i].position[0]) > 2) { //If an axis already intersects, ignore checking for intersections.
+                    xCollisionPoint = this.pobjecs[i].position[0] - Math.sign(movement[0]); //Gets the point where x should collide on the x-axis
+                    x_t = Math.abs(position[0] - xCollisionPoint) / Math.abs(position[0] - newPos[0]);
+                }
+
+                if (Math.abs(position[1] - this.pobjecs[i].position[1]) > 2) {
+                    yCollisionPoint = this.pobjecs[i].position[1] - Math.sign(movement[1]);
+                    y_t = Math.abs(position[1] - yCollisionPoint) / Math.abs(position[1] - newPos[1]);
+                }
+
+                if (Math.abs(position[2] - this.pobjecs[i].position[2]) > 2) {
+                    zCollisionPoint = this.pobjecs[i].position[2] - Math.sign(movement[2]);
+                    z_t = Math.abs(position[2] - zCollisionPoint) / Math.abs(position[2] - newPos[2]);
+                }
+
+                if (x_t < y_t && x_t < z_t) {
+                    newPos[0] = position[0] + x_t * movement[0];
+                    newPos[1] = position[1] + x_t * movement[1];
+                    newPos[2] = position[2] + x_t * movement[2];
+                } else if (y_t < x_t && y_t < z_t) {
+                    newPos[0] = position[0] + y_t * movement[0];
+                    newPos[1] = position[1] + y_t * movement[1];
+                    newPos[2] = position[2] + y_t * movement[2];
+                } else {
+                    newPos[0] = position[0] + z_t * movement[0];
+                    newPos[1] = position[1] + z_t * movement[1];
+                    newPos[2] = position[2] + z_t * movement[2];
+                }
+                break;
             }
         }
 
-        return null;
+        return newPos;
     }
 
     CheckForCollision(newPos, secondPobj) { // Since both pobecs are cubes of size 1m^3, this will hold
-        console.log(" ");
-        console.log(newPos);
-        console.log(this.pobjecs[secondPobj].position);
-        //console.log(Math.abs(newPos[0] - this.pobjecs[secondPobj].position[0]));
-        //console.log(Math.abs(newPos[1] - this.pobjecs[secondPobj].position[1]));
-        //console.log(Math.abs(newPos[2] - this.pobjecs[secondPobj].position[2]));
-        if (Math.abs(newPos.x - this.pobjecs[secondPobj].position[0]) <= 2 &&
-            Math.abs(newPos.y - this.pobjecs[secondPobj].position[1]) <= 2 &&
-            Math.abs(newPos.z - this.pobjecs[secondPobj].position[2]) <= 2) {
+        if (Math.abs(newPos[0] - this.pobjecs[secondPobj].position[0]) <= 2 && //Checks if we intersect on every axis, if so, we intersect in 3d
+            Math.abs(newPos[1] - this.pobjecs[secondPobj].position[1]) <= 2 &&
+            Math.abs(newPos[2] - this.pobjecs[secondPobj].position[2]) <= 2) {
                 return true;
         }
         return false;
 
-        /*
-        if (((newPos[0] + 2 <= this.pobjecs[secondPobj].position[0] + 2 && newPos[0] + 2 >= this.pobjecs[secondPobj].position[0] - 2) ||
-            (newPos[0] - 2 <= this.pobjecs[secondPobj].position[0] + 2 && newPos[0] - 2 >= this.pobjecs[secondPobj].position[0] - 2)) &&
-            ((newPos[1] + 2 <= this.pobjecs[secondPobj].position[1] + 2 && newPos[1] + 2 >= this.pobjecs[secondPobj].position[1] - 2) ||
-            (newPos[1] - 2 <= this.pobjecs[secondPobj].position[1] + 2 && newPos[1] - 2 >= this.pobjecs[secondPobj].position[1] - 2)) &&
-            ((newPos[2] + 2 <= this.pobjecs[secondPobj].position[2] + 2 && newPos[2] + 2 >= this.pobjecs[secondPobj].position[2] - 2) ||
-            (newPos[2] - 2 <= this.pobjecs[secondPobj].position[2] + 2 && newPos[2] - 2 >= this.pobjecs[secondPobj].position[2] - 2)) ) {
-                console.log(" ");
-                console.log(newPos);
-                console.log(this.pobjecs[secondPobj].position);
-                return true;
-        }
-        return false;*/
     }
 }
 
@@ -70,18 +99,11 @@ export class PhysicsObjec { // How do we do circles?. How do we check for concav
 
     //I would also love continuous collision detection, but I don't have the ability or headspace to make it right now.
     Move(direction) {
-        let newPos = [0.0, 0.0, 0.0];
-        newPos.x = this.position[0] + direction[0];
-        newPos.y = this.position[1] + direction[1];
-        newPos.z = this.position[2] + direction[2];
-
-        let colliderPobjec = this.physicsScene.ProposedMove(newPos, this.id);
-        if (colliderPobjec != null) {
-            console.log("WEEWOO WEEWOO COLLISION");
-        }
-        this.position.x = newPos.x;
-        this.position.y = newPos.y;
-        this.position.z = newPos.z;
+        let newPos = this.physicsScene.ProposedMove(this.position, direction, this.id);
+        console.log(newPos);
+        this.position.x = newPos[0];
+        this.position.y = newPos[1];
+        this.position.z = newPos[2];
         this.objec.rotpos.position[0] = this.position.x;
         this.objec.rotpos.position[1] = this.position.y;
         this.objec.rotpos.position[2] = this.position.z;

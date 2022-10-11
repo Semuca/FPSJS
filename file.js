@@ -195,7 +195,6 @@ let pressedKeys = [0, 0, 0, 0];*/
 
 window.addEventListener("keydown", e => {
   if (isPaused === true) {
-
     if (e.code === "KeyC" && document.pointerLockElement != null) {
       temp.shaders[0].ReplaceVertexShader(terminal.value);
     }
