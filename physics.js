@@ -32,33 +32,33 @@ export class PhysicsScene {
                 //          If the math inside abs is positive, pos.x + k * move.x - pobjPos.x = 2      =>      k = (2 + pobjPos.x - pos.x) / move.x
                 //          If the math inside abs is negative, -pos.x - k * move.x + pobjPos.x = 2     =>      -k * move.x = 2 - pobjPos.x + pos.x   =>      k = (pobjPos.x - pos.x - 2) / move.x
                 
-                let x_t = 1;
-                let y_t = 1;
-                let z_t = 1;
+                let x_t = 0;
+                let y_t = 0;
+                let z_t = 0;
                 let xCollisionPoint = 0;
                 let yCollisionPoint = 0;
                 let zCollisionPoint = 0;
 
                 if (Math.abs(position[0] - this.pobjecs[i].position[0]) > 2) { //If an axis already intersects, ignore checking for intersections.
-                    xCollisionPoint = this.pobjecs[i].position[0] - Math.sign(movement[0]); //Gets the point where x should collide on the x-axis
+                    xCollisionPoint = this.pobjecs[i].position[0] - 2 * Math.sign(movement[0]); //Gets the point where x should collide on the x-axis
                     x_t = Math.abs(position[0] - xCollisionPoint) / Math.abs(position[0] - newPos[0]);
                 }
 
                 if (Math.abs(position[1] - this.pobjecs[i].position[1]) > 2) {
-                    yCollisionPoint = this.pobjecs[i].position[1] - Math.sign(movement[1]);
+                    yCollisionPoint = this.pobjecs[i].position[1] - 2 * Math.sign(movement[1]);
                     y_t = Math.abs(position[1] - yCollisionPoint) / Math.abs(position[1] - newPos[1]);
                 }
 
                 if (Math.abs(position[2] - this.pobjecs[i].position[2]) > 2) {
-                    zCollisionPoint = this.pobjecs[i].position[2] - Math.sign(movement[2]);
+                    zCollisionPoint = this.pobjecs[i].position[2] - 2 * Math.sign(movement[2]);
                     z_t = Math.abs(position[2] - zCollisionPoint) / Math.abs(position[2] - newPos[2]);
                 }
 
-                if (x_t < y_t && x_t < z_t) {
+                if (x_t > y_t && x_t > z_t) {
                     newPos[0] = position[0] + x_t * movement[0];
                     newPos[1] = position[1] + x_t * movement[1];
                     newPos[2] = position[2] + x_t * movement[2];
-                } else if (y_t < x_t && y_t < z_t) {
+                } else if (y_t > x_t && y_t > z_t) {
                     newPos[0] = position[0] + y_t * movement[0];
                     newPos[1] = position[1] + y_t * movement[1];
                     newPos[2] = position[2] + y_t * movement[2];
@@ -75,9 +75,9 @@ export class PhysicsScene {
     }
 
     CheckForCollision(newPos, secondPobj) { // Since both pobecs are cubes of size 1m^3, this will hold
-        if (Math.abs(newPos[0] - this.pobjecs[secondPobj].position[0]) <= 2 && //Checks if we intersect on every axis, if so, we intersect in 3d
-            Math.abs(newPos[1] - this.pobjecs[secondPobj].position[1]) <= 2 &&
-            Math.abs(newPos[2] - this.pobjecs[secondPobj].position[2]) <= 2) {
+        if (Math.abs(newPos[0] - this.pobjecs[secondPobj].position[0]) < 2 && //Checks if we intersect on every axis, if so, we intersect in 3d
+            Math.abs(newPos[1] - this.pobjecs[secondPobj].position[1]) < 2 &&
+            Math.abs(newPos[2] - this.pobjecs[secondPobj].position[2]) < 2) {
                 return true;
         }
         return false;
