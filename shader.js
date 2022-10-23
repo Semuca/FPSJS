@@ -1,4 +1,5 @@
 import { Queue } from "./queue.js";
+import {PhysicsScene, PhysicsObjec} from "./physics.js"; //Would prefer not to have physics.js in this file, should change later
 
 //What is placed on the page.
 export class Window {
@@ -133,8 +134,13 @@ export class Shader {
   }
 
   //Adds an Objec to the queue to process and connect the object to the shader
+  //Is this needed anymore?
   AddObject(obj) {
     this.queue.enqueue(obj);
+  }
+
+  RemoveObject(objectNum) {
+    this.objects.splice(objectNum, 1);
   }
 
   //Brings an object from data into opengl
@@ -307,7 +313,7 @@ export class Shader {
 
 //Instance of object
 export class Objec {
-  constructor(objectData, rotpos) {
+  constructor(objectData, rotpos, physicsScene) {
     this.objectData = objectData;
     this.rotpos = rotpos;
 
@@ -316,7 +322,7 @@ export class Objec {
     this.vao = null;
     this.shader = null;
 
-    this.physics = null;
+    this.physics = new PhysicsObjec(this, physicsScene); //For this, i have to include physics.js. Would prefer not to do this, might try and seperate it better later
 
     this.matrix = mat4.create();
   }

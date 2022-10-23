@@ -12,14 +12,19 @@ export class PhysicsScene {
         return this.pobjecs.length - 1; //an id that can be used to destroy the pobjec
     }
 
-    ProposedMove(position, movement, pobjecID) {
-        let newPos = [0.0, 0.0, 0.0];
-        newPos[0] = position[0] + movement[0]; //Really need to create my own math library, this is not on
-        newPos[1] = position[1] + movement[1];
-        newPos[2] = position[2] + movement[2];
+    ProposedMove(position, movement, pobjecID) { //Somehow this isn't working perfectly, won't slide along objects
+        let newPos = vec3.create();
+        vec3.add(newPos, position, movement);
+        //newPos[0] = position[0] + movement[0]; //Really need to create my own math library, this is not on
+        //newPos[1] = position[1] + movement[1];
+        //newPos[2] = position[2] + movement[2];
 
         for (let i = 0; i < this.pobjecs.length; i++) {
             if (pobjecID == i) {
+                continue;
+            }
+
+            if (this.pobjecs[i].enabled === false) {
                 continue;
             }
 
@@ -95,17 +100,24 @@ export class PhysicsObjec { // How do we do circles?. How do we check for concav
         this.objec = objec;
         this.position = objec.rotpos.position;
         this.id = physicsScene.addPobjec(this);
+        this.enabled = true;
     }
 
     //I would also love continuous collision detection, but I don't have the ability or headspace to make it right now.
     Move(direction) {
-        let newPos = this.physicsScene.ProposedMove(this.position, direction, this.id);
-        console.log(newPos);
-        this.position.x = newPos[0];
-        this.position.y = newPos[1];
-        this.position.z = newPos[2];
-        this.objec.rotpos.position[0] = this.position.x;
-        this.objec.rotpos.position[1] = this.position.y;
-        this.objec.rotpos.position[2] = this.position.z;
+        if (this.enabled === true) {
+            let newPos = this.physicsScene.ProposedMove(this.position, direction, this.id);
+            vec3.copy(this.position, newPos);
+            //this.position.x = newPos[0];
+            //this.position.y = newPos[1];
+            //this.position.z = newPos[2];
+
+            vec3.copy(this.objec.rotpos.position, this.position);
+            //this.objec.rotpos.position[0] = this.position.x;
+            //this.objec.rotpos.position[1] = this.position.y;
+            //this.objec.rotpos.position[2] = this.position.z;
+        } else {
+            vec3.add(this.position, this.position, direction);
+        }
     }
 }

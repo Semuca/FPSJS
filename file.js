@@ -10,9 +10,36 @@ let isPaused = false;
 let rotX = 0;
 let rotY = 0;
 
+let objectFocus = 0;
+
+let models = {};
+let physicsScene = new PhysicsScene();
+
+let keysDown = {}
+
+const temp = new Window("canvas");
+LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
+  LoadWireframeModel("lineObject.txt").then( (response) => {
+    //Setup
+    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([6.0, 0.0, 0.0]), physicsScene));
+    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 6.0]), physicsScene));
+
+    requestAnimationFrame(RenderLoop);
+  });
+
+});
+/*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
+  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
+});*/
+/*
+LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
+  temp.shaders[2].AddObject(new Objec());
+});*/
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop(now) {
+
+  //Don't update if mouse pointer is not locked
   if (document.pointerLockElement === null) {
     requestAnimationFrame(RenderLoop);
     return;
@@ -30,6 +57,32 @@ function RenderLoop(now) {
   for (var i = 0; i < activeShaders.length; i++) {
     if (activeShaders.length > 1) {
       activeShaders[i].gl.useProgram(activeShaders[i].shaderProgram);
+    }
+
+    if (temp.shaders[i].objects.length === 0) { //This is a hack, remove it later
+      activeShaders[i].DrawScene();
+      continue;
+    }
+
+    let movementVector = [0.0, 0.0, 0.0]
+
+    if (keysDown["KeyA"] === true) {
+      movementVector[0] += 0.3;
+    }
+    if (keysDown["KeyW"] === true) {
+      movementVector[2] += 0.3;
+    }
+    if (keysDown["KeyS"] === true) {
+      movementVector[2] -= 0.3;
+    }
+    if (keysDown["KeyD"] === true) {
+      movementVector[0] -= 0.3;
+    }
+
+    if (temp.shaders[i].objects[objectFocus].physics.enabled === true) {
+      temp.shaders[i].objects[objectFocus].physics.Move(movementVector);
+    } else {
+      vec3.add(temp.shaders[i].objects[objectFocus].rotpos.position, temp.shaders[i].objects[objectFocus].rotpos.position, movementVector);
     }
     
     /*
@@ -145,55 +198,40 @@ async function LoadObject(shader, url, texUrl, pos) {
   }, pos));
 }
 
-async function LoadWireframe(shader, url, pos) {
+async function LoadWireframeModel(url) {
   let data = await LoadFileText("Models/" + url);
   let stringAttributes = ProcessObjectData(data);
-
-  //shader.AddObject({str: stringAttributes, tex: image, pos: pos});
-  shader.AddObject(new Objec({ //Hardcoded, I know, but can fix that later
+  models[url] = { //Hardcoded, I know, but can fix that later
     "ARRAY_BUFFER" : {
       "aVertexPosition" : [stringAttributes[0], 3, 12, 0]
     },
 
     "ELEMENT_ARRAY_BUFFER" : [stringAttributes[1]]
-  }, pos));
+  };
 }
 
-let physicsScene = new PhysicsScene();
-
-//Everything above should be seperated into it's own module.
-const temp = new Window("canvas");
-LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  LoadWireframe(temp.shaders[0], "lineObject.txt", new RotPos([6.0, 0.0, 0.0]));
-  LoadWireframe(temp.shaders[0], "lineObject.txt", new RotPos([0.0, 0.0, 6.0]));
-});
-/*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
-});*/
-/*
-LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
-  temp.shaders[2].AddObject(new Objec());
-});*/
-
-requestAnimationFrame(RenderLoop);
-
-//What's the difference between window.addeventlistener and document.addeventlistener
+//What's the difference between window.addeventlistener and document.addeventlistener?
 canvas.addEventListener("click", function(e) {
   if (document.pointerLockElement === null) { //Might need to add mozPointerLock, whatever that is
     const now = performance.now();
     if (now - pointerLockActivation > 2500) { //I wouldn't consider this a good solution, but it seems to be the only one that removes a DOMerror
       temp.canvas.requestPointerLock = temp.canvas.requestPointerLock || temp.canvas.mozRequestPointerLock; //Do I need to do this every time?
-      temp.canvas.requestPointerLock()
+      temp.canvas.requestPointerLock();
       pointerLockActivation = now;
     }
   }
 });
 
-/*
-const keyEnums = {"KeyW":0, "KeyA":1, "KeyS":2, "KeyD":3}; //Why do I need to use this system?
-let pressedKeys = [0, 0, 0, 0];*/
+//Sets the keysDown and the keysUp, means smoother movement
+window.addEventListener("keyup", e => {
+  if (isPaused === true) {
+    return;
+  }
+  keysDown[e.code] = false;
+});
 
 window.addEventListener("keydown", e => {
+  //If paused, we only want to compile the console
   if (isPaused === true) {
     if (e.code === "KeyC" && document.pointerLockElement != null) {
       temp.shaders[0].ReplaceVertexShader(terminal.value);
@@ -201,35 +239,64 @@ window.addEventListener("keydown", e => {
 
     return;
   }
-  //setPressedKey(e.code, 1);
 
-  if (e.code === 'KeyB') {
-    //temp
-    temp.shaders[0].objects[0].physics = new PhysicsObjec(temp.shaders[0].objects[0], physicsScene);
-    temp.shaders[0].objects[1].physics = new PhysicsObjec(temp.shaders[0].objects[1], physicsScene);
-  }
+  //Set what keys are being currently held down
+  keysDown[e.code] = true;
 
-  if (e.code === 'KeyA') {
-    temp.shaders[0].objects[0].physics.Move([0.3, 0.0, 0.0]);
-    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.3, 0.0, 0.0])
-    //console.log(temp.shaders[0].objects[0].rotpos.position);
+  //Toggle fullscreen on enter
+  if (e.key === "Enter") {
+    toggleFullScreen();
+    return;
   }
-  if (e.code === 'KeyW') {
-    temp.shaders[0].objects[0].physics.Move([0.0, 0.0, 0.3]);
-    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.0, 0.0, 0.3])
-    //console.log(temp.shaders[0].objects[0].rotpos.position);
-  }
-  if (e.code === 'KeyS') {
-    temp.shaders[0].objects[0].physics.Move([0.0, 0.0, -0.3]);
-    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [0.0, 0.0, -0.3])
-    //console.log(temp.shaders[0].objects[0].rotpos.position);
-  }
-  if (e.code === 'KeyD') {
-    temp.shaders[0].objects[0].physics.Move([-0.3, 0.0, 0.0]);
-    //vec3.add(temp.shaders[0].objects[0].rotpos.position, temp.shaders[0].objects[0].rotpos.position, [-0.3, 0.0, 0.0])
-    //console.log(temp.shaders[0].objects[0].rotpos.position);
+  
+  //Open terminal on '`'
+  if (e.key === "`") {
+    isPaused = !isPaused
+    if (isPaused === false) {
+      //Unpause the game
+      terminal.hidden = true;
+      requestAnimationFrame(RenderLoop);
+    } else {
+      terminal.hidden = false;
+    }
+    return;
   }
 
+  //Create new object at origin on 'C'
+  if (e.code === "KeyC") {
+    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 0.0]), physicsScene));
+    return;
+  }
+
+  //Swap the focus on object on 'X'
+  if (e.code === "KeyX") {
+    objectFocus += 1;
+    if (objectFocus >= temp.shaders[0].objects.length) {
+      objectFocus = 0;
+    }
+    return;
+  }
+
+  //Disable physics on 'Z'
+  if (e.code === "KeyZ") {
+    if (temp.shaders[0].objects[objectFocus].physics.enabled === false) {
+      temp.shaders[0].objects[objectFocus].physics.enabled = true;
+    } else {
+      temp.shaders[0].objects[objectFocus].physics.enabled = false;
+    }
+    return;
+  }
+
+  //Delete currently focussed object on 'V'
+  if (e.code === "KeyV") {
+    temp.shaders[0].RemoveObject(objectFocus);
+    if (objectFocus >= temp.shaders[0].objects.length) {
+      objectFocus = 0;
+    }
+    return;
+  }
+
+  /*
   if (e.code === 'Digit1') {
     quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
   }
@@ -247,21 +314,11 @@ window.addEventListener("keydown", e => {
   }
   if (e.code === 'Digit6') {
     quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
-  }
+  }*/
   //Modify object 0 of shader 0 to rotate
 });
 
 /*
-window.addEventListener("keyup", e => {
-  setPressedKey(e.code, 0);
-});
-
-function setPressedKey(code, value) {
-  if ((keyEnums[code] || code === "KeyW")) {
-    pressedKeys[keyEnums[code]] = value;
-  }
-}
-
 document.addEventListener("mousemove", e => {
   if (document.pointerLockElement === null || isPaused === true) {
     return;
@@ -272,12 +329,7 @@ document.addEventListener("mousemove", e => {
 });
 */
 
-document.addEventListener("onresize", e => {
-  for (let i = 0; i < array.length; i++) {
-    temp.shaders[i].gl.viewport(0, 0, temp.shaders[i].gl.canvas.width, temp.shaders[i].gl.canvas.height);
-  }
-});
-
+//Resizing for the window. What's the difference between "resize" and "onresize"?
 window.addEventListener("resize", e => {
   for (let i = 0; i < temp.shaders.length; i++) {
     temp.shaders[i].gl.viewport(0, 0, temp.canvas.width, temp.canvas.height);
@@ -286,22 +338,7 @@ window.addEventListener("resize", e => {
   }
 });
 
-
-document.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    toggleFullScreen();
-  } else if (e.key === "`") {
-    isPaused = !isPaused
-    if (isPaused === false) {
-      //Unpause the game
-      terminal.hidden = true;
-      requestAnimationFrame(RenderLoop);
-    } else {
-      terminal.hidden = false;
-    }
-  }
-}, false);
-
+//Toggles fullscreen
 function toggleFullScreen() {
   if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
