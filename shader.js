@@ -328,7 +328,7 @@ export class Objec {
   }
 
   GetMatrix() {
-    mat4.fromRotationTranslation(this.matrix, this.rotpos.rotation, this.rotpos.position);
+    mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, this.rotpos.position, this.rotpos.scale);
     return this.matrix;
   }
 
@@ -356,9 +356,10 @@ class ObjectData { //Shouldn't this have a rotpos?
 //TIDYING STATUS: GREEN
 export class RotPos {
   //Constructor passing in position and rotation
-  constructor(position, rotation) {
+  constructor(position, rotation, scale) {
     this.position = (position === undefined) ? vec3.create() : position;
     this.rotation = (rotation === undefined) ? quat.create() : rotation;
+    this.scale = (scale === undefined) ? vec3.fromValues(1, 1, 1) : scale;
   }
 
   get forward() { //You know, I don't think I like writing with glMatrix library. Maybe make my own?

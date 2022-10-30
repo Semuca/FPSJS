@@ -22,7 +22,7 @@ LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response
   LoadWireframeModel("lineObject.txt").then( (response) => {
     //Setup
     temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([6.0, 0.0, 0.0]), physicsScene));
-    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 6.0]), physicsScene));
+    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 6.0], undefined, [3.0, 0.5, 1.0]), physicsScene));
 
     requestAnimationFrame(RenderLoop);
   });
