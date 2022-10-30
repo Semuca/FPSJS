@@ -68,21 +68,33 @@ export class PhysicsScene {
                 }
 
                 if (x_t > y_t && x_t > z_t) {
-                    newPos[0] = position[0] + x_t * movement[0];
-                } else if (y_t > x_t && y_t > z_t) {
-                    newPos[1] = position[1] + y_t * movement[1];
-                } else if (z_t > x_t && z_t > y_t){
-                    newPos[2] = position[2] + z_t * movement[2];
-                } else { //When the values are all equal?? Right now I'm only dealing with the case (0, 0, 0), as it is by far the most common
-                    if (Math.abs(position[0] - this.pobjecs[i].position[0]) >= sizesX) {
+                    if (Math.abs(newPos[0] - position[0]) > Math.abs(x_t * movement[0])) { //If the distance moved so far is greater than the distance you want to move
                         newPos[0] = position[0] + x_t * movement[0];
-                    } else if (Math.abs(position[1] - this.pobjecs[i].position[1]) >= sizesY) {
+                    }
+                } else if (y_t > x_t && y_t > z_t) {
+                    if (Math.abs(newPos[1] - position[1]) > Math.abs(y_t * movement[1])) {
                         newPos[1] = position[1] + y_t * movement[1];
-                    } else {
+                    }
+                } else if (z_t > x_t && z_t > y_t){
+                    if (Math.abs(newPos[2] - position[2]) > Math.abs(z_t * movement[2])) {
                         newPos[2] = position[2] + z_t * movement[2];
                     }
+                } else { //When the values are all equal?? Right now I'm only dealing with the case (0, 0, 0), as it is by far the most common
+                    if (Math.abs(position[0] - this.pobjecs[i].position[0]) >= sizesX) {
+                        if (Math.abs(newPos[0] - position[0]) > Math.abs(x_t * movement[0])) { //If the distance moved so far is greater than the distance you want to move
+                            newPos[0] = position[0] + x_t * movement[0];
+                        }
+                    } else if (Math.abs(position[1] - this.pobjecs[i].position[1]) >= sizesY) {
+                        if (Math.abs(newPos[1] - position[1]) > Math.abs(y_t * movement[1])) {
+                            newPos[1] = position[1] + y_t * movement[1];
+                        }
+                    } else {
+                        if (Math.abs(newPos[2] - position[2]) > Math.abs(z_t * movement[2])) {
+                            newPos[2] = position[2] + z_t * movement[2];
+                        }
+                    }
                 }
-                break;
+                //break;
             }
         }
 
