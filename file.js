@@ -18,6 +18,9 @@ let physicsScene = new PhysicsScene();
 let keysDown = {}
 
 const temp = new Window("canvas");
+LoadMap("map.txt");
+
+/*
 LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
   LoadWireframeModel("lineObject.txt").then( (response) => {
     //Setup
@@ -27,7 +30,9 @@ LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response
     requestAnimationFrame(RenderLoop);
   });
 
-});
+});*/
+
+
 /*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
   temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
 });*/
@@ -208,6 +213,65 @@ async function LoadWireframeModel(url) {
 
     "ELEMENT_ARRAY_BUFFER" : [stringAttributes[1]]
   };
+}
+
+async function LoadMap(url) {
+  let data = await LoadFileText(url);
+  let stringAttributes = data.split("\r");
+
+  for (let i = 0; i < stringAttributes.length; i++) {
+    stringAttributes[i] = stringAttributes[i].replace(/\n/g, "");
+    stringAttributes[i] = stringAttributes[i].replace(/ /g, "");
+    stringAttributes[i] = stringAttributes[i].split(":");
+
+    for (let j = 0; j < stringAttributes[i].length; j++) {
+      stringAttributes[i][j] = stringAttributes[i][j].split(",");
+      if (stringAttributes[i][j].length == 1) {
+        stringAttributes[i][j] = stringAttributes[i][j];
+      }
+    }
+    //console.log(stringAttributes[i]);
+  }
+
+  //Load all shaders
+  let shaderCount = parseInt(stringAttributes[0][0]);
+
+  for (let i = 0; i < shaderCount; i++) {
+    console.log(stringAttributes[i + 1][0][0]);
+    console.log(stringAttributes[i + 1][0][1]);
+    await LoadShader(temp, stringAttributes[i + 1][0][0], stringAttributes[i + 1][0][1]);
+  }
+
+  //Load all unique models
+  let modelCount = parseInt(stringAttributes[shaderCount + 1][0]);
+
+  for (let i = 0; i < modelCount; i++) {
+    console.log(stringAttributes[shaderCount + i + 2][0][0]);
+    await LoadWireframeModel(stringAttributes[shaderCount + i + 2][0][0]);
+  }
+
+  //Instantiate all objects
+  for (let i = shaderCount + modelCount + 2; i < stringAttributes.length; i++) {
+
+    let position = undefined;
+    let rotation = undefined;
+    let scale = undefined;
+    if (stringAttributes[i][1][0] != "") {
+      position = [parseFloat(stringAttributes[i][1][0]), parseFloat(stringAttributes[i][1][1]), parseFloat(stringAttributes[i][1][2])]
+    }
+
+    if (stringAttributes[i][2][0] != "") {
+      rotation = [parseFloat(stringAttributes[i][2][0]), parseFloat(stringAttributes[i][2][1]), parseFloat(stringAttributes[i][2][2])]
+    }
+
+    if (stringAttributes[i][3][0] != "") {
+      scale = [parseFloat(stringAttributes[i][3][0]), parseFloat(stringAttributes[i][3][1]), parseFloat(stringAttributes[i][3][2])]
+    }
+
+    temp.shaders[0].AddObject(new Objec(models[stringAttributes[i][0][0]], new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
+  }
+
+  requestAnimationFrame(RenderLoop);
 }
 
 //What's the difference between window.addeventlistener and document.addeventlistener?

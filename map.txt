@@ -1,0 +1,6 @@
+1
+lineVertexShader.vs, lineFragmentShader.fs
+1
+lineObject.txt
+lineObject.txt: 6.0, 0.0, 0.0 : :
+lineObject.txt: 0.0, 0.0, 6.0 : : 3.0, 0.5, 1.0
