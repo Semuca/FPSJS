@@ -1,4 +1,3 @@
-import { Queue } from "./queue.js";
 //import {PhysicsScene, PhysicsObjec} from "./physics.js";
 import {Objec, RotPos} from "./objec.js";
 
@@ -42,7 +41,6 @@ export class Shader {
     this.objects = [];
 
     this.rotpos = new RotPos(); //This shouldn't exist for a shader, but I have no other of storing camera position right now
-    this.queue = new Queue();
 
     //Temporary
     this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
@@ -132,12 +130,6 @@ export class Shader {
       this.programInfo.uniformLocations[uniformInfo.name] = this.gl.getUniformLocation(this.shaderProgram, uniformInfo.name);
     }
 
-  }
-
-  //Adds an Objec to the queue to process and connect the object to the shader
-  //Is this needed anymore?
-  AddObject(obj) {
-    this.queue.enqueue(obj);
   }
 
   RemoveObject(objectNum) {
@@ -269,11 +261,6 @@ export class Shader {
   }
   
   DrawScene() {
-    while (this.queue.length != 0) {
-      const obj = this.queue.dequeue();
-      this.CreateObject(obj);
-    }
-
     //Implement this when I figure out how quaternions work
     /*
     mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);

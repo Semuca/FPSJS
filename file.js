@@ -150,7 +150,7 @@ function ProcessObjectData(data) {
 }
 
 function MountModel(model, rotpos) {
-  temp.shaders[model.shaderId].AddObject(new Objec(model.data, rotpos, physicsScene));
+  temp.shaders[model.shaderId].CreateObject(new Objec(model.data, rotpos, physicsScene));
 }
 
 //Loads values from text files given by the url
@@ -187,7 +187,7 @@ async function LoadObject(shader, url, texUrl, pos) {
   let stringAttributes = ProcessObjectData(data);
   let image = await LoadImage("Textures/" + texUrl);
   //shader.AddObject({str: stringAttributes, tex: image, pos: pos});
-  shader.AddObject(new Objec({ //Hardcoded, I know, but can fix that later
+  shader.CreateObject(new Objec({ //Hardcoded, I know, but can fix that later
     "ARRAY_BUFFER" : {
       "aVertexPosition" : [stringAttributes[0], 3, 12, 0],
       "aTexturePosition" : [stringAttributes[2], 2, 8, 0]
@@ -281,7 +281,8 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
       scale = [parseFloat(stringAttributes[i][3][0]), parseFloat(stringAttributes[i][3][1]), parseFloat(stringAttributes[i][3][2])]
     }
 
-    temp.shaders[0].AddObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
+    //fugly
+    temp.shaders[models[stringAttributes[i][0]].shaderId].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
   }
 
   requestAnimationFrame(RenderLoop);
@@ -341,7 +342,7 @@ window.addEventListener("keydown", e => {
 
   //Create new object at origin on 'C'
   if (e.code === "KeyC") {
-    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 0.0]), physicsScene));
+    temp.shaders[0].CreateObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 0.0]), physicsScene));
     return;
   }
 
