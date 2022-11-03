@@ -1,14 +1,17 @@
-import {Window, Shader, Objec, RotPos} from "./shader.js";
-import {PhysicsScene, PhysicsObjec} from "./physics.js";
+// There should be some way for indentations to be uniform on vscode. Not sure how to do it now though
 
-let terminal = document.getElementById("texty");
+import {Window, Shader} from "./shader.js";
+import {PhysicsScene, PhysicsObjec} from "./physics.js";
+import {Model, Objec, RotPos} from "./objec.js";
+
+let terminal = document.getElementById("texty"); //Need a better system for built-in html ui sometime in the future
 
 let time = 0;
 let pointerLockActivation = 0;
 let isPaused = false;
 
-let rotX = 0;
-let rotY = 0;
+//let rotX = 0;
+//let rotY = 0;
 
 let objectFocus = 0;
 
@@ -20,17 +23,6 @@ let keysDown = {}
 const temp = new Window("canvas");
 LoadMap("map.txt");
 
-/*
-LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  LoadWireframeModel("lineObject.txt").then( (response) => {
-    //Setup
-    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([6.0, 0.0, 0.0]), physicsScene));
-    temp.shaders[0].AddObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 6.0], undefined, [3.0, 0.5, 1.0]), physicsScene));
-
-    requestAnimationFrame(RenderLoop);
-  });
-
-});*/
 
 
 /*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
@@ -157,6 +149,10 @@ function ProcessObjectData(data) {
   return stringAttributes;
 }
 
+function MountModel(model, rotpos) {
+  temp.shaders[model.shaderId].AddObject(new Objec(model.data, rotpos, physicsScene));
+}
+
 //Loads values from text files given by the url
 //TIDYING STATUS: GREEN
 async function LoadFileText(url) {
@@ -206,7 +202,8 @@ async function LoadObject(shader, url, texUrl, pos) {
 async function LoadWireframeModel(url) {
   let data = await LoadFileText("Models/" + url);
   let stringAttributes = ProcessObjectData(data);
-  models[url] = { //Hardcoded, I know, but can fix that later
+  
+  return { //Hardcoded, I know, but can fix that later
     "ARRAY_BUFFER" : {
       "aVertexPosition" : [stringAttributes[0], 3, 12, 0]
     },
@@ -215,30 +212,40 @@ async function LoadWireframeModel(url) {
   };
 }
 
-async function LoadMap(url) {
+async function LoadMap(url) { //No validation on the file yet, but that can be changed later. It'll probably be really tedious anyway
   let data = await LoadFileText(url);
-  let stringAttributes = data.split("\r");
+  let rawStringAttributes = data.split("\r\n");
+  let stringAttributes = [];
 
-  for (let i = 0; i < stringAttributes.length; i++) {
-    stringAttributes[i] = stringAttributes[i].replace(/\n/g, "");
-    stringAttributes[i] = stringAttributes[i].replace(/ /g, "");
-    stringAttributes[i] = stringAttributes[i].split(":");
+  let skipped = 0;
+  for (let i = 0; i < rawStringAttributes.length; i++) {
+    //console.log(rawStringAttributes[i]);
+    if (rawStringAttributes[i] == "") {
+      skipped++;
+      continue;
+    }
 
-    for (let j = 0; j < stringAttributes[i].length; j++) {
-      stringAttributes[i][j] = stringAttributes[i][j].split(",");
-      if (stringAttributes[i][j].length == 1) {
-        stringAttributes[i][j] = stringAttributes[i][j];
+    
+    //stringAttributes[i] = rawStringAttributes[i].replace(/\n/g, "");
+    //console.log(stringAttributes[i]);
+    stringAttributes[i - skipped] = rawStringAttributes[i].replaceAll(" ", "");
+    //console.log(stringAttributes[i - skipped]);
+    stringAttributes[i - skipped] = stringAttributes[i - skipped].split(":");
+
+    for (let j = 0; j < stringAttributes[i - skipped].length; j++) {
+      
+      stringAttributes[i - skipped][j] = stringAttributes[i - skipped][j].split(",");
+      if (stringAttributes[i - skipped][j].length == 1) {
+        stringAttributes[i - skipped][j] = stringAttributes[i - skipped][j][0];
       }
     }
-    //console.log(stringAttributes[i]);
+    //console.log(stringAttributes[i - skipped]);
   }
 
   //Load all shaders
   let shaderCount = parseInt(stringAttributes[0][0]);
 
   for (let i = 0; i < shaderCount; i++) {
-    console.log(stringAttributes[i + 1][0][0]);
-    console.log(stringAttributes[i + 1][0][1]);
     await LoadShader(temp, stringAttributes[i + 1][0][0], stringAttributes[i + 1][0][1]);
   }
 
@@ -246,8 +253,14 @@ async function LoadMap(url) {
   let modelCount = parseInt(stringAttributes[shaderCount + 1][0]);
 
   for (let i = 0; i < modelCount; i++) {
-    console.log(stringAttributes[shaderCount + i + 2][0][0]);
-    await LoadWireframeModel(stringAttributes[shaderCount + i + 2][0][0]);
+    const url = stringAttributes[shaderCount + i + 2][0];
+    const modelData = await LoadWireframeModel(url);
+
+    if (shaderCount === 1) { //If there's only one shader, there's no need to specify which shader we're using
+      models[url] = new Model(0, modelData);
+    } else {
+      models[url] = new Model(stringAttributes[shaderCount + i + 2][1], modelData);
+    }
   }
 
   //Instantiate all objects
@@ -256,19 +269,19 @@ async function LoadMap(url) {
     let position = undefined;
     let rotation = undefined;
     let scale = undefined;
-    if (stringAttributes[i][1][0] != "") {
+    if (stringAttributes[i][1] != "") {
       position = [parseFloat(stringAttributes[i][1][0]), parseFloat(stringAttributes[i][1][1]), parseFloat(stringAttributes[i][1][2])]
     }
 
-    if (stringAttributes[i][2][0] != "") {
+    if (stringAttributes[i][2] != "") {
       rotation = [parseFloat(stringAttributes[i][2][0]), parseFloat(stringAttributes[i][2][1]), parseFloat(stringAttributes[i][2][2])]
     }
 
-    if (stringAttributes[i][3][0] != "") {
+    if (stringAttributes[i][3] != "") {
       scale = [parseFloat(stringAttributes[i][3][0]), parseFloat(stringAttributes[i][3][1]), parseFloat(stringAttributes[i][3][2])]
     }
 
-    temp.shaders[0].AddObject(new Objec(models[stringAttributes[i][0][0]], new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
+    temp.shaders[0].AddObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
   }
 
   requestAnimationFrame(RenderLoop);
