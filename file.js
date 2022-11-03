@@ -1,17 +1,42 @@
-import {Window, Shader, Objec, RotPos} from "./shader.js";
+// There should be some way for indentations to be uniform on vscode. Not sure how to do it now though
 
-let terminal = document.getElementById("texty");
+import {Window, Shader} from "./shader.js";
+import {PhysicsScene, PhysicsObjec} from "./physics.js";
+import {Model, Objec, RotPos} from "./objec.js";
+
+let terminal = document.getElementById("texty"); //Need a better system for built-in html ui sometime in the future
 
 let time = 0;
 let pointerLockActivation = 0;
 let isPaused = false;
 
-let rotX = 0;
-let rotY = 0;
+//let rotX = 0;
+//let rotY = 0;
 
+let objectFocus = 0;
+
+let models = {};
+let physicsScene = new PhysicsScene();
+
+let keysDown = {}
+
+const temp = new Window("canvas");
+LoadMap("map.txt");
+
+
+
+/*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
+  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
+});*/
+/*
+LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
+  temp.shaders[2].AddObject(new Objec());
+});*/
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop(now) {
+
+  //Don't update if mouse pointer is not locked
   if (document.pointerLockElement === null) {
     requestAnimationFrame(RenderLoop);
     return;
@@ -30,7 +55,34 @@ function RenderLoop(now) {
     if (activeShaders.length > 1) {
       activeShaders[i].gl.useProgram(activeShaders[i].shaderProgram);
     }
+
+    if (temp.shaders[i].objects.length === 0) { //This is a hack, remove it later
+      activeShaders[i].DrawScene();
+      continue;
+    }
+
+    let movementVector = [0.0, 0.0, 0.0]
+
+    if (keysDown["KeyA"] === true) {
+      movementVector[0] += 0.3;
+    }
+    if (keysDown["KeyW"] === true) {
+      movementVector[2] += 0.3;
+    }
+    if (keysDown["KeyS"] === true) {
+      movementVector[2] -= 0.3;
+    }
+    if (keysDown["KeyD"] === true) {
+      movementVector[0] -= 0.3;
+    }
+
+    if (temp.shaders[i].objects[objectFocus].physics.enabled === true) {
+      temp.shaders[i].objects[objectFocus].physics.Move(movementVector);
+    } else {
+      vec3.add(temp.shaders[i].objects[objectFocus].rotpos.position, temp.shaders[i].objects[objectFocus].rotpos.position, movementVector);
+    }
     
+    /*
     let movZ = (pressedKeys[keyEnums["KeyW"]] - pressedKeys[keyEnums["KeyS"]]) / 10;
     vec3.add(activeShaders[i].rotpos.position, activeShaders[i].rotpos.position, [movZ * Math.cos(rotX / 180), 0.0, movZ * Math.sin(rotX / 180)]);
 
@@ -65,7 +117,7 @@ function RenderLoop(now) {
         temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, vec[0], vec[1], vec[2]]);
       }
     }
-
+    */
 
     activeShaders[i].DrawScene();
   }
@@ -95,6 +147,10 @@ function ProcessObjectData(data) {
   }
 
   return stringAttributes;
+}
+
+function MountModel(model, rotpos) {
+  temp.shaders[model.shaderId].CreateObject(new Objec(model.data, rotpos, physicsScene));
 }
 
 //Loads values from text files given by the url
@@ -131,7 +187,7 @@ async function LoadObject(shader, url, texUrl, pos) {
   let stringAttributes = ProcessObjectData(data);
   let image = await LoadImage("Textures/" + texUrl);
   //shader.AddObject({str: stringAttributes, tex: image, pos: pos});
-  shader.AddObject(new Objec({ //Hardcoded, I know, but can fix that later
+  shader.CreateObject(new Objec({ //Hardcoded, I know, but can fix that later
     "ARRAY_BUFFER" : {
       "aVertexPosition" : [stringAttributes[0], 3, 12, 0],
       "aTexturePosition" : [stringAttributes[2], 2, 8, 0]
@@ -143,50 +199,182 @@ async function LoadObject(shader, url, texUrl, pos) {
   }, pos));
 }
 
-//Everything above should be seperated into it's own module.
-const temp = new Window("canvas");
-LoadShader(temp, "vertexShader.vs", "fragmentShader.fs").then( (response) => {
-  LoadObject(temp.shaders[0], "prism.txt", "texture.png", new RotPos([6.0, 0.0, 0.0]));
-  LoadObject(temp.shaders[0], "object.txt", "door.png", new RotPos([0.0, 0.0, 6.0]));
-});
-LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
-});
-/*
-LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
-  temp.shaders[2].AddObject(new Objec());
-});*/
+async function LoadWireframeModel(url) {
+  let data = await LoadFileText("Models/" + url);
+  let stringAttributes = ProcessObjectData(data);
+  
+  return { //Hardcoded, I know, but can fix that later
+    "ARRAY_BUFFER" : {
+      "aVertexPosition" : [stringAttributes[0], 3, 12, 0]
+    },
 
-requestAnimationFrame(RenderLoop);
+    "ELEMENT_ARRAY_BUFFER" : [stringAttributes[1]]
+  };
+}
 
-requestAnimationFrame(RenderLoop);
+async function LoadMap(url) { //No validation on the file yet, but that can be changed later. It'll probably be really tedious anyway
+  let data = await LoadFileText(url);
+  let rawStringAttributes = data.split("\r\n");
+  let stringAttributes = [];
 
-//What's the difference between window.addeventlistener and document.addeventlistener
+  let skipped = 0;
+  for (let i = 0; i < rawStringAttributes.length; i++) {
+    //console.log(rawStringAttributes[i]);
+    if (rawStringAttributes[i] == "") {
+      skipped++;
+      continue;
+    }
+
+    
+    //stringAttributes[i] = rawStringAttributes[i].replace(/\n/g, "");
+    //console.log(stringAttributes[i]);
+    stringAttributes[i - skipped] = rawStringAttributes[i].replaceAll(" ", "");
+    //console.log(stringAttributes[i - skipped]);
+    stringAttributes[i - skipped] = stringAttributes[i - skipped].split(":");
+
+    for (let j = 0; j < stringAttributes[i - skipped].length; j++) {
+      
+      stringAttributes[i - skipped][j] = stringAttributes[i - skipped][j].split(",");
+      if (stringAttributes[i - skipped][j].length == 1) {
+        stringAttributes[i - skipped][j] = stringAttributes[i - skipped][j][0];
+      }
+    }
+    //console.log(stringAttributes[i - skipped]);
+  }
+
+  //Load all shaders
+  let shaderCount = parseInt(stringAttributes[0][0]);
+
+  for (let i = 0; i < shaderCount; i++) {
+    await LoadShader(temp, stringAttributes[i + 1][0][0], stringAttributes[i + 1][0][1]);
+  }
+
+  //Load all unique models
+  let modelCount = parseInt(stringAttributes[shaderCount + 1][0]);
+
+  for (let i = 0; i < modelCount; i++) {
+    const url = stringAttributes[shaderCount + i + 2][0];
+    const modelData = await LoadWireframeModel(url);
+
+    if (shaderCount === 1) { //If there's only one shader, there's no need to specify which shader we're using
+      models[url] = new Model(0, modelData);
+    } else {
+      models[url] = new Model(stringAttributes[shaderCount + i + 2][1], modelData);
+    }
+  }
+
+  //Instantiate all objects
+  for (let i = shaderCount + modelCount + 2; i < stringAttributes.length; i++) {
+
+    let position = undefined;
+    let rotation = undefined;
+    let scale = undefined;
+    if (stringAttributes[i][1] != "") {
+      position = [parseFloat(stringAttributes[i][1][0]), parseFloat(stringAttributes[i][1][1]), parseFloat(stringAttributes[i][1][2])]
+    }
+
+    if (stringAttributes[i][2] != "") {
+      rotation = [parseFloat(stringAttributes[i][2][0]), parseFloat(stringAttributes[i][2][1]), parseFloat(stringAttributes[i][2][2])]
+    }
+
+    if (stringAttributes[i][3] != "") {
+      scale = [parseFloat(stringAttributes[i][3][0]), parseFloat(stringAttributes[i][3][1]), parseFloat(stringAttributes[i][3][2])]
+    }
+
+    //fugly
+    temp.shaders[models[stringAttributes[i][0]].shaderId].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
+  }
+
+  requestAnimationFrame(RenderLoop);
+}
+
+//What's the difference between window.addeventlistener and document.addeventlistener?
 canvas.addEventListener("click", function(e) {
   if (document.pointerLockElement === null) { //Might need to add mozPointerLock, whatever that is
     const now = performance.now();
     if (now - pointerLockActivation > 2500) { //I wouldn't consider this a good solution, but it seems to be the only one that removes a DOMerror
       temp.canvas.requestPointerLock = temp.canvas.requestPointerLock || temp.canvas.mozRequestPointerLock; //Do I need to do this every time?
-      temp.canvas.requestPointerLock()
+      temp.canvas.requestPointerLock();
       pointerLockActivation = now;
     }
   }
 });
 
-const keyEnums = {"KeyW":0, "KeyA":1, "KeyS":2, "KeyD":3}; //Why do I need to use this system?
-let pressedKeys = [0, 0, 0, 0];
+//Sets the keysDown and the keysUp, means smoother movement
+window.addEventListener("keyup", e => {
+  if (isPaused === true) {
+    return;
+  }
+  keysDown[e.code] = false;
+});
 
 window.addEventListener("keydown", e => {
+  //If paused, we only want to compile the console
   if (isPaused === true) {
-
     if (e.code === "KeyC" && document.pointerLockElement != null) {
       temp.shaders[0].ReplaceVertexShader(terminal.value);
     }
 
     return;
   }
-  setPressedKey(e.code, 1);
 
+  //Set what keys are being currently held down
+  keysDown[e.code] = true;
+
+  //Toggle fullscreen on enter
+  if (e.key === "Enter") {
+    toggleFullScreen();
+    return;
+  }
+  
+  //Open terminal on '`'
+  if (e.key === "`") {
+    isPaused = !isPaused
+    if (isPaused === false) {
+      //Unpause the game
+      terminal.hidden = true;
+      requestAnimationFrame(RenderLoop);
+    } else {
+      terminal.hidden = false;
+    }
+    return;
+  }
+
+  //Create new object at origin on 'C'
+  if (e.code === "KeyC") {
+    temp.shaders[0].CreateObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 0.0]), physicsScene));
+    return;
+  }
+
+  //Swap the focus on object on 'X'
+  if (e.code === "KeyX") {
+    objectFocus += 1;
+    if (objectFocus >= temp.shaders[0].objects.length) {
+      objectFocus = 0;
+    }
+    return;
+  }
+
+  //Disable physics on 'Z'
+  if (e.code === "KeyZ") {
+    if (temp.shaders[0].objects[objectFocus].physics.enabled === false) {
+      temp.shaders[0].objects[objectFocus].physics.enabled = true;
+    } else {
+      temp.shaders[0].objects[objectFocus].physics.enabled = false;
+    }
+    return;
+  }
+
+  //Delete currently focussed object on 'V'
+  if (e.code === "KeyV") {
+    temp.shaders[0].RemoveObject(objectFocus);
+    if (objectFocus >= temp.shaders[0].objects.length) {
+      objectFocus = 0;
+    }
+    return;
+  }
+
+  /*
   if (e.code === 'Digit1') {
     quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
   }
@@ -204,19 +392,11 @@ window.addEventListener("keydown", e => {
   }
   if (e.code === 'Digit6') {
     quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
-  }
+  }*/
   //Modify object 0 of shader 0 to rotate
 });
-window.addEventListener("keyup", e => {
-  setPressedKey(e.code, 0);
-});
 
-function setPressedKey(code, value) {
-  if ((keyEnums[code] || code === "KeyW")) {
-    pressedKeys[keyEnums[code]] = value;
-  }
-}
-
+/*
 document.addEventListener("mousemove", e => {
   if (document.pointerLockElement === null || isPaused === true) {
     return;
@@ -225,13 +405,9 @@ document.addEventListener("mousemove", e => {
   rotY += e.movementY;
 
 });
+*/
 
-document.addEventListener("onresize", e => {
-  for (let i = 0; i < array.length; i++) {
-    temp.shaders[i].gl.viewport(0, 0, temp.shaders[i].gl.canvas.width, temp.shaders[i].gl.canvas.height);
-  }
-});
-
+//Resizing for the window. What's the difference between "resize" and "onresize"?
 window.addEventListener("resize", e => {
   for (let i = 0; i < temp.shaders.length; i++) {
     temp.shaders[i].gl.viewport(0, 0, temp.canvas.width, temp.canvas.height);
@@ -240,22 +416,7 @@ window.addEventListener("resize", e => {
   }
 });
 
-
-document.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    toggleFullScreen();
-  } else if (e.key === "`") {
-    isPaused = !isPaused
-    if (isPaused === false) {
-      //Unpause the game
-      terminal.hidden = true;
-      requestAnimationFrame(RenderLoop);
-    } else {
-      terminal.hidden = false;
-    }
-  }
-}, false);
-
+//Toggles fullscreen
 function toggleFullScreen() {
   if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();

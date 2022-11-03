@@ -1,4 +1,5 @@
-import { Queue } from "./queue.js";
+//import {PhysicsScene, PhysicsObjec} from "./physics.js";
+import {Objec, RotPos} from "./objec.js";
 
 //What is placed on the page.
 export class Window {
@@ -38,8 +39,12 @@ export class Shader {
   constructor(gl) {
     this.gl = gl;
     this.objects = [];
+
     this.rotpos = new RotPos(); //This shouldn't exist for a shader, but I have no other of storing camera position right now
-    this.queue = new Queue();
+
+    //Temporary
+    this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
+    quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);
   }
 
   //Compiles a shader program from source code
@@ -127,9 +132,8 @@ export class Shader {
 
   }
 
-  //Adds an Objec to the queue to process and connect the object to the shader
-  AddObject(obj) {
-    this.queue.enqueue(obj);
+  RemoveObject(objectNum) {
+    this.objects.splice(objectNum, 1);
   }
 
   //Brings an object from data into opengl
@@ -172,9 +176,9 @@ export class Shader {
       this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.objectData["ELEMENT_ARRAY_BUFFER"][0]));
     }
 
-    if (obj.objectData["TEXTURE"] != undefined) {
+    /*if (obj.objectData["TEXTURE"] != undefined) {
       obj.texture = this.CreateTexture(obj.objectData["TEXTURE"]);
-    }
+    }*/
 
     this.objects.push(obj);
   }
@@ -244,7 +248,7 @@ export class Shader {
     this.projectionMatrix = mat4.create(); //This is just camera settings
 
     this.viewMatrix = mat4.create(); //And this is just determined from the rotpos from the camera
-    mat4.translate(this.viewMatrix, this.viewMatrix, this.rotpos.position);
+    mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
 
     this.gl.useProgram(this.shaderProgram);
 
@@ -257,11 +261,6 @@ export class Shader {
   }
   
   DrawScene() {
-    while (this.queue.length != 0) {
-      const obj = this.queue.dequeue();
-      this.CreateObject(obj);
-    }
-
     //Implement this when I figure out how quaternions work
     /*
     mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
@@ -275,15 +274,15 @@ export class Shader {
 
     for (let objectNum = 0; objectNum < this.objects.length; objectNum++) {
       //const offset = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][3]; //ew ew ew ew ew
-      const vertexCount = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][1] * this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][2];
+      const vertexCount = this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"][0].length;
 
       this.gl.bindVertexArray(this.objects[objectNum].vao);
 
       //Tell opengl which texture we're currently using, then tell our shader which texture we're using
-      if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
+      /*if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
         this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
         this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
-      }
+      }*/
 
       //Sets position of object with orientation (no scale yet)
       this.gl.uniformMatrix4fv(
@@ -292,84 +291,10 @@ export class Shader {
         this.objects[objectNum].GetMatrix());
 
       if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-        this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
+        this.gl.drawElements(this.gl.LINES, vertexCount, this.gl.UNSIGNED_SHORT, offset); //USUALLY THIS SHOULD BE this.gl.TRIANGLES
       } else {
         this.gl.drawArrays(this.gl.LINES, offset, vertexCount);
       }
     }
-  }
-}
-
-//Instance of object
-export class Objec {
-  constructor(objectData, rotpos) {
-    this.objectData = objectData;
-    this.rotpos = rotpos;
-
-    this.buffers = [];
-    this.texture = null;
-    this.vao = null;
-    this.shader = null;
-
-    this.matrix = mat4.create();
-  }
-
-  GetMatrix() {
-    mat4.fromRotationTranslation(this.matrix, this.rotpos.rotation, this.rotpos.position);
-    return this.matrix;
-  }
-
-  //Don't know if this is a good function to keep, but for debug purposes I need it           Also I know I shouldn't have bufferVal, but it's a debug parameter
-  ModifyAttribute(attrib, bufferVal, updatedAttrib) {
-    this.objectData["ARRAY_BUFFER"][attrib][0] = updatedAttrib;
-    this.shader.gl.bindBuffer(this.shader.gl.ARRAY_BUFFER, this.buffers[bufferVal]);
-    this.shader.gl.bufferData(this.shader.gl.ARRAY_BUFFER, new Float32Array(updatedAttrib), this.shader.gl.STATIC_DRAW);
-
-    //this.gl.bindBuffer(bufferType, buffer);
-    //this.gl.bufferData(bufferType, data, this.gl.STATIC_DRAW); //Static_draw is hardcoded?
-  }
-}
-
-/*
-class ObjectData { //Shouldn't this have a rotpos?
-  constructor() {
-    
-
-    //Should store the information that is generic to all objects of a certain type (i.e attribute information, texture) so we don't need to re-load them
-  }
-}*/
-
-//A position and rotation that is used for every physical thing in a scene
-//TIDYING STATUS: GREEN
-export class RotPos {
-  //Constructor passing in position and rotation
-  constructor(position, rotation) {
-    this.position = (position === undefined) ? vec3.create() : position;
-    this.rotation = (rotation === undefined) ? quat.create() : rotation;
-  }
-
-  get forward() { //You know, I don't think I like writing with glMatrix library. Maybe make my own?
-    const up = this.up;
-    /*
-    let forward = vec3.create();
-
-    if ((up[0] < 0 && up[2] < 0) || (up[0] > 0 && up[2] > 0)) { //For the chunks of 3d space where x and z coordinate space are both positive or both negative:
-      forward[1] = Math.cos(Math.asin(Math.abs(up[1]))); //Angle of up vector is theta, then the angle of forward vector is 90 - theta, height is sin(90 - theta) = cos(theta)
-      if (up[0] > 0) {
-        forward[1] *= -1; //Height is negative
-      }
-      forward[0] = Math.sqrt((1 - forward[1]) / (Math.pow(up[2] / up[0], 2) + 1));
-      forward[2] = Math.sqrt((1 - forward[1]) / (Math.pow(up[0] / up[2], 2) + 1));
-    }*/
-  }
-
-  get right() {
-
-  }
-
-  get up() {
-    let localForward = vec3.create();
-    vec3.getAxisAngle(localForward, this.rotation);
-    return localForward;
   }
 }
