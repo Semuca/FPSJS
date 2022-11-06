@@ -10,9 +10,10 @@ let time = 0;
 let pointerLockActivation = 0;
 let isPaused = false;
 
-//let rotX = 0;
-//let rotY = 0;
+let rotX = 0;
+let rotY = 0;
 
+let shaderFocus = 0;
 let objectFocus = 0;
 
 let models = {};
@@ -21,17 +22,8 @@ let physicsScene = new PhysicsScene();
 let keysDown = {}
 
 const temp = new Window("canvas");
-LoadMap("map.txt");
+LoadMap("osiris.txt");
 
-
-
-/*LoadShader(temp, "lineVertexShader.vs", "lineFragmentShader.fs").then( (response) => {
-  temp.shaders[1].AddObject(new Objec({ "ARRAY_BUFFER" : { "aVertexPosition" : [[0, 0, 0, 0, 1, 0], 3, 12, 0]} }, new RotPos([2.0, 0.0, 0.0])));
-});*/
-/*
-LoadShader(temp, "spriteVertexShader.vs", "spriteFragmentShader.fs").then( (response) => {
-  temp.shaders[2].AddObject(new Objec());
-});*/
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop(now) {
@@ -51,6 +43,65 @@ function RenderLoop(now) {
     temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT); //Temporary solution
   }
 
+
+  
+  if (keysDown["Digit1"] === true) {
+    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
+  }
+  if (keysDown["Digit2"] === true) {
+    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
+  }
+  if (keysDown["Digit3"] === true) {
+    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
+  }
+  if (keysDown["Digit4"] === true) {
+    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
+  }
+  if (keysDown["Digit5"] === true) {
+    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
+  }
+  if (keysDown["Digit6"] === true) {
+    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
+  }
+  //Modify object 0 of shader 0 to rotate
+  
+
+  /*
+  if (keysDown["Digit1"] === true) {
+    //let vec = [0, 0, 0];
+    //let s = quat.getAxisAngle(temp.shaders[0].objects[0].rotpos.rotation, vec);
+    //console.log(Math.acos(temp.shaders[0].objects[0].rotpos.rotation[3]) * 2.0);
+    let d = Math.acos(temp.shaders[0].objects[0].rotpos.rotation[3]) * 2.0 + (1 / 40);
+    if (d > 2 * Math.PI) {
+      d -= 2 * Math.PI;
+    }
+    //console.log(s);
+    //console.log(quat.str(temp.shaders[0].objects[0].rotpos.rotation));
+    //console.log(temp.shaders[0].objects[0].rotpos.rotation[3]);
+    quat.setAxisAngle(temp.shaders[0].objects[0].rotpos.rotation, [0, 1, 0], d);
+    //console.log(quat.str(temp.shaders[0].objects[0].rotpos.rotation));
+    let vec = [0, 0, 0];
+    let s = quat.getAxisAngle(vec, temp.shaders[0].objects[0].rotpos.rotation);
+    console.log(s);
+  }
+  if (keysDown["Digit2"] === true) {
+    let d = Math.acos(temp.shaders[0].objects[0].rotpos.rotation[3]) * 2.0 - (1 / 40);
+    if (d < 0) {
+      d += 2 * Math.PI;
+    }
+    quat.setAxisAngle(temp.shaders[0].objects[0].rotpos.rotation, [0, 1, 0], d);
+  }*/
+
+  //let vec = vec3.create();
+  //quat.getAxisAngle(vec, temp.shaders[0].objects[0].rotpos.rotation);
+  let vec = temp.shaders[0].objects[0].rotpos.right;
+
+  if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] &&
+    vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] &&
+    vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
+    temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
+  }
+
   for (var i = 0; i < activeShaders.length; i++) {
     if (activeShaders.length > 1) {
       activeShaders[i].gl.useProgram(activeShaders[i].shaderProgram);
@@ -61,29 +112,30 @@ function RenderLoop(now) {
       continue;
     }
 
-    let movementVector = [0.0, 0.0, 0.0]
+    /*if (i === shaderFocus) {
+      let movementVector = [0.0, 0.0, 0.0]
 
-    if (keysDown["KeyA"] === true) {
-      movementVector[0] += 0.3;
-    }
-    if (keysDown["KeyW"] === true) {
-      movementVector[2] += 0.3;
-    }
-    if (keysDown["KeyS"] === true) {
-      movementVector[2] -= 0.3;
-    }
-    if (keysDown["KeyD"] === true) {
-      movementVector[0] -= 0.3;
-    }
+      if (keysDown["KeyA"] === true) {
+        movementVector[0] += 0.3;
+      }
+      if (keysDown["KeyW"] === true) {
+        movementVector[2] += 0.3;
+      }
+      if (keysDown["KeyS"] === true) {
+        movementVector[2] -= 0.3;
+      }
+      if (keysDown["KeyD"] === true) {
+        movementVector[0] -= 0.3;
+      }
 
-    if (temp.shaders[i].objects[objectFocus].physics.enabled === true) {
-      temp.shaders[i].objects[objectFocus].physics.Move(movementVector);
-    } else {
-      vec3.add(temp.shaders[i].objects[objectFocus].rotpos.position, temp.shaders[i].objects[objectFocus].rotpos.position, movementVector);
-    }
-    
-    /*
-    let movZ = (pressedKeys[keyEnums["KeyW"]] - pressedKeys[keyEnums["KeyS"]]) / 10;
+      if (temp.shaders[i].objects[objectFocus].physics.enabled === true) {
+        temp.shaders[i].objects[objectFocus].physics.Move(movementVector);
+      } else {
+        vec3.add(temp.shaders[i].objects[objectFocus].rotpos.position, temp.shaders[i].objects[objectFocus].rotpos.position, movementVector);
+      }
+    }*/
+
+    let movZ = ((keysDown["KeyW"] ? 1 : 0) - (keysDown["KeyS"] ? 1 : 0)) / 10;
     vec3.add(activeShaders[i].rotpos.position, activeShaders[i].rotpos.position, [movZ * Math.cos(rotX / 180), 0.0, movZ * Math.sin(rotX / 180)]);
 
     
@@ -104,8 +156,7 @@ function RenderLoop(now) {
       activeShaders[i].viewMatrix);
     
 
-
-
+    /*
     if (temp.shaders[0].objects.length > 0 && temp.shaders[1].objects.length > 0) {
 
       let vec = vec3.create();
@@ -116,8 +167,8 @@ function RenderLoop(now) {
           vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
         temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, vec[0], vec[1], vec[2]]);
       }
-    }
-    */
+    }*/
+    
 
     activeShaders[i].DrawScene();
   }
@@ -127,31 +178,10 @@ function RenderLoop(now) {
   }
 }
 
-//Basic and probably slow object loading system, nature of storage means there's quite a bit
-//of string manipulation to be done when loading. Should probably fix later, but it's not that big of a deal for now.
-//Like the rest of the async stuff, should probably be handled outside all the main classes
-//TIDYING STATUS: DEEP ORANGE
-function ProcessObjectData(data) {
-  let stringAttributes = data.split("\r\n\r\n");
-
-  for (var i = 0; i < stringAttributes.length; i++) {
-    stringAttributes[i] = stringAttributes[i].replace(/\n/g, "");
-    stringAttributes[i] = stringAttributes[i].replace(/ /g, "");
-    stringAttributes[i] = stringAttributes[i].split(",");
-  }
-    
-  for (var i = 0; i < stringAttributes.length; i++) {
-    for (var j = 0; j < stringAttributes[i].length; j++) {
-      stringAttributes[i][j] = parseFloat(stringAttributes[i][j]);
-    }
-  }
-
-  return stringAttributes;
-}
-
+/*
 function MountModel(model, rotpos) {
   temp.shaders[model.shaderId].CreateObject(new Objec(model.data, rotpos, physicsScene));
-}
+}*/
 
 //Loads values from text files given by the url
 //TIDYING STATUS: GREEN
@@ -181,41 +211,52 @@ async function LoadShader(window, vsUrl, fsUrl) {
   window.AddShader(vSource, fSource);
 }
 
-//Loads an object from url data
-async function LoadObject(shader, url, texUrl, pos) {
+//Loads model from txt file
+async function LoadModel(url) {
   let data = await LoadFileText("Models/" + url);
-  let stringAttributes = ProcessObjectData(data);
-  let image = await LoadImage("Textures/" + texUrl);
-  //shader.AddObject({str: stringAttributes, tex: image, pos: pos});
-  shader.CreateObject(new Objec({ //Hardcoded, I know, but can fix that later
-    "ARRAY_BUFFER" : {
-      "aVertexPosition" : [stringAttributes[0], 3, 12, 0],
-      "aTexturePosition" : [stringAttributes[2], 2, 8, 0]
-    },
+  let stringAttributes = data.split("\r\n\r\n"); //Splitting based on two enters. Is this good? i dunno right now, but it is what it is
 
-    "ELEMENT_ARRAY_BUFFER" : [stringAttributes[1]],
+  let obj = { "ARRAY_BUFFER" : {} };
 
-    "TEXTURE" : image
-  }, pos));
-}
-
-async function LoadWireframeModel(url) {
-  let data = await LoadFileText("Models/" + url);
-  let stringAttributes = ProcessObjectData(data);
+  for (var i = 0; i < stringAttributes.length; i++) {
+    stringAttributes[i] = stringAttributes[i].replace(/\r\n/g, ""); //Replaces all newlines and enters. Not sure if good, but right now it works
+    stringAttributes[i] = stringAttributes[i].replace(/ /g, "");
+    stringAttributes[i] = stringAttributes[i].split(",");
   
-  return { //Hardcoded, I know, but can fix that later
-    "ARRAY_BUFFER" : {
-      "aVertexPosition" : [stringAttributes[0], 3, 12, 0]
-    },
+    let name = stringAttributes[i][0];
+    stringAttributes[i].splice(0, 1);
 
-    "ELEMENT_ARRAY_BUFFER" : [stringAttributes[1]]
-  };
+    let len = 3;
+    if (name == "TEXTURE") {
+      obj["TEXTURE"] = await LoadImage("Textures/" + stringAttributes[i][0]);
+      continue;
+    } else if (name != "ELEMENT_ARRAY_BUFFER") {
+      len = parseInt(stringAttributes[i][0]);
+      stringAttributes[i].splice(0, 1);
+    }
+
+    //console.log(stringAttributes[i]);
+    for (var j = 0; j < stringAttributes[i].length; j++) {
+      stringAttributes[i][j] = parseFloat(stringAttributes[i][j]);
+    }
+
+    //console.log(name);
+    if (name == "ELEMENT_ARRAY_BUFFER") {
+      obj["ELEMENT_ARRAY_BUFFER"] = [stringAttributes[i]];
+    } else {
+      obj["ARRAY_BUFFER"][name] = [stringAttributes[i], len, len * 4, 0];
+    }
+  }
+
+  return obj;
 }
 
 async function LoadMap(url) { //No validation on the file yet, but that can be changed later. It'll probably be really tedious anyway
   let data = await LoadFileText(url);
   let rawStringAttributes = data.split("\r\n");
   let stringAttributes = [];
+
+
 
   let skipped = 0;
   for (let i = 0; i < rawStringAttributes.length; i++) {
@@ -225,22 +266,20 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
       continue;
     }
 
-    
-    //stringAttributes[i] = rawStringAttributes[i].replace(/\n/g, "");
-    //console.log(stringAttributes[i]);
     stringAttributes[i - skipped] = rawStringAttributes[i].replaceAll(" ", "");
-    //console.log(stringAttributes[i - skipped]);
     stringAttributes[i - skipped] = stringAttributes[i - skipped].split(":");
 
     for (let j = 0; j < stringAttributes[i - skipped].length; j++) {
-      
       stringAttributes[i - skipped][j] = stringAttributes[i - skipped][j].split(",");
       if (stringAttributes[i - skipped][j].length == 1) {
         stringAttributes[i - skipped][j] = stringAttributes[i - skipped][j][0];
       }
     }
-    //console.log(stringAttributes[i - skipped]);
   }
+
+  //console.log(stringAttributes);
+
+
 
   //Load all shaders
   let shaderCount = parseInt(stringAttributes[0][0]);
@@ -249,19 +288,28 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
     await LoadShader(temp, stringAttributes[i + 1][0][0], stringAttributes[i + 1][0][1]);
   }
 
+
+
   //Load all unique models
   let modelCount = parseInt(stringAttributes[shaderCount + 1][0]);
+  //console.log(modelCount);
 
   for (let i = 0; i < modelCount; i++) {
     const url = stringAttributes[shaderCount + i + 2][0];
-    const modelData = await LoadWireframeModel(url);
+    let modelData = await LoadModel(url);
+    //console.log(modelData);
+    //modelData = await LoadWireframeModel(url);
+    //console.log(modelData);
 
     if (shaderCount === 1) { //If there's only one shader, there's no need to specify which shader we're using
-      models[url] = new Model(0, modelData);
+      models[url] = new Model(1, modelData);
     } else {
       models[url] = new Model(stringAttributes[shaderCount + i + 2][1], modelData);
     }
   }
+
+
+
 
   //Instantiate all objects
   for (let i = shaderCount + modelCount + 2; i < stringAttributes.length; i++) {
@@ -274,6 +322,7 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
     }
 
     if (stringAttributes[i][2] != "") {
+      console.log(stringAttributes[i]);
       rotation = [parseFloat(stringAttributes[i][2][0]), parseFloat(stringAttributes[i][2][1]), parseFloat(stringAttributes[i][2][2])]
     }
 
@@ -281,8 +330,9 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
       scale = [parseFloat(stringAttributes[i][3][0]), parseFloat(stringAttributes[i][3][1]), parseFloat(stringAttributes[i][3][2])]
     }
 
+    //console.log(models[stringAttributes[i][0]].shaderId);
     //fugly
-    temp.shaders[models[stringAttributes[i][0]].shaderId].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
+    temp.shaders[models[stringAttributes[i][0]].shaderId - 1].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
   }
 
   requestAnimationFrame(RenderLoop);
@@ -339,10 +389,10 @@ window.addEventListener("keydown", e => {
     }
     return;
   }
-
+  /*
   //Create new object at origin on 'C'
   if (e.code === "KeyC") {
-    temp.shaders[0].CreateObject(new Objec(models["lineObject.txt"], new RotPos([0.0, 0.0, 0.0]), physicsScene));
+    temp.shaders[0].CreateObject(new Objec(models["lineObject.txt"].modelData, new RotPos([0.0, 0.0, 0.0]), physicsScene));
     return;
   }
 
@@ -374,29 +424,17 @@ window.addEventListener("keydown", e => {
     return;
   }
 
-  /*
-  if (e.code === 'Digit1') {
-    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
-  }
-  if (e.code === 'Digit2') {
-    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
-  }
-  if (e.code === 'Digit3') {
-    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
-  }
-  if (e.code === 'Digit4') {
-    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
-  }
-  if (e.code === 'Digit5') {
-    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 120);
-  }
-  if (e.code === 'Digit6') {
-    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 120);
+  //Switch object shaders
+  if (e.code === "KeyB") {
+    shaderFocus += 1;
+    if (shaderFocus >= temp.shaders.length) {
+      shaderFocus = 0;
+    }
+    return;
   }*/
-  //Modify object 0 of shader 0 to rotate
 });
 
-/*
+
 document.addEventListener("mousemove", e => {
   if (document.pointerLockElement === null || isPaused === true) {
     return;
@@ -405,7 +443,7 @@ document.addEventListener("mousemove", e => {
   rotY += e.movementY;
 
 });
-*/
+
 
 //Resizing for the window. What's the difference between "resize" and "onresize"?
 window.addEventListener("resize", e => {

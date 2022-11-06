@@ -50,29 +50,27 @@ export class RotPos {
       this.scale = (scale === undefined) ? vec3.fromValues(1, 1, 1) : scale;
     }
   
-    /*
-    get forward() { //You know, I don't think I like writing with glMatrix library. Maybe make my own?
-      const up = this.up;
-      /*
-      let forward = vec3.create();
-  
-      if ((up[0] < 0 && up[2] < 0) || (up[0] > 0 && up[2] > 0)) { //For the chunks of 3d space where x and z coordinate space are both positive or both negative:
-        forward[1] = Math.cos(Math.asin(Math.abs(up[1]))); //Angle of up vector is theta, then the angle of forward vector is 90 - theta, height is sin(90 - theta) = cos(theta)
-        if (up[0] > 0) {
-          forward[1] *= -1; //Height is negative
-        }
-        forward[0] = Math.sqrt((1 - forward[1]) / (Math.pow(up[2] / up[0], 2) + 1));
-        forward[2] = Math.sqrt((1 - forward[1]) / (Math.pow(up[0] / up[2], 2) + 1));
-      }
-    }
-  
-    get right() {
-  
+    get forward() {
+      let vec = [0, 0, 0];
+      vec[0] = 2 * (this.rotation[0] * this.rotation[2] + this.rotation[3] * this.rotation[1]);
+      vec[1] = 2 * (this.rotation[1] * this.rotation[2] - this.rotation[3] * this.rotation[0]);
+      vec[2] = 1 - 2 * (this.rotation[0] * this.rotation[0] + this.rotation[2] * this.rotation[2]);
+      return vec;
     }
   
     get up() {
-      let localForward = vec3.create();
-      vec3.getAxisAngle(localForward, this.rotation);
-      return localForward;
-    }*/
+      let vec = [0, 0, 0];
+      vec[0] = 2 * (this.rotation[0] * this.rotation[1] - this.rotation[3] * this.rotation[2]);
+      vec[1] = 1 - 2 * (this.rotation[0] * this.rotation[0] + this.rotation[2] * this.rotation[2]);
+      vec[2] = 2 * (this.rotation[1] * this.rotation[2] + this.rotation[3] * this.rotation[0]);
+      return vec;
+    }
+  
+    get right() {
+      let vec = [0, 0, 0];
+      vec[0] = 1 - 2 * (this.rotation[1] * this.rotation[1] + this.rotation[2] * this.rotation[2]);
+      vec[1] = 2 * (this.rotation[0] * this.rotation[1] + this.rotation[3] * this.rotation[2]);
+      vec[2] = 2 * (this.rotation[0] * this.rotation[2] - this.rotation[3] * this.rotation[1]);
+      return vec;
+    }
 }

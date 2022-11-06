@@ -43,8 +43,8 @@ export class Shader {
     this.rotpos = new RotPos(); //This shouldn't exist for a shader, but I have no other of storing camera position right now
 
     //Temporary
-    this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
-    quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);
+    //this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
+    //quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);
   }
 
   //Compiles a shader program from source code
@@ -176,9 +176,9 @@ export class Shader {
       this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.objectData["ELEMENT_ARRAY_BUFFER"][0]));
     }
 
-    /*if (obj.objectData["TEXTURE"] != undefined) {
+    if (obj.objectData["TEXTURE"] != undefined) {
       obj.texture = this.CreateTexture(obj.objectData["TEXTURE"]);
-    }*/
+    }
 
     this.objects.push(obj);
   }
@@ -274,15 +274,8 @@ export class Shader {
 
     for (let objectNum = 0; objectNum < this.objects.length; objectNum++) {
       //const offset = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][3]; //ew ew ew ew ew
-      const vertexCount = this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"][0].length;
 
       this.gl.bindVertexArray(this.objects[objectNum].vao);
-
-      //Tell opengl which texture we're currently using, then tell our shader which texture we're using
-      /*if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
-        this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
-        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
-      }*/
 
       //Sets position of object with orientation (no scale yet)
       this.gl.uniformMatrix4fv(
@@ -291,9 +284,18 @@ export class Shader {
         this.objects[objectNum].GetMatrix());
 
       if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-        this.gl.drawElements(this.gl.LINES, vertexCount, this.gl.UNSIGNED_SHORT, offset); //USUALLY THIS SHOULD BE this.gl.TRIANGLES
+        const vertexCount = this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"][0].length;
+
+        //Tell opengl which texture we're currently using, then tell our shader which texture we're using
+        if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
+          this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
+          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
+          this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset); //USUALLY THIS SHOULD BE this.gl.TRIANGLES
+        } else {
+          this.gl.drawElements(this.gl.LINES, vertexCount, this.gl.UNSIGNED_SHORT, offset); //USUALLY THIS SHOULD BE this.gl.TRIANGLES
+        }
       } else {
-        this.gl.drawArrays(this.gl.LINES, offset, vertexCount);
+        this.gl.drawArrays(this.gl.LINES, offset, 2); //bad hardcoding, oh well
       }
     }
   }

@@ -1,0 +1,11 @@
+2
+vertexShader.vs, fragmentShader.fs
+lineVertexShader.vs, lineFragmentShader.fs
+
+2
+2bject.txt: 1
+l2ine.txt: 2
+
+2bject.txt: 0.0, 0.0, -6.0 : :
+2bject.txt: 0.0, 0.0, 6.0 : : 3.0, 0.5, 1.0
+l2ine.txt: 0.0, 0.0, -6.0 : :
