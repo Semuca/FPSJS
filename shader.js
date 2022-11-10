@@ -8,6 +8,7 @@ export class Window {
   constructor(canvasID) {
     this.canvas = document.getElementById(canvasID);
     this.gl = this.canvas.getContext("webgl2");
+    this.camera = new Camera();
 
     //Ensure webgl is properly set up
     if (!this.gl) {
@@ -20,15 +21,17 @@ export class Window {
 
   //Not entirely set on the structure here, maybe think about it later
   AddShader(vsSource, fsSource) {
-    let shader = new Shader(this.gl);
+    let shader = new Shader(this.gl, this.camera);
     shader.CompileProgram(vsSource, fsSource);
     this.shaders.push(shader);
   }
 }
 
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
-class Camera {
-
+export class Camera {
+  constructor() {
+    this.rotpos = new RotPos();
+  }
 }
 
 export class Shader {
@@ -36,12 +39,13 @@ export class Shader {
 
   //Constructor requires webgl context
   //TIDYING STATUS: GREEN
-  constructor(gl) {
+  constructor(gl, camera) {
     this.gl = gl;
     this.objects = [];
 
     this.rotpos = new RotPos(); //This shouldn't exist for a shader, but I have no other of storing camera position right now
 
+    this.camera = camera;
     //Temporary
     //this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
     //quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);

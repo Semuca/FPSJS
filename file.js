@@ -1,6 +1,6 @@
 // There should be some way for indentations to be uniform on vscode. Not sure how to do it now though
 
-import {Window, Shader} from "./shader.js";
+import {Window, Camera, Shader} from "./shader.js";
 import {PhysicsScene, PhysicsObjec} from "./physics.js";
 import {Model, Objec, RotPos} from "./objec.js";
 
@@ -13,13 +13,16 @@ let isPaused = false;
 let rotX = 0;
 let rotY = 0;
 
+let lookY = 0;
+let changed = false;
+
 let shaderFocus = 0;
 let objectFocus = 0;
 
 let models = {};
 let physicsScene = new PhysicsScene();
 
-let keysDown = {}
+let keysDown = {};
 
 const temp = new Window("canvas");
 LoadMap("osiris.txt");
@@ -42,65 +45,19 @@ function RenderLoop(now) {
   if (activeShaders.length > 0) {
     temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT); //Temporary solution
   }
-
-
   
-  if (keysDown["Digit1"] === true) {
-    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
-  }
-  if (keysDown["Digit2"] === true) {
-    quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
-  }
-  if (keysDown["Digit3"] === true) {
-    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
-  }
-  if (keysDown["Digit4"] === true) {
-    quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
-  }
-  if (keysDown["Digit5"] === true) {
-    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
-  }
-  if (keysDown["Digit6"] === true) {
-    quat.rotateZ(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
-  }
-  //Modify object 0 of shader 0 to rotate
-  
-
   /*
-  if (keysDown["Digit1"] === true) {
-    //let vec = [0, 0, 0];
-    //let s = quat.getAxisAngle(temp.shaders[0].objects[0].rotpos.rotation, vec);
-    //console.log(Math.acos(temp.shaders[0].objects[0].rotpos.rotation[3]) * 2.0);
-    let d = Math.acos(temp.shaders[0].objects[0].rotpos.rotation[3]) * 2.0 + (1 / 40);
-    if (d > 2 * Math.PI) {
-      d -= 2 * Math.PI;
-    }
-    //console.log(s);
-    //console.log(quat.str(temp.shaders[0].objects[0].rotpos.rotation));
-    //console.log(temp.shaders[0].objects[0].rotpos.rotation[3]);
-    quat.setAxisAngle(temp.shaders[0].objects[0].rotpos.rotation, [0, 1, 0], d);
-    //console.log(quat.str(temp.shaders[0].objects[0].rotpos.rotation));
-    let vec = [0, 0, 0];
-    let s = quat.getAxisAngle(vec, temp.shaders[0].objects[0].rotpos.rotation);
-    console.log(s);
-  }
-  if (keysDown["Digit2"] === true) {
-    let d = Math.acos(temp.shaders[0].objects[0].rotpos.rotation[3]) * 2.0 - (1 / 40);
-    if (d < 0) {
-      d += 2 * Math.PI;
-    }
-    quat.setAxisAngle(temp.shaders[0].objects[0].rotpos.rotation, [0, 1, 0], d);
-  }*/
-
-  //let vec = vec3.create();
-  //quat.getAxisAngle(vec, temp.shaders[0].objects[0].rotpos.rotation);
   let vec = temp.shaders[0].objects[0].rotpos.right;
 
   if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] &&
     vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] &&
     vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
     temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
-  }
+  }*/
+
+  let movZ = ((keysDown["KeyW"] ? 1 : 0) - (keysDown["KeyS"] ? 1 : 0)) / 10;
+  vec3.add(temp.camera.rotpos.position, temp.camera.rotpos.position, [movZ * Math.cos(rotX / 180), 0.0, movZ * Math.sin(rotX / 180)]);
+
 
   for (var i = 0; i < activeShaders.length; i++) {
     if (activeShaders.length > 1) {
@@ -135,10 +92,7 @@ function RenderLoop(now) {
       }
     }*/
 
-    let movZ = ((keysDown["KeyW"] ? 1 : 0) - (keysDown["KeyS"] ? 1 : 0)) / 10;
-    vec3.add(activeShaders[i].rotpos.position, activeShaders[i].rotpos.position, [movZ * Math.cos(rotX / 180), 0.0, movZ * Math.sin(rotX / 180)]);
-
-    
+    /*
     let _vec = vec3.fromValues(Math.cos(rotX / 180), 10 * Math.sin(-rotY / 540), Math.sin(rotX / 180)); //All this should be done on a mousemove event
     let _cameraRight = vec3.create();
     let _cameraUp = vec3.fromValues(0.0, 1.0, 0.0);
@@ -149,29 +103,21 @@ function RenderLoop(now) {
     vec3.add(_vec, _vec, activeShaders[i].rotpos.position);
 
     mat4.lookAt(activeShaders[i].viewMatrix, activeShaders[i].rotpos.position, _vec, _cameraUp);
+    */
 
-    activeShaders[i].gl.uniformMatrix4fv(
-      activeShaders[i].programInfo.uniformLocations.uViewMatrix,
-      false,
-      activeShaders[i].viewMatrix);
-    
+    if (changed === true) {
+      mat4.fromRotationTranslation(activeShaders[i].viewMatrix, temp.camera.rotpos.rotation, temp.camera.rotpos.position);
 
-    /*
-    if (temp.shaders[0].objects.length > 0 && temp.shaders[1].objects.length > 0) {
-
-      let vec = vec3.create();
-      quat.getAxisAngle(vec, temp.shaders[0].objects[0].rotpos.rotation);
-
-      if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] &&
-          vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] &&
-          vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
-        temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, vec[0], vec[1], vec[2]]);
-      }
-    }*/
-    
+      activeShaders[i].gl.uniformMatrix4fv(
+        activeShaders[i].programInfo.uniformLocations.uViewMatrix,
+        false,
+        activeShaders[i].viewMatrix);
+      
+    }
 
     activeShaders[i].DrawScene();
   }
+  changed = false;
 
   if (isPaused === false) {
     requestAnimationFrame(RenderLoop);
@@ -442,6 +388,29 @@ document.addEventListener("mousemove", e => {
   rotX += e.movementX;
   rotY += e.movementY;
 
+  if (e.movementY > 0 && lookY > - 1) { //Look up
+    //quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
+    lookY -= e.movementY * 1 / 40;
+    let _tempQ = quat.create();
+    quat.setAxisAngle(_tempQ, temp.camera.rotpos.right, e.movementY * 1 / 40);
+    quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+  }
+  if (e.movementY < 0 && lookY < 1) { //Look down
+    //quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
+    lookY += e.movementY * 1 / 40;
+    let _tempQ = quat.create();
+    quat.setAxisAngle(_tempQ, temp.camera.rotpos.right, e.movementY * 1 / 40);
+    quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+  }
+
+  if (e.movementX != 0) {
+    //quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
+    let _tempQ = quat.create();
+    quat.setAxisAngle(_tempQ, [0, 1, 0], e.movementX * 1 / 40);
+    quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+  }
+
+  changed = true;
 });
 
 
