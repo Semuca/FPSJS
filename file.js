@@ -405,9 +405,10 @@ document.addEventListener("mousemove", e => {
 
   if (e.movementX != 0) {
     //quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
-    let _tempQ = quat.create();
-    quat.setAxisAngle(_tempQ, [0, 1, 0], e.movementX * 1 / 40);
-    quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+    //let _tempQ = quat.create();
+    //quat.setAxisAngle(_tempQ, [0, 1, 0], e.movementX * 1 / 40);
+    //quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+    quat.rotateY(temp.camera.rotpos.rotation, temp.camera.rotpos.rotation, e.movementX * 1 / 40);
   }
 
   changed = true;
