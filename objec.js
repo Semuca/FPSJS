@@ -53,8 +53,8 @@ export class RotPos {
     get forward() {
       let vec = [0, 0, 0];
       vec[0] = 2 * (this.rotation[0] * this.rotation[2] + this.rotation[3] * this.rotation[1]);
-      vec[1] = 2 * (this.rotation[1] * this.rotation[2] - this.rotation[3] * this.rotation[0]);
-      vec[2] = 1 - 2 * (this.rotation[0] * this.rotation[0] + this.rotation[2] * this.rotation[2]);
+      vec[1] = 2 * (this.rotation[1] * this.rotation[0] - this.rotation[3] * this.rotation[0]);
+      vec[2] = 1 - 2 * (this.rotation[0] * this.rotation[0] + this.rotation[1] * this.rotation[1]);
       return vec;
     }
   
