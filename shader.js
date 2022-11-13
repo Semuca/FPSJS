@@ -30,7 +30,7 @@ export class Window {
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
 export class Camera {
   constructor() {
-    this.rotpos = new RotPos();
+    this.rotpos = new RotPos([0.0, 0.0, -10.0]);
   }
 }
 
@@ -281,7 +281,7 @@ export class Shader {
 
       this.gl.bindVertexArray(this.objects[objectNum].vao);
 
-      //Sets position of object with orientation (no scale yet)
+      //Sets position of object with orientation
       this.gl.uniformMatrix4fv(
         this.programInfo.uniformLocations.uModelMatrix,
         false,
