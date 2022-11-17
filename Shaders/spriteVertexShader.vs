@@ -1,4 +1,5 @@
-attribute vec4 aVertexPosition;
+attribute vec2 aVertexPosition;
+attribute vec2 aTextureCoord;
 
 uniform mat4 uProjectionMatrix;
 uniform mat4 uModelMatrix;
@@ -6,6 +7,6 @@ uniform mat4 uModelMatrix;
 varying highp vec2 vTextureCoord;
 
 void main() {
-	vTextureCoord = aVertexPosition.zw;
-	gl_Position = uProjectionMatrix * uModelMatrix * aVertexPosition;
+	vTextureCoord = aTextureCoord;
+	gl_Position = uProjectionMatrix * uModelMatrix * vec4(aVertexPosition, 0.0, 1.0);
 }

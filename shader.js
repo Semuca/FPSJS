@@ -17,6 +17,7 @@ export class Window {
     }
 
     this.shaders = []; //Not entirely set on how I want the window to be constructed, or the relationships between shaders, windows, the canvas and cameras, yet
+    this.textures = []; //For the context of webgl, we need to track what objects use what texture
   }
 
   //Not entirely set on the structure here, maybe think about it later
@@ -24,6 +25,18 @@ export class Window {
     let shader = new Shader(this.gl, this.camera);
     shader.CompileProgram(vsSource, fsSource);
     this.shaders.push(shader);
+  }
+
+  //Gets new texture ID
+  GetNewTextureId() {
+    for (let i = 0; i < this.textures.length; i++) { //O(n) time. I think this theoretically could be O(logN), but i don't think it's that important
+      if (this.textures[i] != i) {
+        this.textures.splice(i, 0, i);
+        return i;
+      }
+    }
+    this.textures.push(this.textures.length);
+    return this.textures.length - 1;
   }
 }
 
@@ -136,11 +149,13 @@ export class Shader {
 
   }
 
+  //Hang on, not sure if this is a good way to do this
   RemoveObject(objectNum) {
     this.objects.splice(objectNum, 1);
   }
 
   //Brings an object from data into opengl
+  //Shouldn't this be seperated into getting the model into opengl and instantiating it?
   //TIDYING STATUS: ORANGE
   CreateObject(obj) { // _obj should be of type Objec
 
@@ -210,7 +225,7 @@ export class Shader {
   CreateTexture(tex) {
     //Creates texture and binds it to WebGL
     let texture = this.gl.createTexture();
-    this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length); //I should have some way of storing which textures are currently occupied. However for now it's not that big of an issue
+    this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
     //Puts image into texture
@@ -294,12 +309,18 @@ export class Shader {
         if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
           this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
-          this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset); //USUALLY THIS SHOULD BE this.gl.TRIANGLES
+          this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
         } else {
-          this.gl.drawElements(this.gl.LINES, vertexCount, this.gl.UNSIGNED_SHORT, offset); //USUALLY THIS SHOULD BE this.gl.TRIANGLES
+          this.gl.drawElements(this.gl.LINES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
         }
       } else {
-        this.gl.drawArrays(this.gl.LINES, offset, 2); //bad hardcoding, oh well
+        if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
+          this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
+          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
+          this.gl.drawArrays(this.gl.TRIANGLES, offset, 2);
+        } else {
+          this.gl.drawArrays(this.gl.LINES, offset, 2); //bad hardcoding, oh well
+        }
       }
     }
   }
