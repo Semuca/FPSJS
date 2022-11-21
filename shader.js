@@ -1,5 +1,5 @@
 //import {PhysicsScene, PhysicsObjec} from "./physics.js";
-import {Objec, RotPos} from "./objec.js";
+import {Model, Objec, RotPos} from "./objec.js";
 
 //What is placed on the page.
 export class Window {
@@ -55,6 +55,7 @@ export class Shader {
   constructor(gl, camera) {
     this.gl = gl;
     this.objects = [];
+    this.models = {};
 
     this.rotpos = new RotPos(); //This shouldn't exist for a shader, but I have no other of storing camera position right now
 
@@ -149,23 +150,18 @@ export class Shader {
 
   }
 
-  //Hang on, not sure if this is a good way to do this
-  RemoveObject(objectNum) {
-    this.objects.splice(objectNum, 1);
-  }
-
-  //Brings an object from data into opengl
-  //Shouldn't this be seperated into getting the model into opengl and instantiating it?
+  //Brings a model from data into opengl. This model can then be instantiated
   //TIDYING STATUS: ORANGE
-  CreateObject(obj) { // _obj should be of type Objec
-
+  CreateModel(name, modelData) {
+    let model = new Model(modelData);
     //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
     //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
-    obj.vao = this.gl.createVertexArray();
-    this.gl.bindVertexArray(obj.vao);
-    obj.shader = this;
+    model.vao = this.gl.createVertexArray();
+    this.gl.bindVertexArray(model.vao);
+    model.shader = this;
 
+    
     //Input: _obj should have javascript object, where labels that exactly match the attribInfo labels link to data that allows the gl context to assign a buffer
     /*
 
@@ -183,23 +179,28 @@ export class Shader {
     I have no idea if this will turn out to be the most efficient system, but I'm doing it for now
     */
 
-    let keys = Object.keys(obj.objectData["ARRAY_BUFFER"]);
+    let keys = Object.keys(model.modelData["ARRAY_BUFFER"]);
 
     for (let i = 0; i < keys.length; i++) {
-      let buffer = obj.objectData["ARRAY_BUFFER"][keys[i]];
-      obj.buffers.push(this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0])));
+      let buffer = model.modelData["ARRAY_BUFFER"][keys[i]];
+      model.buffers.push(this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0])));
       this.SetVertexAttribArray(this.programInfo.attribLocations[keys[i]], buffer[1], this.gl.FLOAT, false, buffer[2], buffer[3]);
     }
 
-    if (obj.objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-      this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.objectData["ELEMENT_ARRAY_BUFFER"][0]));
+    if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+      this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.modelData["ELEMENT_ARRAY_BUFFER"][0]));
     }
 
-    if (obj.objectData["TEXTURE"] != undefined) {
-      obj.texture = this.CreateTexture(obj.objectData["TEXTURE"]);
+    if (model.modelData["TEXTURE"] != undefined) {
+      model.texture = this.CreateTexture(model.modelData["TEXTURE"]);
     }
 
-    this.objects.push(obj);
+    this.models[name] = model;
+  }
+
+  //Creates an instance of a model in the world
+  InstanceObject(name, objec) {
+    this.models[name].objects.push(objec);
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
@@ -280,14 +281,7 @@ export class Shader {
   }
   
   DrawScene() {
-    //Implement this when I figure out how quaternions work
     /*
-    mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
-    this.gl.uniformMatrix4fv( //I don't know how necessary this is
-      this.programInfo.uniformLocations.uViewMatrix,
-      false,
-      this.viewMatrix);*/
-
     const offset = 0;
     //const vertexCount = 36; //Should be done automatically for each object
 
@@ -320,6 +314,38 @@ export class Shader {
           this.gl.drawArrays(this.gl.TRIANGLES, offset, 2);
         } else {
           this.gl.drawArrays(this.gl.LINES, offset, 2); //bad hardcoding, oh well
+        }
+      }
+    }*/
+
+    const offset = 0;
+
+    for (let modelNum = 0; modelNum < this.models.length; objectNum++) {
+      this.gl.bindVertexArray(this.models[modelNum].vao);
+
+      if (this.models[modelNum].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+        const vertexCount = this.models[modelNum].modelData["ELEMENT_ARRAY_BUFFER"][0].length;
+      }
+
+      const mode = this.gl.LINES;
+      if (this.models[modelNum].modelData["TEXTURE"] != undefined) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + this.models[modelNum].texture);
+        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, this.gl.TEXTURE0 + this.models[modelNum].texture);
+        mode = this.gl.TRIANGLES;
+      }
+
+      for (let objectNum = 0; objectNum < this.models[modelNum].objects.length; objectNum++) {
+        this.gl.uniformMatrix4fv(
+          this.programInfo.uniformLocations.uModelMatrix,
+          false,
+          this.models[modelNum].objects[objectNum].GetMatrix());
+  
+        if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+  
+          //Tell opengl which texture we're currently using, then tell our shader which texture we're using
+          this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);
+        } else {
+          this.gl.drawArrays(mode, offset, 2); //bad hardcoding, oh well
         }
       }
     }

@@ -70,14 +70,14 @@ function RenderLoop(now) {
   vec3.add(temp.camera.rotpos.position, temp.camera.rotpos.position, movVec);
 
 
-  //let vec = temp.shaders[0].objects[0].rotpos.right;
+  let vec = temp.shaders[0].objects[0].rotpos.right;
   //console.log(vec);
 
-  //if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] ||
-    //vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] ||
-    //vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
-    //temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
-  //}
+  if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] ||
+    vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] ||
+    vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
+    temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
+  }
 
   /*
   let movZ = ((keysDown["KeyW"] ? 1 : 0) - (keysDown["KeyS"] ? 1 : 0)) / 10;
@@ -273,11 +273,9 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
     //console.log(modelData);
 
     if (shaderCount === 1) { //If there's only one shader, there's no need to specify which shader we're using
-      temp.shaders[0].CreateModel(url, modelData);
-      models[url] = 1
+      models[url] = new Model(1, modelData);
     } else {
-      temp.shaders[stringAttributes[shaderCount + i + 2][1] - 1].CreateModel(url, modelData);
-      models[url] = stringAttributes[shaderCount + i + 2][1] - 1;
+      models[url] = new Model(stringAttributes[shaderCount + i + 2][1], modelData);
     }
   }
 
@@ -305,8 +303,7 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
 
     //console.log(models[stringAttributes[i][0]].shaderId);
     //fugly
-    //temp.shaders[models[stringAttributes[i][0]].shaderId - 1].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
-    temp.shaders[models[stringAttributes[i][0]]].InstanceObject(stringAttributes[i][0], new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene));
+    temp.shaders[models[stringAttributes[i][0]].shaderId - 1].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
   }
 
   requestAnimationFrame(RenderLoop);
@@ -416,6 +413,34 @@ document.addEventListener("mousemove", e => {
 
   rotX += e.movementX;
   rotY += e.movementY;
+<<<<<<< HEAD
+=======
+
+  if (e.movementY > 0 && lookY > - 1) { //Look up
+    //quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
+    lookY -= e.movementY * 1 / 40;
+    let _tempQ = quat.create();
+    quat.setAxisAngle(_tempQ, temp.camera.rotpos.right, e.movementY * 1 / 40);
+    quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+  }
+  if (e.movementY < 0 && lookY < 1) { //Look down
+    //quat.rotateX(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, -1 / 40);
+    lookY += e.movementY * 1 / 40;
+    let _tempQ = quat.create();
+    quat.setAxisAngle(_tempQ, temp.camera.rotpos.right, e.movementY * 1 / 40);
+    quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+  }
+
+  if (e.movementX != 0) {
+    //quat.rotateY(temp.shaders[0].objects[0].rotpos.rotation, temp.shaders[0].objects[0].rotpos.rotation, 1 / 40);
+    //let _tempQ = quat.create();
+    //quat.setAxisAngle(_tempQ, [0, 1, 0], e.movementX * 1 / 40);
+    //quat.multiply(temp.camera.rotpos.rotation, _tempQ, temp.camera.rotpos.rotation);
+    quat.rotateY(temp.camera.rotpos.rotation, temp.camera.rotpos.rotation, e.movementX * 1 / 40);
+  }
+
+  changed = true;
+>>>>>>> d3dc874586d4df46fd80b5ad82bd2f54293939ef
 });
 
 

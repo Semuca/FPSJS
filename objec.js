@@ -2,9 +2,15 @@ import {PhysicsObjec} from "./physics.js";
 
 //Stores data about an unloaded, uninstantiated object that is generic. I.e what shaders does this object work with?
 export class Model { //Should store the information that is generic to all objects of a certain type (i.e attribute information, texture) so we don't need to re-load them
-    constructor(shaderId, modelData) {
-        this.shaderId = shaderId;
+    constructor(modelData) {
         this.modelData = modelData;
+        this.textureId = undefined;
+        this.objects = [];
+
+        this.buffers = [];
+        this.vao = null; //Need to find difference between null and undefined
+        this.shader = null;
+        this.texture = null;
     }
 }
 
@@ -14,10 +20,11 @@ export class Objec {
       this.objectData = objectData;
       this.rotpos = rotpos;
   
+      /*
       this.buffers = [];
       this.texture = null;
       this.vao = null;
-      this.shader = null;
+      this.shader = null;*/
   
       this.physics = new PhysicsObjec(this, physicsScene); //For this, i have to include physics.js. Would prefer not to do this, might try and seperate it better later
   

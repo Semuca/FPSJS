@@ -70,14 +70,14 @@ function RenderLoop(now) {
   vec3.add(temp.camera.rotpos.position, temp.camera.rotpos.position, movVec);
 
 
-  //let vec = temp.shaders[0].objects[0].rotpos.right;
+  let vec = temp.shaders[0].objects[0].rotpos.right;
   //console.log(vec);
 
-  //if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] ||
-    //vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] ||
-    //vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
-    //temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
-  //}
+  if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] ||
+    vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] ||
+    vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
+    temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
+  }
 
   /*
   let movZ = ((keysDown["KeyW"] ? 1 : 0) - (keysDown["KeyS"] ? 1 : 0)) / 10;
@@ -273,11 +273,9 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
     //console.log(modelData);
 
     if (shaderCount === 1) { //If there's only one shader, there's no need to specify which shader we're using
-      temp.shaders[0].CreateModel(url, modelData);
-      models[url] = 1
+      models[url] = new Model(1, modelData);
     } else {
-      temp.shaders[stringAttributes[shaderCount + i + 2][1] - 1].CreateModel(url, modelData);
-      models[url] = stringAttributes[shaderCount + i + 2][1] - 1;
+      models[url] = new Model(stringAttributes[shaderCount + i + 2][1], modelData);
     }
   }
 
@@ -305,8 +303,7 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
 
     //console.log(models[stringAttributes[i][0]].shaderId);
     //fugly
-    //temp.shaders[models[stringAttributes[i][0]].shaderId - 1].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
-    temp.shaders[models[stringAttributes[i][0]]].InstanceObject(stringAttributes[i][0], new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene));
+    temp.shaders[models[stringAttributes[i][0]].shaderId - 1].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
   }
 
   requestAnimationFrame(RenderLoop);
