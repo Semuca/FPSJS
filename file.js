@@ -93,10 +93,10 @@ function RenderLoop(now) {
       activeShaders[i].gl.useProgram(activeShaders[i].shaderProgram);
     }
 
-    if (temp.shaders[i].objects.length === 0) { //This is a hack, remove it later
+    /*if (temp.shaders[i].objects.length === 0) { //This is a hack, remove it later
       activeShaders[i].DrawScene();
       continue;
-    }
+    }*/
 
     /*if (i === shaderFocus) {
       let movementVector = [0.0, 0.0, 0.0]
@@ -228,7 +228,8 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
   let stringAttributes = [];
 
 
-
+  //What does this generate?
+  //Splits data by line, then splits lines by colons, then splits sublines by commas
   let skipped = 0;
   for (let i = 0; i < rawStringAttributes.length; i++) {
     //console.log(rawStringAttributes[i]);
@@ -274,7 +275,7 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
 
     if (shaderCount === 1) { //If there's only one shader, there's no need to specify which shader we're using
       temp.shaders[0].CreateModel(url, modelData);
-      models[url] = 1
+      models[url] = 0
     } else {
       temp.shaders[stringAttributes[shaderCount + i + 2][1] - 1].CreateModel(url, modelData);
       models[url] = stringAttributes[shaderCount + i + 2][1] - 1;
@@ -291,16 +292,19 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
     let rotation = undefined;
     let scale = undefined;
     if (stringAttributes[i][1] != "") {
-      position = [parseFloat(stringAttributes[i][1][0]), parseFloat(stringAttributes[i][1][1]), parseFloat(stringAttributes[i][1][2])]
+      if (stringAttributes[i][1].length === 3) {
+        position = [parseFloat(stringAttributes[i][1][0]), parseFloat(stringAttributes[i][1][1]), parseFloat(stringAttributes[i][1][2])];
+      } else {
+        position = [parseFloat(stringAttributes[i][1][0]), parseFloat(stringAttributes[i][1][1])];
+      }
     }
 
     if (stringAttributes[i][2] != "") {
-      console.log(stringAttributes[i]);
-      rotation = [parseFloat(stringAttributes[i][2][0]), parseFloat(stringAttributes[i][2][1]), parseFloat(stringAttributes[i][2][2])]
+      rotation = [parseFloat(stringAttributes[i][2][0]), parseFloat(stringAttributes[i][2][1]), parseFloat(stringAttributes[i][2][2])];
     }
 
     if (stringAttributes[i][3] != "") {
-      scale = [parseFloat(stringAttributes[i][3][0]), parseFloat(stringAttributes[i][3][1]), parseFloat(stringAttributes[i][3][2])]
+      scale = [parseFloat(stringAttributes[i][3][0]), parseFloat(stringAttributes[i][3][1]), parseFloat(stringAttributes[i][3][2])];
     }
 
     //console.log(models[stringAttributes[i][0]].shaderId);

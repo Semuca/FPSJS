@@ -22,7 +22,7 @@ export class Window {
 
   //Not entirely set on the structure here, maybe think about it later
   AddShader(vsSource, fsSource) {
-    let shader = new Shader(this.gl, this.camera);
+    let shader = new Shader(this, this.gl, this.camera);
     shader.CompileProgram(vsSource, fsSource);
     this.shaders.push(shader);
   }
@@ -43,7 +43,7 @@ export class Window {
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
 export class Camera {
   constructor() {
-    this.rotpos = new RotPos([0.0, 0.0, -10.0]);
+    this.rotpos = new RotPos([0.0, 0.0, 0.0]);
   }
 }
 
@@ -52,7 +52,8 @@ export class Shader {
 
   //Constructor requires webgl context
   //TIDYING STATUS: GREEN
-  constructor(gl, camera) {
+  constructor(window, gl, camera) {
+    this.window = window;
     this.gl = gl;
     this.objects = [];
     this.models = {};
@@ -153,13 +154,14 @@ export class Shader {
   //Brings a model from data into opengl. This model can then be instantiated
   //TIDYING STATUS: ORANGE
   CreateModel(name, modelData) {
-    let model = new Model(modelData);
+    console.log(modelData);
+    this.models[name] = new Model(modelData);
     //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
     //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
-    model.vao = this.gl.createVertexArray();
-    this.gl.bindVertexArray(model.vao);
-    model.shader = this;
+    this.models[name].vao = this.gl.createVertexArray();
+    this.gl.bindVertexArray(this.models[name].vao);
+    this.models[name].shader = this;
 
     
     //Input: _obj should have javascript object, where labels that exactly match the attribInfo labels link to data that allows the gl context to assign a buffer
@@ -179,23 +181,22 @@ export class Shader {
     I have no idea if this will turn out to be the most efficient system, but I'm doing it for now
     */
 
-    let keys = Object.keys(model.modelData["ARRAY_BUFFER"]);
+    let keys = Object.keys(this.models[name].modelData["ARRAY_BUFFER"]);
 
     for (let i = 0; i < keys.length; i++) {
-      let buffer = model.modelData["ARRAY_BUFFER"][keys[i]];
-      model.buffers.push(this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0])));
+      let buffer = this.models[name].modelData["ARRAY_BUFFER"][keys[i]];
+      this.models[name].buffers.push(this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0])));
       this.SetVertexAttribArray(this.programInfo.attribLocations[keys[i]], buffer[1], this.gl.FLOAT, false, buffer[2], buffer[3]);
     }
 
-    if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-      this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.modelData["ELEMENT_ARRAY_BUFFER"][0]));
+    if (this.models[name].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+      this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.models[name].modelData["ELEMENT_ARRAY_BUFFER"][0]));
     }
 
-    if (model.modelData["TEXTURE"] != undefined) {
-      model.texture = this.CreateTexture(model.modelData["TEXTURE"]);
+    if (this.models[name].modelData["TEXTURE"] != undefined) {
+      this.models[name].textureId = this.window.GetNewTextureId();
+      this.models[name].texture = this.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
     }
-
-    this.models[name] = model;
   }
 
   //Creates an instance of a model in the world
@@ -223,10 +224,10 @@ export class Shader {
 
   //Loads texture into WebGL
   //TIDYING STATUS: YELLOW
-  CreateTexture(tex) {
+  CreateTexture(tex, texId) {
     //Creates texture and binds it to WebGL
     let texture = this.gl.createTexture();
-    this.gl.activeTexture(this.gl.TEXTURE0 + this.objects.length);
+    this.gl.activeTexture(this.gl.TEXTURE0 + texId);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
     //Puts image into texture
@@ -320,27 +321,30 @@ export class Shader {
 
     const offset = 0;
 
-    for (let modelNum = 0; modelNum < this.models.length; objectNum++) {
-      this.gl.bindVertexArray(this.models[modelNum].vao);
+    const _keys = Object.keys(this.models);
 
-      if (this.models[modelNum].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-        const vertexCount = this.models[modelNum].modelData["ELEMENT_ARRAY_BUFFER"][0].length;
+    for (let modelNum = 0; modelNum < _keys.length; modelNum++) {
+      this.gl.bindVertexArray(this.models[_keys[modelNum]].vao);
+
+      let vertexCount = undefined
+      if (this.models[_keys[modelNum]].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) { //kinda wasteful
+        vertexCount = this.models[_keys[modelNum]].modelData["ELEMENT_ARRAY_BUFFER"][0].length;
       }
 
-      const mode = this.gl.LINES;
-      if (this.models[modelNum].modelData["TEXTURE"] != undefined) {
-        this.gl.activeTexture(this.gl.TEXTURE0 + this.models[modelNum].texture);
-        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, this.gl.TEXTURE0 + this.models[modelNum].texture);
+      let mode = this.gl.LINES;
+      if (this.models[_keys[modelNum]].modelData["TEXTURE"] != undefined) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + this.models[_keys[modelNum]].textureId);
+        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, this.models[_keys[modelNum]].textureId);
         mode = this.gl.TRIANGLES;
       }
 
-      for (let objectNum = 0; objectNum < this.models[modelNum].objects.length; objectNum++) {
+      for (let objectNum = 0; objectNum < this.models[_keys[modelNum]].objects.length; objectNum++) {
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
-          this.models[modelNum].objects[objectNum].GetMatrix());
+          this.models[_keys[modelNum]].objects[objectNum].GetMatrix());
   
-        if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+        if (this.models[_keys[modelNum]].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
   
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
           this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);

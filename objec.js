@@ -18,7 +18,11 @@ export class Model { //Should store the information that is generic to all objec
 export class Objec {
     constructor(objectData, rotpos, physicsScene) {
       this.objectData = objectData;
-      this.rotpos = rotpos;
+      if (objectData["aVertexPosition"][1] == 2) {
+        this.rotpos2d = rotpos;
+      } else {
+        this.rotpos = rotpos;
+      }
   
       /*
       this.buffers = [];
@@ -80,4 +84,8 @@ export class RotPos {
       vec[2] = 2 * (this.rotation[0] * this.rotation[2] - this.rotation[3] * this.rotation[1]);
       return vec;
     }
+}
+
+export class RotPos2D {
+
 }
