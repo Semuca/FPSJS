@@ -134,12 +134,14 @@ function RenderLoop(now) {
     mat4.lookAt(activeShaders[i].viewMatrix, activeShaders[i].rotpos.position, _vec, _cameraUp);
     */
 
-    mat4.lookAt(activeShaders[i].viewMatrix, temp.camera.rotpos.position, _vec, _cameraUp);
+    if (activeShaders[i].type == "3D") {
+      mat4.lookAt(activeShaders[i].viewMatrix, temp.camera.rotpos.position, _vec, _cameraUp);
 
-    activeShaders[i].gl.uniformMatrix4fv(
-      activeShaders[i].programInfo.uniformLocations.uViewMatrix,
-      false,
-      activeShaders[i].viewMatrix);
+      activeShaders[i].gl.uniformMatrix4fv(
+        activeShaders[i].programInfo.uniformLocations.uViewMatrix,
+        false,
+        activeShaders[i].viewMatrix);
+    }
 
     activeShaders[i].DrawScene();
   }
@@ -179,7 +181,12 @@ async function LoadShader(window, vsUrl, fsUrl) {
   const vSource = await LoadFileText("Shaders/" + vsUrl);
   const fSource = await LoadFileText("Shaders/" + fsUrl);
 
-  window.AddShader(vSource, fSource);
+  //Very hacky solution, to be fixed later
+  let type = "3D";
+  if (vsUrl == "spriteVertexShader.vs") {
+    type = "2D";
+  }
+  window.AddShader(vSource, fSource, type);
 }
 
 //Loads model from txt file
@@ -282,7 +289,7 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
     }
   }
 
-
+  //console.log(models);
 
 
   //Instantiate all objects
@@ -310,10 +317,19 @@ async function LoadMap(url) { //No validation on the file yet, but that can be c
     //console.log(models[stringAttributes[i][0]].shaderId);
     //fugly
     //temp.shaders[models[stringAttributes[i][0]].shaderId - 1].CreateObject(new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene)); //Need to make this able to switch up shaders
-    temp.shaders[models[stringAttributes[i][0]]].InstanceObject(stringAttributes[i][0], new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene));
+    //console.log(stringAttributes[i][0]);
+    //temp.shaders[models[stringAttributes[i][0]]].InstanceObject(stringAttributes[i][0], new Objec(models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene));
+    //temp.shaders[models[stringAttributes[i][0]]].InstanceObject(stringAttributes[i][0], new Objec(temp.shaders[models[stringAttributes[i][0]]].models[stringAttributes[i][0]].modelData, new RotPos(position, rotation, scale), physicsScene));
+    ZoopObjec(stringAttributes[i][0], new RotPos(position, rotation, scale), physicsScene);
   }
 
   requestAnimationFrame(RenderLoop);
+}
+
+//Zoop means 'create', just changed for namespace reasons
+function ZoopObjec(url, rotpos, physicsScene) {
+  let shaderNum = models[url];
+  temp.shaders[shaderNum].InstanceObject(url, rotpos, physicsScene);
 }
 
 //What's the difference between window.addeventlistener and document.addeventlistener?

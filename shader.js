@@ -21,8 +21,8 @@ export class Window {
   }
 
   //Not entirely set on the structure here, maybe think about it later
-  AddShader(vsSource, fsSource) {
-    let shader = new Shader(this, this.gl, this.camera);
+  AddShader(vsSource, fsSource, type) {
+    let shader = new Shader(this, this.gl, this.camera, type);
     shader.CompileProgram(vsSource, fsSource);
     this.shaders.push(shader);
   }
@@ -52,15 +52,14 @@ export class Shader {
 
   //Constructor requires webgl context
   //TIDYING STATUS: GREEN
-  constructor(window, gl, camera) {
+  constructor(window, gl, camera, type) {
     this.window = window;
     this.gl = gl;
     this.objects = [];
     this.models = {};
 
-    this.rotpos = new RotPos(); //This shouldn't exist for a shader, but I have no other of storing camera position right now
-
     this.camera = camera;
+    this.type = type;
     //Temporary
     //this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
     //quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);
@@ -154,7 +153,7 @@ export class Shader {
   //Brings a model from data into opengl. This model can then be instantiated
   //TIDYING STATUS: ORANGE
   CreateModel(name, modelData) {
-    console.log(modelData);
+    //console.log(modelData);
     this.models[name] = new Model(modelData);
     //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
@@ -200,8 +199,8 @@ export class Shader {
   }
 
   //Creates an instance of a model in the world
-  InstanceObject(name, objec) {
-    this.models[name].objects.push(objec);
+  InstanceObject(name, rotpos, physicsScene) {
+    this.models[name].objects.push(new Objec(this.models[name], rotpos, physicsScene));
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
@@ -242,7 +241,11 @@ export class Shader {
   }
 
   RecalculateProjMatrix() {
-    mat4.perspective(this.projectionMatrix, this.fieldOfView, this.aspectRatio, this.zNear, this.zFar);
+    if (this.type == "2D") {
+      mat4.ortho(this.projectionMatrix, 0.0, this.gl.canvas.width, this.gl.canvas.height, 0.0, -1.0, 1.0);
+    } else {
+      mat4.perspective(this.projectionMatrix, this.fieldOfView, this.aspectRatio, this.zNear, this.zFar);
+    }
 
     this.gl.useProgram(this.shaderProgram);
     this.gl.uniformMatrix4fv(
@@ -268,15 +271,17 @@ export class Shader {
 
     this.projectionMatrix = mat4.create(); //This is just camera settings
 
-    this.viewMatrix = mat4.create(); //And this is just determined from the rotpos from the camera
-    mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
+    if (this.type == "3D") {
+      this.viewMatrix = mat4.create(); //And this is just determined from the rotpos from the camera
+      mat4.fromRotationTranslation(this.viewMatrix, this.camera.rotpos.rotation, this.camera.rotpos.position);
 
-    this.gl.useProgram(this.shaderProgram);
+      this.gl.useProgram(this.shaderProgram);
 
-    this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.uViewMatrix,
-      false,
-      this.viewMatrix);
+      this.gl.uniformMatrix4fv(
+        this.programInfo.uniformLocations.uViewMatrix,
+        false,
+        this.viewMatrix);
+    }
 
     this.RecalculateProjMatrix();
   }
@@ -323,33 +328,44 @@ export class Shader {
 
     const _keys = Object.keys(this.models);
 
+    //For each model...
     for (let modelNum = 0; modelNum < _keys.length; modelNum++) {
-      this.gl.bindVertexArray(this.models[_keys[modelNum]].vao);
+      let model = this.models[_keys[modelNum]];
 
+      //Bind their vertex data
+      this.gl.bindVertexArray(model.vao);
+
+      //if (this.type == "2D") {
+        //console.log(model.vao);
+      //}
+
+      //Get the number of points
       let vertexCount = undefined
-      if (this.models[_keys[modelNum]].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) { //kinda wasteful
-        vertexCount = this.models[_keys[modelNum]].modelData["ELEMENT_ARRAY_BUFFER"][0].length;
+      if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) { //kinda wasteful
+        vertexCount = model.modelData["ELEMENT_ARRAY_BUFFER"][0].length;
       }
 
+      //Set texture and mode
       let mode = this.gl.LINES;
-      if (this.models[_keys[modelNum]].modelData["TEXTURE"] != undefined) {
-        this.gl.activeTexture(this.gl.TEXTURE0 + this.models[_keys[modelNum]].textureId);
-        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, this.models[_keys[modelNum]].textureId);
+      if (model.modelData["TEXTURE"] != undefined) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
+        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
         mode = this.gl.TRIANGLES;
       }
 
-      for (let objectNum = 0; objectNum < this.models[_keys[modelNum]].objects.length; objectNum++) {
+      //Draw every object
+      for (let objectNum = 0; objectNum < model.objects.length; objectNum++) {
+
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
-          this.models[_keys[modelNum]].objects[objectNum].GetMatrix());
+          model.objects[objectNum].GetMatrix());
   
-        if (this.models[_keys[modelNum]].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-  
+        if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
           this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);
         } else {
-          this.gl.drawArrays(mode, offset, 2); //bad hardcoding, oh well
+          this.gl.drawArrays(mode, offset, 6); //bad hardcoding, oh well
         }
       }
     }

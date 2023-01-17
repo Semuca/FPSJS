@@ -6,7 +6,7 @@ aVertexPosition, 2,
 1.0, 1.0,
 1.0, 0.0
 
-aTexturePosition, 2,
+aTextureCoord, 2,
 0.0, 1.0,
 1.0, 0.0,
 0.0, 0.0,
@@ -15,4 +15,4 @@ aTexturePosition, 2,
 1.0, 0.0
 
 TEXTURE,
-4.png
+door.png
