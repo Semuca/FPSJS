@@ -118,13 +118,13 @@ export class PhysicsObjec { // How do we do circles?. How do we check for concav
     //} Having physics objects based off an array of points would be cool, but ultimately very hard to do right now
 
     constructor(objec, physicsScene) {
+        this.position = objec.rotpos.position;
         this.sizeX = objec.rotpos.scale[0];
         this.sizeY = objec.rotpos.scale[1];
-        this.sizeZ = objec.rotpos.scale[2];
+        this.sizeZ = (this.position.length == 2) ? undefined : objec.rotpos.scale[2];
 
         this.physicsScene = physicsScene;
         this.objec = objec;
-        this.position = objec.rotpos.position;
         this.id = physicsScene.addPobjec(this);
         this.enabled = true;
     }
