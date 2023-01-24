@@ -1,14 +1,16 @@
 3
 vertexShader.vs, fragmentShader.fs
 lineVertexShader.vs, lineFragmentShader.fs
-spriteVertexShader.vs, spriteFragmentShader.fs
+2DspriteVertexShader.vs, spriteFragmentShader.fs
 
-3
+4
 2bject.txt: 1
+plane.txt: 1
 l2ine.txt: 2
-plane.txt: 3
+sprite.txt: 3
 
 2bject.txt: 0.0, 0.0, -6.0 : :
 2bject.txt: 0.0, 0.0, 6.0 : : 3.0, 0.5, 1.0
+plane.txt: -3.0, 0.0, 0.0 : :
 l2ine.txt: 0.0, 0.0, -6.0 : :
-plane.txt: 100.0, 100.0 : : 100.0, 100.0
+sprite.txt: 100.0, 100.0 : : 100.0, 100.0

@@ -10,33 +10,28 @@ export class Model { //Should store the information that is generic to all objec
         this.buffers = [];
         this.vao = null; //Need to find difference between null and undefined
         this.shader = null;
-        this.texture = null;
     }
 }
 
 //Instance of object
 export class Objec {
-    constructor(model, rotpos, physicsScene) {
-      this.objectData = model.modelData;
+    constructor(model, rotpos) {
+      this.objectData = model.modelData; //Is this necessary?
       this.rotpos = rotpos;
       //if (this.objectData["ARRAY_BUFFER"]["aVertexPosition"][1] == 2) {
       //} else {
       //}
   
-      /*
-      this.buffers = [];
-      this.texture = null;
-      this.vao = null;
-      this.shader = null;*/
-  
-      this.physics = new PhysicsObjec(this, physicsScene); //For this, i have to include physics.js. Would prefer not to do this, might try and seperate it better later
-  
       this.matrix = mat4.create();
+    }
+
+    TiePhysicsObjec(physicsScene) {
+      this.physics = new PhysicsObjec(this, physicsScene); //For this, i have to include physics.js. Would prefer not to do this, might try and seperate it better later
     }
   
     GetMatrix() {
       if (this.rotpos.position.length == 2) {
-        mat4.fromRotationTranslationScale(this.matrix, quat.create(), [this.rotpos.position[0], this.rotpos.position[1], 0.0], [this.rotpos.scale[0], this.rotpos.scale[1], 0.0]);
+        mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, [this.rotpos.position[0], this.rotpos.position[1], 0.0], [this.rotpos.scale[0], this.rotpos.scale[1], 0.0]);
       } else {
         mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, this.rotpos.position, this.rotpos.scale);
       }
@@ -66,7 +61,10 @@ export class RotPos {
 
       //Gotta think about passing 2d scales and rotations, but for now this should do
       if (this.position.length == 2) {
-        this.rotation = 0.0;
+        this.rotation = quat.create();
+        if (rotation != undefined) {
+          quat.setAxisAngle(this.rotation, [0.0, 0.0, 1.0], rotation);
+        }
         this.scale = (scale === undefined) ? vec2.fromValues(1, 1) : scale;
       } else {
         this.rotation = (rotation === undefined) ? quat.create() : rotation;

@@ -7,6 +7,9 @@ export class Window {
   //TIDYING STATUS: GREEN
   constructor(canvasID) {
     this.canvas = document.getElementById(canvasID);
+    this.canvas.width = this.canvas.clientWidth;
+    this.canvas.height = this.canvas.clientHeight;
+
     this.gl = this.canvas.getContext("webgl2");
     this.camera = new Camera();
 
@@ -18,6 +21,11 @@ export class Window {
 
     this.shaders = []; //Not entirely set on how I want the window to be constructed, or the relationships between shaders, windows, the canvas and cameras, yet
     this.textures = []; //For the context of webgl, we need to track what objects use what texture
+
+    //A lot of this texture stuff needs to be sorted out. Redundancies induce discrepencies, especially when deleting textures
+    //Is there a better way to store these?
+    this.texObjects = {}; //TextureID to Texture Objects hashmap (Maybe include texture names later too)
+    this.texIds = {}; //Texture name to TextureID hasmap
   }
 
   //Not entirely set on the structure here, maybe think about it later
@@ -27,11 +35,40 @@ export class Window {
     this.shaders.push(shader);
   }
 
+  SetupTexture(name, tex) {
+    let texId = this.GetNewTextureId();
+    this.texIds[name] = texId;
+    this.texObjects[texId] = this.CreateTexture(tex, texId);
+
+    return texId;
+  }
+
+  //Sets up a texture in the webgl context
+  CreateTexture(tex, texId) {
+    //Creates texture and binds it to WebGL
+    let texture = this.gl.createTexture();
+    this.gl.activeTexture(this.gl.TEXTURE0 + texId);
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+    //Puts image into texture
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex);
+    this.gl.generateMipmap(this.gl.TEXTURE_2D); //WebGL 1 can only mipmap even-height and width textures. I know this is webgl2, but should think about compatability
+
+    //Adjusts texture parameters
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+
+    return texture;
+  }
+
+  //Why can't we just join the GetNewTextureId function with CreateTexture function? I can't think of a scenario where one is used without the other
   //Gets new texture ID
   GetNewTextureId() {
     for (let i = 0; i < this.textures.length; i++) { //O(n) time. I think this theoretically could be O(logN), but i don't think it's that important
       if (this.textures[i] != i) {
         this.textures.splice(i, 0, i);
+
         return i;
       }
     }
@@ -60,9 +97,11 @@ export class Shader {
 
     this.camera = camera;
     this.type = type;
+
     //Temporary
     //this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
     //quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);
+    this.zoom = 1.0;
   }
 
   //Compiles a shader program from source code
@@ -192,15 +231,21 @@ export class Shader {
       this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.models[name].modelData["ELEMENT_ARRAY_BUFFER"][0]));
     }
 
+    //Could you just have a global model name hashtable?
     if (this.models[name].modelData["TEXTURE"] != undefined) {
-      this.models[name].textureId = this.window.GetNewTextureId();
-      this.models[name].texture = this.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
+      //this.models[name].textureId = this.window.GetNewTextureId();
+      //this.models[name].texture = this.window.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
+      this.models[name].textureId = this.models[name].modelData["TEXTURE"];
     }
   }
 
   //Creates an instance of a model in the world
-  InstanceObject(name, rotpos, physicsScene) {
-    this.models[name].objects.push(new Objec(this.models[name], rotpos, physicsScene));
+  InstanceObject(name, rotpos, physicsScene, texName) {
+    this.models[name].objects.push(new Objec(this.models[name], rotpos));
+    if (this.type == "3D") {
+      this.models[name].objects[this.models[name].objects.length - 1].TiePhysicsObjec(physicsScene);
+    }
+    this.models[name].objects[this.models[name].objects.length - 1].texId = this.window.texIds[texName];
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
@@ -221,28 +266,10 @@ export class Shader {
     this.gl.enableVertexAttribArray(attribLocation);
   }
 
-  //Loads texture into WebGL
-  //TIDYING STATUS: YELLOW
-  CreateTexture(tex, texId) {
-    //Creates texture and binds it to WebGL
-    let texture = this.gl.createTexture();
-    this.gl.activeTexture(this.gl.TEXTURE0 + texId);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-    //Puts image into texture
-    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex);
-    this.gl.generateMipmap(this.gl.TEXTURE_2D); //WebGL 1 can only mipmap even-height and width textures. I know this is webgl2, but should think about compatability
-
-    //Adjusts texture parameters
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-    return texture;
-  }
-
   RecalculateProjMatrix() {
     if (this.type == "2D") {
-      mat4.ortho(this.projectionMatrix, 0.0, this.gl.canvas.width, this.gl.canvas.height, 0.0, -1.0, 1.0);
+      //mat4.ortho(this.projectionMatrix, 0.0, this.window.canvas.width * this.zoom, this.window.canvas.height * this.zoom, 0.0, -1.0, 1.0);
+      mat4.ortho(this.projectionMatrix, this.window.canvas.width * this.zoom / 2, -this.window.canvas.width * this.zoom / 2, -this.window.canvas.height * this.zoom / 2, this.window.canvas.height * this.zoom/ 2, -1.0, 1.0);
     } else {
       mat4.perspective(this.projectionMatrix, this.fieldOfView, this.aspectRatio, this.zNear, this.zFar);
     }
@@ -262,20 +289,20 @@ export class Shader {
     this.gl.enable(this.gl.DEPTH_TEST); //Enable depth testing
     this.gl.depthFunc(this.gl.LEQUAL); //Near things obscure far things
     
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height); //This needs to be repeated on canvas size change
+    this.gl.viewport(0, 0, this.window.canvas.width, this.window.canvas.height); //Sets the viewport
 
+    //what is this.gl.canvas?
     this.fieldOfView = 45 * Math.PI / 180; // I would like the field of view to be directly proportional to the screen size, but can't figure it out right now
-    this.aspectRatio = this.gl.canvas.width / this.gl.canvas.height;
+    this.aspectRatio = this.window.canvas.clientWidth / this.window.canvas.clientHeight;
     this.zNear = 0.1;
     this.zFar = 100.0;
 
     this.projectionMatrix = mat4.create(); //This is just camera settings
 
-    if (this.type == "3D") {
+    this.gl.useProgram(this.shaderProgram);
+    if (this.programInfo.uniformLocations.uViewMatrix != undefined) {
       this.viewMatrix = mat4.create(); //And this is just determined from the rotpos from the camera
       mat4.fromRotationTranslation(this.viewMatrix, this.camera.rotpos.rotation, this.camera.rotpos.position);
-
-      this.gl.useProgram(this.shaderProgram);
 
       this.gl.uniformMatrix4fv(
         this.programInfo.uniformLocations.uViewMatrix,
@@ -287,46 +314,11 @@ export class Shader {
   }
   
   DrawScene() {
-    /*
-    const offset = 0;
-    //const vertexCount = 36; //Should be done automatically for each object
-
-    for (let objectNum = 0; objectNum < this.objects.length; objectNum++) {
-      //const offset = this.objects[objectNum].objectData["ARRAY_BUFFER"]["aVertexPosition"][3]; //ew ew ew ew ew
-
-      this.gl.bindVertexArray(this.objects[objectNum].vao);
-
-      //Sets position of object with orientation
-      this.gl.uniformMatrix4fv(
-        this.programInfo.uniformLocations.uModelMatrix,
-        false,
-        this.objects[objectNum].GetMatrix());
-
-      if (this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-        const vertexCount = this.objects[objectNum].objectData["ELEMENT_ARRAY_BUFFER"][0].length;
-
-        //Tell opengl which texture we're currently using, then tell our shader which texture we're using
-        if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
-          this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
-          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
-          this.gl.drawElements(this.gl.TRIANGLES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
-        } else {
-          this.gl.drawElements(this.gl.LINES, vertexCount, this.gl.UNSIGNED_SHORT, offset);
-        }
-      } else {
-        if (this.objects[objectNum].objectData["TEXTURE"] != undefined) {
-          this.gl.activeTexture(this.gl.TEXTURE0 + objectNum);
-          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, objectNum);
-          this.gl.drawArrays(this.gl.TRIANGLES, offset, 2);
-        } else {
-          this.gl.drawArrays(this.gl.LINES, offset, 2); //bad hardcoding, oh well
-        }
-      }
-    }*/
-
     const offset = 0;
 
     const _keys = Object.keys(this.models);
+
+    this.gl.useProgram(this.shaderProgram);
 
     //For each model...
     for (let modelNum = 0; modelNum < _keys.length; modelNum++) {
@@ -334,10 +326,6 @@ export class Shader {
 
       //Bind their vertex data
       this.gl.bindVertexArray(model.vao);
-
-      //if (this.type == "2D") {
-        //console.log(model.vao);
-      //}
 
       //Get the number of points
       let vertexCount = undefined
@@ -356,6 +344,11 @@ export class Shader {
       //Draw every object
       for (let objectNum = 0; objectNum < model.objects.length; objectNum++) {
 
+        if (model.objects[objectNum].texId != undefined) {
+          this.gl.activeTexture(this.gl.TEXTURE0 + model.objects[objectNum].texId);
+          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.objects[objectNum].texId);
+        }
+
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
@@ -365,7 +358,12 @@ export class Shader {
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
           this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);
         } else {
-          this.gl.drawArrays(mode, offset, 6); //bad hardcoding, oh well
+          this.gl.drawArrays(mode, offset, model.modelData["ARRAY_BUFFER"]["aVertexPosition"][0].length / model.modelData["ARRAY_BUFFER"]["aVertexPosition"][1]); //bad hardcoding, oh well
+        }
+
+        if (model.objects[objectNum].texId != undefined) {
+          this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
+          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
         }
       }
     }

@@ -13,9 +13,10 @@ let isPaused = false;
 let rotX = 180;
 let rotY = 0;
 
-let shaderFocus = 0;
-let objectFocus = 0;
+//let shaderFocus = 0;
+//let objectFocus = 0;
 
+//Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 let models = {};
 let physicsScene = new PhysicsScene();
 
