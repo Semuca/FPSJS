@@ -15,12 +15,13 @@ export class Model { //Should store the information that is generic to all objec
 
 //Instance of object
 export class Objec {
-    constructor(model, rotpos) {
+    constructor(model, rotpos, worldIndex) {
       this.objectData = model.modelData; //Is this necessary?
       this.rotpos = rotpos;
       //if (this.objectData["ARRAY_BUFFER"]["aVertexPosition"][1] == 2) {
       //} else {
       //}
+      this.worldIndex = worldIndex;
   
       this.matrix = mat4.create();
     }

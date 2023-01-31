@@ -1,12 +1,11 @@
 // There should be some way for indentations to be uniform on vscode. Not sure how to do it now though
 
-import {Window, Camera, Shader} from "./shader.js";
+import {Screen, Camera, Shader} from "./shader.js";
 import {PhysicsScene, PhysicsObjec} from "./physics.js";
 import {Model, Objec, RotPos} from "./objec.js";
 
 //Loads values from text files given by the url
-//TIDYING STATUS: GREEN
-async function LoadFileText(url) {
+export async function LoadFileText(url) {
   const retrievedText = await fetch(url);
   const text = await retrievedText.text();
   return text;
@@ -45,7 +44,7 @@ export async function CreateTexture(window, url) {
 }
 
 //Loads a shader from url data
-export async function LoadShader(window, vsUrl, fsUrl) {
+export async function LoadShader(window, cam, vsUrl, fsUrl) {
   const vSource = await LoadFileText("Shaders/" + vsUrl);
   const fSource = await LoadFileText("Shaders/" + fsUrl);
 
@@ -54,7 +53,7 @@ export async function LoadShader(window, vsUrl, fsUrl) {
   if (vsUrl.substring(0, 2) == "2D") {
     type = "2D";
   }
-  window.AddShader(vSource, fSource, type);
+  window.AddShader(cam, vSource, fSource);
 }
 
 //Loads model from txt file

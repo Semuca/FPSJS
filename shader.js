@@ -2,7 +2,7 @@
 import {Model, Objec, RotPos} from "./objec.js";
 
 //What is placed on the page.
-export class Window {
+export class Screen {
   //Constructor requires an identifier for a canvas
   //TIDYING STATUS: GREEN
   constructor(canvasID) {
@@ -11,7 +11,7 @@ export class Window {
     this.canvas.height = this.canvas.clientHeight;
 
     this.gl = this.canvas.getContext("webgl2");
-    this.camera = new Camera();
+    //this.camera = new Camera();
 
     //Ensure webgl is properly set up
     if (!this.gl) {
@@ -22,17 +22,33 @@ export class Window {
     this.shaders = []; //Not entirely set on how I want the window to be constructed, or the relationships between shaders, windows, the canvas and cameras, yet
     this.textures = []; //For the context of webgl, we need to track what objects use what texture
 
+    this.cameras = []; //Multiple cameras
+
     //A lot of this texture stuff needs to be sorted out. Redundancies induce discrepencies, especially when deleting textures
     //Is there a better way to store these?
     this.texObjects = {}; //TextureID to Texture Objects hashmap (Maybe include texture names later too)
     this.texIds = {}; //Texture name to TextureID hasmap
   }
 
+  /*
   //Not entirely set on the structure here, maybe think about it later
   AddShader(vsSource, fsSource, type) {
     let shader = new Shader(this, this.gl, this.camera, type);
     shader.CompileProgram(vsSource, fsSource);
     this.shaders.push(shader);
+  }*/
+
+  //Not entirely set on the structure here, maybe think about it later
+  AddShader(cam, vsSource, fsSource) {
+    let shader = new Shader(this, this.gl, cam);
+    shader.CompileProgram(vsSource, fsSource);
+    this.shaders.push(shader);
+  }
+
+  //tlCorner and brCorner are in percentage of screenspace taken up. Might be good to also have an option for pixels
+  AddCamera(tlCorner, brCorner, type, worldIndex) {
+    this.cameras.push(new Camera(this, tlCorner, brCorner, type, worldIndex));
+    return this.cameras[this.cameras.length - 1];
   }
 
   SetupTexture(name, tex) {
@@ -79,8 +95,75 @@ export class Window {
 
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
 export class Camera {
-  constructor() {
+  constructor(window, tlCorner, brCorner, type, worldIndex) {
+    this.window = window;
+    this.tlCorner = tlCorner;
+    this.brCorner = brCorner;
+    this.type = type;
+
+    this.width = this.brCorner[0] - this.tlCorner[0];
+    this.height = this.brCorner[1] - this.tlCorner[1];
+
     this.rotpos = new RotPos([0.0, 0.0, 0.0]);
+    this.zoom = 1.0;
+
+    this.fieldOfView = 45 * Math.PI / 180; // I would like the field of view to be directly proportional to the screen size, but can't figure it out right now
+    this.aspectRatio = this.window.canvas.width / this.window.canvas.height;
+    this.zNear = 0.1;
+    this.zFar = 100.0;
+
+    this.pxWidth = Math.floor(this.window.canvas.width * this.width);
+    this.pxHeight = Math.floor(this.window.canvas.height * this.height);
+    this.SetViewport();
+
+    this.projectionMatrix = mat4.create();
+    this.RecalculateProjMatrix();
+
+    this.viewMatrix = mat4.create();
+    this.UpdatePos();
+
+  }
+
+  //Should get a better name
+  RecalculateProjMatrix() {
+    if (this.type == "2D") {
+      //mat4.ortho(this.projectionMatrix, 0.0, this.window.canvas.width * this.zoom, this.window.canvas.height * this.zoom, 0.0, -1.0, 1.0);
+      mat4.ortho(this.projectionMatrix, this.pxWidth * this.zoom / 2, -this.pxWidth * this.zoom / 2, -this.pxHeight * this.zoom / 2, this.pxHeight * this.zoom / 2, -1.0, 1.0);
+    } else {
+      mat4.perspective(this.projectionMatrix, this.fieldOfView, this.aspectRatio, this.zNear, this.zFar);
+    }
+
+    this.SetUniform("uProjectionMatrix", this.projectionMatrix);
+  }
+  
+  UpdatePos() {
+    mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
+    this.SetUniform("uViewMatrix", this.viewMatrix);
+  }
+
+  SetUniform(uniform, property) {
+    //Should have a list of shaders this camera uses, and run through those.
+    for (let i = 0; i < this.window.shaders.length; i++) {
+      if (this.window.shaders[i].programInfo.uniformLocations[uniform] != undefined) {
+        this.window.gl.useProgram(this.window.shaders[i].shaderProgram);
+
+        this.window.gl.uniformMatrix4fv(
+          this.window.shaders[i].programInfo.uniformLocations[uniform],
+          false,
+          property);
+      }
+      
+    }
+  }
+
+  SetViewport() {
+    this.window.gl.viewport(this.window.canvas.width * this.tlCorner[0], this.window.canvas.height * this.tlCorner[1], this.pxWidth, this.pxHeight);
+  }
+
+  PreDraw() {
+    this.SetUniform("uProjectionMatrix", this.projectionMatrix);
+    this.SetUniform("uViewMatrix", this.viewMatrix);
+    this.SetViewport();
   }
 }
 
@@ -88,20 +171,18 @@ export class Shader {
   //Should start bringing private variables into these classes
 
   //Constructor requires webgl context
-  //TIDYING STATUS: GREEN
-  constructor(window, gl, camera, type) {
+  constructor(window, gl, cam) {
     this.window = window;
     this.gl = gl;
     this.objects = [];
     this.models = {};
 
-    this.camera = camera;
-    this.type = type;
+    this.cam = cam;
 
     //Temporary
     //this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
     //quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);
-    this.zoom = 1.0;
+    //this.zoom = 1.0;
   }
 
   //Compiles a shader program from source code
@@ -240,9 +321,9 @@ export class Shader {
   }
 
   //Creates an instance of a model in the world
-  InstanceObject(name, rotpos, physicsScene, texName) {
-    this.models[name].objects.push(new Objec(this.models[name], rotpos));
-    if (this.type == "3D") {
+  InstanceObject(name, rotpos, physicsScene, worldIndex, texName) {
+    this.models[name].objects.push(new Objec(this.models[name], rotpos, worldIndex));
+    if (this.cam.type == "3D") {
       this.models[name].objects[this.models[name].objects.length - 1].TiePhysicsObjec(physicsScene);
     }
     this.models[name].objects[this.models[name].objects.length - 1].texId = this.window.texIds[texName];
@@ -266,10 +347,12 @@ export class Shader {
     this.gl.enableVertexAttribArray(attribLocation);
   }
 
+  /*
+  //Should also be contained in camera class
   RecalculateProjMatrix() {
-    if (this.type == "2D") {
+    if (this.cam.type == "2D") {
       //mat4.ortho(this.projectionMatrix, 0.0, this.window.canvas.width * this.zoom, this.window.canvas.height * this.zoom, 0.0, -1.0, 1.0);
-      mat4.ortho(this.projectionMatrix, this.window.canvas.width * this.zoom / 2, -this.window.canvas.width * this.zoom / 2, -this.window.canvas.height * this.zoom / 2, this.window.canvas.height * this.zoom/ 2, -1.0, 1.0);
+      mat4.ortho(this.projectionMatrix, this.window.canvas.width * this.zoom / 2, -this.window.canvas.width * this.zoom / 2, -this.window.canvas.height * this.zoom / 2, this.window.canvas.height * this.zoom / 2, -1.0, 1.0);
     } else {
       mat4.perspective(this.projectionMatrix, this.fieldOfView, this.aspectRatio, this.zNear, this.zFar);
     }
@@ -279,7 +362,7 @@ export class Shader {
       this.programInfo.uniformLocations.uProjectionMatrix,
       false,
       this.projectionMatrix);
-  }
+  }*/
 
   //Needs a better name. A lot of this can be tidied up by moving it to the camera class
   AdditionalSetup() {
@@ -288,32 +371,23 @@ export class Shader {
     this.gl.clearDepth(1.0); //Clear everything
     this.gl.enable(this.gl.DEPTH_TEST); //Enable depth testing
     this.gl.depthFunc(this.gl.LEQUAL); //Near things obscure far things
-    
-    this.gl.viewport(0, 0, this.window.canvas.width, this.window.canvas.height); //Sets the viewport
-
-    //what is this.gl.canvas?
-    this.fieldOfView = 45 * Math.PI / 180; // I would like the field of view to be directly proportional to the screen size, but can't figure it out right now
-    this.aspectRatio = this.window.canvas.clientWidth / this.window.canvas.clientHeight;
-    this.zNear = 0.1;
-    this.zFar = 100.0;
-
-    this.projectionMatrix = mat4.create(); //This is just camera settings
 
     this.gl.useProgram(this.shaderProgram);
-    if (this.programInfo.uniformLocations.uViewMatrix != undefined) {
-      this.viewMatrix = mat4.create(); //And this is just determined from the rotpos from the camera
-      mat4.fromRotationTranslation(this.viewMatrix, this.camera.rotpos.rotation, this.camera.rotpos.position);
 
+    this.window.gl.uniformMatrix4fv(
+      this.programInfo.uniformLocations.uProjectionMatrix,
+      false,
+      this.cam.projectionMatrix);
+
+    if (this.programInfo.uniformLocations.uViewMatrix != undefined) {
       this.gl.uniformMatrix4fv(
         this.programInfo.uniformLocations.uViewMatrix,
         false,
-        this.viewMatrix);
+        this.cam.viewMatrix);
     }
-
-    this.RecalculateProjMatrix();
   }
   
-  DrawScene() {
+  DrawScene(worldIndex) {
     const offset = 0;
 
     const _keys = Object.keys(this.models);
@@ -343,6 +417,11 @@ export class Shader {
 
       //Draw every object
       for (let objectNum = 0; objectNum < model.objects.length; objectNum++) {
+
+        //Only render objects in our current world
+        if (model.objects[objectNum].worldIndex != worldIndex) {
+          continue;
+        }
 
         if (model.objects[objectNum].texId != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + model.objects[objectNum].texId);
