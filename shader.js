@@ -30,14 +30,6 @@ export class Screen {
     this.texIds = {}; //Texture name to TextureID hasmap
   }
 
-  /*
-  //Not entirely set on the structure here, maybe think about it later
-  AddShader(vsSource, fsSource, type) {
-    let shader = new Shader(this, this.gl, this.camera, type);
-    shader.CompileProgram(vsSource, fsSource);
-    this.shaders.push(shader);
-  }*/
-
   //Not entirely set on the structure here, maybe think about it later
   AddShader(cam, vsSource, fsSource) {
     let shader = new Shader(this, this.gl, cam);
@@ -51,6 +43,7 @@ export class Screen {
     return this.cameras[this.cameras.length - 1];
   }
 
+  //Set up a texture to be rendered by opengl
   SetupTexture(name, tex) {
     let texId = this.GetNewTextureId();
     this.texIds[name] = texId;
@@ -96,26 +89,33 @@ export class Screen {
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
 export class Camera {
   constructor(window, tlCorner, brCorner, type, worldIndex) {
+
+    //Set window and viewport
     this.window = window;
     this.tlCorner = tlCorner;
     this.brCorner = brCorner;
     this.type = type;
 
+    //Get width and height (Theoretical, in percentages)
     this.width = this.brCorner[0] - this.tlCorner[0];
     this.height = this.brCorner[1] - this.tlCorner[1];
 
-    this.rotpos = new RotPos([0.0, 0.0, 0.0]);
+    //Default rotpos and zome
+    this.rotpos = new RotPos([0.0, 0.0, 0.0], undefined, [1.0, 1.0, 1.0]);
     this.zoom = 1.0;
 
+    //Other default camera values
     this.fieldOfView = 45 * Math.PI / 180; // I would like the field of view to be directly proportional to the screen size, but can't figure it out right now
     this.aspectRatio = this.window.canvas.width / this.window.canvas.height;
     this.zNear = 0.1;
     this.zFar = 100.0;
 
+    //Pixel values of camera. ?Does floor matter?
     this.pxWidth = Math.floor(this.window.canvas.width * this.width);
     this.pxHeight = Math.floor(this.window.canvas.height * this.height);
     this.SetViewport();
 
+    //Set up projection and view matrix
     this.projectionMatrix = mat4.create();
     this.RecalculateProjMatrix();
 
@@ -124,7 +124,7 @@ export class Camera {
 
   }
 
-  //Should get a better name
+  //(Should get a better name) Calculates projection matrix based on whether the camera is 2D or 3D
   RecalculateProjMatrix() {
     if (this.type == "2D") {
       //mat4.ortho(this.projectionMatrix, 0.0, this.window.canvas.width * this.zoom, this.window.canvas.height * this.zoom, 0.0, -1.0, 1.0);
@@ -136,6 +136,7 @@ export class Camera {
     this.SetUniform("uProjectionMatrix", this.projectionMatrix);
   }
   
+  //Change view matrix when camera moves
   UpdatePos() {
     mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
     this.SetUniform("uViewMatrix", this.viewMatrix);
@@ -156,6 +157,7 @@ export class Camera {
     }
   }
 
+  //Sets camera viewport in opengl - Important for cameras that change the amount of screen space they take up
   SetViewport() {
     this.window.gl.viewport(this.window.canvas.width * this.tlCorner[0], this.window.canvas.height * this.tlCorner[1], this.pxWidth, this.pxHeight);
   }
@@ -178,15 +180,10 @@ export class Shader {
     this.models = {};
 
     this.cam = cam;
-
-    //Temporary
-    //this.rotpos.position = vec3.fromValues(0.0, -2.0, -14.0);
-    //quat.fromEuler(this.rotpos.rotation, -25.0, 180.0, 0.0);
-    //this.zoom = 1.0;
   }
 
   //Compiles a shader program from source code
-  //TIDYING STATUS: GREEN
+  //vertexSource should be the source code for the vertex shader, fragmentSource should be the source code for the fragment shader
   CompileProgram(vertexSource, fragmentSource) {
     //Automatically cull backfaces for now, change later if needed
     this.gl.enable(this.gl.CULL_FACE);
@@ -196,7 +193,7 @@ export class Shader {
       console.log("painis"); //Really?
     }
 
-    //Loads shaders from source urls
+    //Creates shaders
     this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
     this.fragmentShader = this.CreateShader(this.gl.FRAGMENT_SHADER, fragmentSource);
 
@@ -216,6 +213,7 @@ export class Shader {
     this.AdditionalSetup();
   }
 
+  //Replaces vertex shader. Debug feature that should probably be removed at some point
   ReplaceVertexShader(source) {
     this.gl.shaderSource(this.vertexShader, source);
     this.gl.compileShader(this.vertexShader);
@@ -226,10 +224,9 @@ export class Shader {
   }
 
   //Loads a vertex/fragment shader from source code and return it's id
-  //TIDYING STATUS: GREEN
   CreateShader(type, source) {
     //Create shader
-    const shader = this.gl.createShader(type); //Maybe should rename these variables. They aren't 'shaders', they're ids to shaders
+    const shader = this.gl.createShader(type); //Returns a WebGLShader object
 
     //Pass in source code and compile
     this.gl.shaderSource(shader, source);
@@ -245,6 +242,7 @@ export class Shader {
     return shader;
   }
 
+  //Creates info for the shader class to interact with the shader program - Mainly uniform and attribute locations
   AssembleProgramInfo() {
     //Set up program info object
     this.programInfo = {
@@ -273,7 +271,6 @@ export class Shader {
   //Brings a model from data into opengl. This model can then be instantiated
   //TIDYING STATUS: ORANGE
   CreateModel(name, modelData) {
-    //console.log(modelData);
     this.models[name] = new Model(modelData);
     //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
@@ -304,7 +301,7 @@ export class Shader {
 
     for (let i = 0; i < keys.length; i++) {
       let buffer = this.models[name].modelData["ARRAY_BUFFER"][keys[i]];
-      this.models[name].buffers.push(this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0])));
+      this.models[name].buffers[keys[i]] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0]));
       this.SetVertexAttribArray(this.programInfo.attribLocations[keys[i]], buffer[1], this.gl.FLOAT, false, buffer[2], buffer[3]);
     }
 
@@ -342,27 +339,12 @@ export class Shader {
   //Set the layout of the buffer (attribute) attached to GL_ARRAY_BUFFER. THIS NEEDS TO BE CLEARED WHEN A NEW SOURCE REPLACES THIS
   //What the hell, this needs a better description. Not even sure if this function is necessary, but keep it for now.
   //TIDYING STATUS: ???
+
+  //A VertexAttribArray tells the shader how to interpret an attribute (What data it is, in what groups it's in)
   SetVertexAttribArray(attribLocation, numComponents, type, normalize, stride, offset) {
     this.gl.vertexAttribPointer(attribLocation, numComponents, type, normalize, stride, offset);
     this.gl.enableVertexAttribArray(attribLocation);
   }
-
-  /*
-  //Should also be contained in camera class
-  RecalculateProjMatrix() {
-    if (this.cam.type == "2D") {
-      //mat4.ortho(this.projectionMatrix, 0.0, this.window.canvas.width * this.zoom, this.window.canvas.height * this.zoom, 0.0, -1.0, 1.0);
-      mat4.ortho(this.projectionMatrix, this.window.canvas.width * this.zoom / 2, -this.window.canvas.width * this.zoom / 2, -this.window.canvas.height * this.zoom / 2, this.window.canvas.height * this.zoom / 2, -1.0, 1.0);
-    } else {
-      mat4.perspective(this.projectionMatrix, this.fieldOfView, this.aspectRatio, this.zNear, this.zFar);
-    }
-
-    this.gl.useProgram(this.shaderProgram);
-    this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.uProjectionMatrix,
-      false,
-      this.projectionMatrix);
-  }*/
 
   //Needs a better name. A lot of this can be tidied up by moving it to the camera class
   AdditionalSetup() {
@@ -371,6 +353,9 @@ export class Shader {
     this.gl.clearDepth(1.0); //Clear everything
     this.gl.enable(this.gl.DEPTH_TEST); //Enable depth testing
     this.gl.depthFunc(this.gl.LEQUAL); //Near things obscure far things
+
+    this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, this.gl.ONE, this.gl.ONE);
+    this.gl.enable(this.gl.BLEND);
 
     this.gl.useProgram(this.shaderProgram);
 
@@ -423,11 +408,18 @@ export class Shader {
           continue;
         }
 
+        //Should be universalised
+        if (model.objects[objectNum].texAttributes != undefined) {
+          model.ModifyAttribute("aTextureCoord", model.objects[objectNum].texAttributes);
+        }
+
+        //If the object has a custom defined texture id, use it
         if (model.objects[objectNum].texId != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + model.objects[objectNum].texId);
           this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.objects[objectNum].texId);
         }
 
+        //Get matrix of this object's rotpos
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
@@ -440,6 +432,7 @@ export class Shader {
           this.gl.drawArrays(mode, offset, model.modelData["ARRAY_BUFFER"]["aVertexPosition"][0].length / model.modelData["ARRAY_BUFFER"]["aVertexPosition"][1]); //bad hardcoding, oh well
         }
 
+        //If the object we just rendered has a custom texture id, swap back to the old one
         if (model.objects[objectNum].texId != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
           this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);

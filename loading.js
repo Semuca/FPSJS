@@ -74,6 +74,7 @@ export async function LoadModel(url, window) {
     let len = 3;
     if (name == "TEXTURE") {
 
+      //Shader should not load texture if it already exists
       obj["TEXTURE"] = await CreateTexture(window, stringAttributes[i][0]);
 
       //obj["TEXTURE"] = await LoadImage("Textures/" + stringAttributes[i][0]);

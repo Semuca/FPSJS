@@ -3,8 +3,6 @@ import {PhysicsScene} from "./physics.js";
 import {LoadFileText, CreateTexture, LoadModel, LoadShader} from "./loading.js";
 import {RotPos} from "./objec.js";
 
-let terminal = document.getElementById("texty"); //Need a better system for built-in html ui sometime in the futures
-
 let zoom = 50.0;
 let time = 0;
 
@@ -21,7 +19,7 @@ const MOUSE = {
 let mode = MODES.MOVE;
 let mouse = MOUSE.IDLE;
 
-let tile = "door.png";
+let tile = 0;
 let tiles = {};
 for (let index = -50; index <= 50; index++) {
   tiles[index] = {};
@@ -45,27 +43,31 @@ cam.PreDraw();
 Setup();
 
 async function Setup() {
+  //Load 2d shader, plus the model
   await LoadShader(temp, cam, "2DspriteVertexShader.vs", "spriteFragmentShader.fs");
   let modelData = await LoadModel("verSprite.txt", temp);
   temp.shaders[0].CreateModel("verSprite.txt", modelData);
 
+  //Processing textures to be loaded. Shouldn't this be a part of the map?
   textures = await LoadFileText("textures.txt");
   textures = textures.split("\r\n");
   for (let i = 0; i < textures.length; i++) {
-    await CreateTexture(temp, textures[i]);
+    await CreateTexture(temp, textures[i] + ".png");
   }
   textures.push("door.png");
 
+
   let width = sidebar.pxWidth / 4;
   for (let i = 0; i < textures.length; i++) {
-    temp.shaders[0].InstanceObject("verSprite.txt", new RotPos([sidebar.pxWidth / 2 - ((i % 4) + 1) * width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + sidebar.pxWidth / 8], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, textures[i]);
+    temp.shaders[0].InstanceObject("verSprite.txt", new RotPos([sidebar.pxWidth / 2 - ((i % 4) + 1) * width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + sidebar.pxWidth / 8, 0.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, textures[i]);
   }
   sprites = temp.shaders[0].models["verSprite.txt"].objects;
 
+  //Load line models
   await LoadShader(temp, cam, "2DflatlineVertexShader.vs", "lineFragmentShader.fs");
   modelData = await LoadModel("flatline.txt", temp);
   temp.shaders[1].CreateModel("flatline.txt", modelData);
-  temp.shaders[1].InstanceObject("flatline.txt", new RotPos([0.0, 0.0], undefined, [0.0, 0.0]), physicsScene, 0);
+  temp.shaders[1].InstanceObject("flatline.txt", new RotPos([0.0, 0.0, 0.0], undefined, [0.0, 0.0]), physicsScene, 0);
 
   line = temp.shaders[1].models["flatline.txt"].objects[0];
 
@@ -183,9 +185,34 @@ window.addEventListener("keyup", e => {
 
 //Should use keycodes or just key? to research
 window.addEventListener("keydown", e => {
-  
+
     //Set what keys are being currently held down
     keysDown[e.code] = true;
+
+    if (e.code === "KeyC") {
+      let element = document.createElement('a');
+
+      let text = "";
+      for (let i = -50; i <= 50; i++) {
+        for (let j = -50; j <= 50; j++) {
+          if (tiles[i][j] != undefined) {
+            text += temp.shaders[0].models["verSprite.txt"].objects[tiles[i][j]].texId
+          } else {
+            text += " ";
+          }
+        }
+        text += "\r\n";
+      }
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', "map");
+
+      element.style.display = "none";
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    }
   
     //Toggle fullscreen on enter
     if (e.code === "Enter") {
@@ -213,7 +240,7 @@ window.addEventListener("keydown", e => {
       if (tiles[posX][posY] != undefined) {
         temp.shaders[0].models["verSprite.txt"].objects[tiles[posX][posY]].texId = (tile + 1) % textures.length;
       } else {
-        temp.shaders[0].InstanceObject("verSprite.txt", new RotPos([posX * 50.0 + 25.0, posY * 50.0 + 25.0], Math.PI, [25.0, 25.0]), physicsScene, 0, textures[tile]);
+        temp.shaders[0].InstanceObject("verSprite.txt", new RotPos([posX * 50.0 + 25.0, posY * 50.0 + 25.0, 0.0], Math.PI, [25.0, 25.0]), physicsScene, 0, textures[tile]);
 
         tiles[posX][posY] = temp.shaders[0].models["verSprite.txt"].objects.length - 1;
       }
