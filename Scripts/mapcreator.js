@@ -49,12 +49,11 @@ async function Setup() {
   temp.shaders[0].CreateModel("verSprite.txt", modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
-  textures = await LoadFileText("textures.txt");
+  textures = await LoadFileText("../textures.txt");
   textures = textures.split("\r\n");
   for (let i = 0; i < textures.length; i++) {
-    await CreateTexture(temp, textures[i] + ".png");
+    await CreateTexture(temp, textures[i]);
   }
-  textures.push("door.png");
 
 
   let width = sidebar.pxWidth / 4;
