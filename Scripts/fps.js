@@ -45,12 +45,10 @@ function RenderLoop(now) {
 
   const movX = ((keysDown["KeyA"] ? 1 : 0) - (keysDown["KeyD"] ? 1 : 0)) / 10;
   const movZ = ((keysDown["KeyW"] ? 1 : 0) - (keysDown["KeyS"] ? 1 : 0)) / 10;
-  const movVec = [movZ * _vec[0], 0.0, movZ * _vec[2]]; //Need to make this always have a constant length for consistent movement regardless of the y looking
-
-  vec3.add(_vec, _vec, temp.cameras[0].rotpos.position);
-
+  const movVec = [movX * _cameraRight[0] + movZ * _vec[0], 0.0, movX * _cameraRight[2] + movZ * _vec[2]]; //Need to make this always have a constant length for consistent movement regardless of the y looking
 
   vec3.add(temp.cameras[0].rotpos.position, temp.cameras[0].rotpos.position, movVec);
+  vec3.add(_vec, _vec, temp.cameras[0].rotpos.position);
 
   temp.cameras.forEach((camera) => {
     mat4.lookAt(camera.viewMatrix, camera.rotpos.position, _vec, _cameraUp);
