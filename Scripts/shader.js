@@ -1,5 +1,5 @@
 //import {PhysicsScene, PhysicsObjec} from "./physics.js";
-import {Model, Objec, RotPos} from "./objec.js";
+import { Model, Objec, RotPos } from "./objec.js";
 
 //What is placed on the page.
 export class Screen {
@@ -11,7 +11,6 @@ export class Screen {
     this.canvas.height = this.canvas.clientHeight;
 
     this.gl = this.canvas.getContext("webgl2");
-    //this.camera = new Camera();
 
     //Ensure webgl is properly set up
     if (!this.gl) {
@@ -31,9 +30,10 @@ export class Screen {
   }
 
   //Not entirely set on the structure here, maybe think about it later
-  AddShader(cam, vsSource, fsSource) {
+  AddShader(cam, vsSource, fsSource, type) {
     let shader = new Shader(this, this.gl, cam);
     shader.CompileProgram(vsSource, fsSource);
+    shader.type = type;
     this.shaders.push(shader);
   }
 
@@ -64,6 +64,7 @@ export class Screen {
     this.gl.generateMipmap(this.gl.TEXTURE_2D); //WebGL 1 can only mipmap even-height and width textures. I know this is webgl2, but should think about compatability
 
     //Adjusts texture parameters
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST); //This removes blurring
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
@@ -121,7 +122,6 @@ export class Camera {
 
     this.viewMatrix = mat4.create();
     this.UpdatePos();
-
   }
 
   //(Should get a better name) Calculates projection matrix based on whether the camera is 2D or 3D
@@ -135,7 +135,7 @@ export class Camera {
 
     this.SetUniform("uProjectionMatrix", this.projectionMatrix);
   }
-  
+
   //Change view matrix when camera moves
   UpdatePos() {
     mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
@@ -153,7 +153,7 @@ export class Camera {
           false,
           property);
       }
-      
+
     }
   }
 
@@ -279,7 +279,7 @@ export class Shader {
     this.gl.bindVertexArray(this.models[name].vao);
     this.models[name].shader = this;
 
-    
+
     //Input: _obj should have javascript object, where labels that exactly match the attribInfo labels link to data that allows the gl context to assign a buffer
     /*
 
@@ -297,7 +297,7 @@ export class Shader {
     I have no idea if this will turn out to be the most efficient system, but I'm doing it for now
     */
 
-    let keys = Object.keys(this.models[name].modelData["ARRAY_BUFFER"]);
+    const keys = Object.keys(this.models[name].modelData["ARRAY_BUFFER"]);
 
     for (let i = 0; i < keys.length; i++) {
       let buffer = this.models[name].modelData["ARRAY_BUFFER"][keys[i]];
@@ -306,7 +306,7 @@ export class Shader {
     }
 
     if (this.models[name].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-      this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.models[name].modelData["ELEMENT_ARRAY_BUFFER"][0]));
+      this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.models[name].modelData["ELEMENT_ARRAY_BUFFER"]));
     }
 
     //Could you just have a global model name hashtable?
@@ -319,11 +319,38 @@ export class Shader {
 
   //Creates an instance of a model in the world
   InstanceObject(name, rotpos, physicsScene, worldIndex, texName) {
-    this.models[name].objects.push(new Objec(this.models[name], rotpos, worldIndex));
-    if (this.cam.type == "3D") {
-      this.models[name].objects[this.models[name].objects.length - 1].TiePhysicsObjec(physicsScene);
+    const newObject = new Objec(this.models[name], rotpos, worldIndex);
+    const objects = this.models[name].objects;
+    let added = false;
+    let index;
+    for (let i = 0; i < objects.length; i++) {
+      if (objects[i] === undefined) {
+        objects[i] = newObject;
+        index = i;
+        added = true;
+        break;
+      }
     }
-    this.models[name].objects[this.models[name].objects.length - 1].texId = this.window.texIds[texName];
+
+    if (added == false) {
+      objects.push(newObject);
+      index = objects.length - 1;
+    }
+
+    if (this.cam.type == "3D") {
+      newObject.TiePhysicsObjec(physicsScene);
+    }
+
+    newObject.texId = this.window.texIds[texName];
+    return index; //Return index
+  }
+
+  // Deletes object instance - will not automatically remove models
+  DeleteObject(name, index) {
+    this.models[name].objects[index].Destructor();
+    this.models[name].objects[index] = undefined;
+    // this.models[name].objects.splice(index, 1);
+    console.log(this.models[name].objects);
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
@@ -371,7 +398,7 @@ export class Shader {
         this.cam.viewMatrix);
     }
   }
-  
+
   DrawScene(worldIndex) {
     const offset = 0;
 
@@ -389,7 +416,7 @@ export class Shader {
       //Get the number of points
       let vertexCount = undefined
       if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) { //kinda wasteful
-        vertexCount = model.modelData["ELEMENT_ARRAY_BUFFER"][0].length;
+        vertexCount = model.modelData["ELEMENT_ARRAY_BUFFER"].length;
       }
 
       //Set texture and mode
@@ -402,13 +429,16 @@ export class Shader {
 
       //Draw every object
       for (let objectNum = 0; objectNum < model.objects.length; objectNum++) {
+        if (model.objects[objectNum] == undefined) {
+          continue;
+        }
 
         //Only render objects in our current world
         if (model.objects[objectNum].worldIndex != worldIndex) {
           continue;
         }
 
-        //Should be universalised
+        //Should be universalised - Need to set this back after (Shouldn't this be a uniform?)
         if (model.objects[objectNum].texAttributes != undefined) {
           model.ModifyAttribute("aTextureCoord", model.objects[objectNum].texAttributes);
         }
@@ -419,12 +449,12 @@ export class Shader {
           this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.objects[objectNum].texId);
         }
 
-        //Get matrix of this object's rotpos
+        //Get matrix of this objects rotpos
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
           model.objects[objectNum].GetMatrix());
-  
+
         if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
           this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);

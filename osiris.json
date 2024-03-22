@@ -1,0 +1,46 @@
+{
+    "shaders": [
+        {
+            "vertexShader": "vertexShader.vs",
+            "fragmentShader": "fragmentShader.fs"
+        },
+        {
+            "vertexShader": "lineVertexShader.vs",
+            "fragmentShader": "lineFragmentShader.fs"
+        },
+        {
+            "vertexShader": "2DspriteVertexShader.vs",
+            "fragmentShader": "spriteFragmentShader.fs"
+        }
+    ],
+    "models": {
+        "2bject.json": 0,
+        "plane.json": 0,
+        "l2ine.json": 1,
+        "sprite.json": 2
+    },
+    "objects": [
+        {
+            "object": "2bject.json",
+            "position": [0.0, 0.0, -6.0]
+        },
+        {
+            "object": "2bject.json",
+            "position": [0.0, 0.0, 6.0],
+            "scale": [3.0, 0.5, 1.0]
+        },
+        {
+            "object": "plane.json",
+            "position": [-3.0, 0.0, 0.0]
+        },
+        {
+            "object": "l2ine.json",
+            "position": [0.0, 0.0, -6.0]
+        },
+        {
+            "object": "sprite.json",
+            "position": [100.0, 100.0],
+            "scale": [100.0, 100.0]
+        }
+    ]
+}

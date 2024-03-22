@@ -1,8 +1,8 @@
 // There should be some way for indentations to be uniform on vscode. Not sure how to do it now though
 
-import {Window, Camera, Shader} from "./shader.js";
-import {PhysicsScene, PhysicsObjec} from "./physics.js";
-import {Model, Objec, RotPos} from "./objec.js";
+import { Window, Camera, Shader } from "./shader.js";
+import { PhysicsScene, PhysicsObjec } from "./physics.js";
+import { Model, Objec, RotPos } from "./objec.js";
 
 let terminal = document.getElementById("texty"); //Need a better system for built-in html ui sometime in the future
 
@@ -75,9 +75,9 @@ function RenderLoop(now) {
   //console.log(vec);
 
   //if (vec[0] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][3] ||
-    //vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] ||
-    //vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
-    //temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
+  //vec[1] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][4] ||
+  //vec[2] != temp.shaders[1].objects[0].objectData["ARRAY_BUFFER"]["aVertexPosition"][0][5]) {
+  //temp.shaders[1].objects[0].ModifyAttribute("aVertexPosition", 0, [0, 0, 0, 3 * vec[0], 3 * vec[1], 3 * vec[2]]);
   //}
 
   /*
@@ -195,13 +195,13 @@ async function LoadModel(url) {
   let data = await LoadFileText("Models/" + url);
   let stringAttributes = data.split("\r\n\r\n"); //Splitting based on two enters. Is this good? i dunno right now, but it is what it is
 
-  let obj = { "ARRAY_BUFFER" : {} };
+  let obj = { "ARRAY_BUFFER": {} };
 
   for (var i = 0; i < stringAttributes.length; i++) {
     stringAttributes[i] = stringAttributes[i].replace(/\r\n/g, ""); //Replaces all newlines and enters. Not sure if good, but right now it works
     stringAttributes[i] = stringAttributes[i].replace(/ /g, "");
     stringAttributes[i] = stringAttributes[i].split(",");
-  
+
     let name = stringAttributes[i][0];
     stringAttributes[i].splice(0, 1);
 
@@ -334,7 +334,7 @@ function ZoopObjec(url, rotpos, physicsScene) {
 }
 
 //What's the difference between window.addeventlistener and document.addeventlistener?
-canvas.addEventListener("click", function(e) {
+canvas.addEventListener("click", function (e) {
   if (document.pointerLockElement === null) { //Might need to add mozPointerLock, whatever that is
     const now = performance.now();
     if (now - pointerLockActivation > 2500) { //I wouldn't consider this a good solution, but it seems to be the only one that removes a DOMerror
@@ -371,7 +371,7 @@ window.addEventListener("keydown", e => {
     toggleFullScreen();
     return;
   }
-  
+
   //Open terminal on '`'
   if (e.key === "`") {
     isPaused = !isPaused
@@ -452,7 +452,7 @@ window.addEventListener("resize", e => {
 //Toggles fullscreen
 function toggleFullScreen() {
   if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+    document.documentElement.requestFullscreen();
   } else {
     if (document.exitFullscreen) {
       document.exitFullscreen();

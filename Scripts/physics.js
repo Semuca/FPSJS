@@ -42,7 +42,7 @@ export class PhysicsScene {
                 //For x... abs( pos.x + k * move.x - pobjPos.x ) = 2. This exists because we've checked this exists
                 //          If the math inside abs is positive, pos.x + k * move.x - pobjPos.x = 2      =>      k = (2 + pobjPos.x - pos.x) / move.x
                 //          If the math inside abs is negative, -pos.x - k * move.x + pobjPos.x = 2     =>      -k * move.x = 2 - pobjPos.x + pos.x   =>      k = (pobjPos.x - pos.x - 2) / move.x
-                
+
                 //When we collide with something static, we want to provide an inverse force to stop an object (Newton's 3rd law)
 
                 let x_t = 0;
@@ -75,7 +75,7 @@ export class PhysicsScene {
                     if (Math.abs(newPos[1] - position[1]) > Math.abs(y_t * movement[1])) {
                         newPos[1] = position[1] + y_t * movement[1];
                     }
-                } else if (z_t > x_t && z_t > y_t){
+                } else if (z_t > x_t && z_t > y_t) {
                     if (Math.abs(newPos[2] - position[2]) > Math.abs(z_t * movement[2])) {
                         newPos[2] = position[2] + z_t * movement[2];
                     }
@@ -105,7 +105,7 @@ export class PhysicsScene {
         if (Math.abs(newPos[0] - this.pobjecs[secondPobj].position[0]) < _sX && //Checks if we intersect on every axis, if so, we intersect in 3d
             Math.abs(newPos[1] - this.pobjecs[secondPobj].position[1]) < _sY &&
             Math.abs(newPos[2] - this.pobjecs[secondPobj].position[2]) < _sZ) {
-                return true;
+            return true;
         }
         return false;
 
@@ -114,7 +114,7 @@ export class PhysicsScene {
 
 export class PhysicsObjec { // How do we do circles?. How do we check for concavity?
     //constructor(pointsArray) {
-        //this.points = pointsArray; // All points are 3-dimensional right now
+    //this.points = pointsArray; // All points are 3-dimensional right now
     //} Having physics objects based off an array of points would be cool, but ultimately very hard to do right now
 
     constructor(objec, physicsScene) {

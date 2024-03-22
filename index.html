@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>FPSJS</title>
+    <title>RPSJS</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
             integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
@@ -12,24 +12,7 @@
   <body>
     <!--aspect ratio changes when you remove width and height!-->
     <canvas id="canvas"></canvas>
-    <!--<p id="test">nul</p>!-->
-
-    <textarea id="texty" placeholder="Type your shader code here..." spellcheck="false" hidden>
-attribute vec4 aVertexPosition;
-attribute vec2 aTexturePosition;
-      
-uniform mat4 uProjectionMatrix;
-uniform mat4 uModelMatrix;
-uniform mat4 uViewMatrix;
-      
-varying highp vec2 vTextureCoord;
-      
-void main() {
-  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * aVertexPosition;
-  vTextureCoord = aTexturePosition;
-}
-      </textarea>
   </body>
 
-  <script type="module" src="./Scripts/mapcreator.js" defer></script>
+  <script type="module" src="./Scripts/fps.js" defer></script>
 </html>
