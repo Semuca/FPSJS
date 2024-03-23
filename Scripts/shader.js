@@ -349,8 +349,6 @@ export class Shader {
   DeleteObject(name, index) {
     this.models[name].objects[index].Destructor();
     this.models[name].objects[index] = undefined;
-    // this.models[name].objects.splice(index, 1);
-    console.log(this.models[name].objects);
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
@@ -427,33 +425,34 @@ export class Shader {
         mode = this.gl.TRIANGLES;
       }
 
-      //Draw every object
-      for (let objectNum = 0; objectNum < model.objects.length; objectNum++) {
-        if (model.objects[objectNum] == undefined) {
-          continue;
+      // Draw every object
+      model.objects.forEach((object) => {
+        // Only render objects in our current world
+        if (object.worldIndex != worldIndex) {
+          return;
         }
 
-        //Only render objects in our current world
-        if (model.objects[objectNum].worldIndex != worldIndex) {
-          continue;
+        // Don't render hidden objects
+        if (object.hidden) {
+          return;
         }
 
         //Should be universalised - Need to set this back after (Shouldn't this be a uniform?)
-        if (model.objects[objectNum].texAttributes != undefined) {
-          model.ModifyAttribute("aTextureCoord", model.objects[objectNum].texAttributes);
+        if (object.texAttributes != undefined) {
+          model.ModifyAttribute("aTextureCoord", object.texAttributes);
         }
 
         //If the object has a custom defined texture id, use it
-        if (model.objects[objectNum].texId != undefined) {
-          this.gl.activeTexture(this.gl.TEXTURE0 + model.objects[objectNum].texId);
-          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.objects[objectNum].texId);
+        if (object.texId != undefined) {
+          this.gl.activeTexture(this.gl.TEXTURE0 + object.texId);
+          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, object.texId);
         }
 
         //Get matrix of this objects rotpos
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
-          model.objects[objectNum].GetMatrix());
+          object.GetMatrix());
 
         if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
@@ -463,11 +462,11 @@ export class Shader {
         }
 
         //If the object we just rendered has a custom texture id, swap back to the old one
-        if (model.objects[objectNum].texId != undefined) {
+        if (object.texId != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
           this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
         }
-      }
+      });
     }
   }
 }

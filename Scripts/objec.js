@@ -27,6 +27,7 @@ export class Objec {
   constructor(model, rotpos, worldIndex) {
     this.objectData = model.modelData; //Is this necessary?
     this.rotpos = rotpos;
+    this.hidden = false;
 
     this.worldIndex = worldIndex;
 

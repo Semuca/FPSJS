@@ -53,7 +53,7 @@ function RenderLoop(now) {
   temp.cameras.forEach((camera) => {
     mat4.lookAt(camera.viewMatrix, camera.rotpos.position, _vec, _cameraUp);
     camera.PreDraw();
-    temp.shaders[0].DrawScene(0);
+    temp.shaders.forEach((shader) => shader.DrawScene(0));
   });
 
   if (isPaused === false) {

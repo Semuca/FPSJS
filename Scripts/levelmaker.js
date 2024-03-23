@@ -12,27 +12,26 @@ const MODES = {
 }
 
 const MOUSE = {
-  PLACING: 0,
-  ADJUSTING: 1
+  IDLE: 0,
+  ADJUSTING: 1,
 }
 
 let mode = MODES.MOVE;
-let mouse = MOUSE.PLACING;
+let mouse = MOUSE.IDLE;
 
 let tile = 0;
 let tiles = {};
-for (let index = -50; index <= 50; index++) {
-  tiles[index] = {};
-}
+// let walls = [];
+
 
 let line;
+let highlighter;
 let selector;
 let sprites;
 
 let keysDown = {};
 
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
-let models = {};
 let physicsScene = new PhysicsScene();
 let textureGroup;
 
@@ -65,6 +64,8 @@ async function Setup() {
   sprites = temp.shaders[0].models["verSprite.json"].objects;
 
   await CreateTexture(temp, "tframe.png");
+  highlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
+  temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden = true;
   selector = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width + sidebar.pxWidth / 8, 1.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, "tframe.png");
 
   //Load line models
@@ -248,8 +249,13 @@ document.addEventListener("mousedown", e => {
     }
 
     //Positions on the grid
-    let posX = Math.floor((- cam.rotpos.position[0] + (cam.pxWidth * cam.zoom / 2) - e.pageX * cam.zoom) / 50.0);
-    let posY = Math.floor((- cam.rotpos.position[1] + (cam.pxHeight * cam.zoom / 2) - e.pageY * cam.zoom) / 50.0);
+    const xOffsetFromCenter = e.pageX - cam.pxWidth / 2;
+    const yOffsetFromCenter = e.pageY - cam.pxHeight / 2;
+
+    const squareWidth = 50 / cam.zoom;
+
+    const posX = Math.floor(-(cam.rotpos.position[0] + xOffsetFromCenter) / squareWidth);
+    const posY = Math.floor(-(cam.rotpos.position[1] + yOffsetFromCenter) / squareWidth);
 
     // Delete tile on Z
     if (keysDown["KeyZ"] == true && tiles[posX][posY] != undefined) {
@@ -261,11 +267,15 @@ document.addEventListener("mousedown", e => {
       return;
     }
 
+    // Create tile if it's not there
     if (tiles[posX][posY] != undefined) {
       temp.shaders[0].models["verSprite.json"].objects[tiles[posX][posY]].texId = (tile + 1) % textureGroup.length; //This basically forces the first few textures to be part of the texturegroup
     } else {
       tiles[posX][posY] = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([posX * 50.0 + 25.0, posY * 50.0 + 25.0, 0.0], Math.PI, [25.0, 25.0]), physicsScene, 0, textureGroup[tile] + ".png");
     }
+
+    // Create wall
+    
 
     requestAnimationFrame(RenderLoop);
 
@@ -284,7 +294,7 @@ document.addEventListener("mousedown", e => {
 });
 
 document.addEventListener("mouseup", e => {
-  mouse = MOUSE.PLACING;
+  mouse = MOUSE.IDLE;
 });
 
 document.addEventListener("mousemove", e => {
@@ -320,22 +330,47 @@ document.addEventListener("mousemove", e => {
 
       requestAnimationFrame(RenderLoop);
     }
-  } else if (mode === MODES.MOVE && e.pageX < cam.pxWidth - 5) {
-    // Highlight the spot
-    console.log();
-
-    if (e.buttons === 1) {
-      document.body.style.cursor = "grabbing";
-      cam.rotpos.position[0] -= e.movementX * cam.zoom;
-      cam.rotpos.position[1] -= e.movementY * cam.zoom;
-
-      cam.UpdatePos();
-
-      requestAnimationFrame(RenderLoop);
+  } else if (e.pageX < cam.pxWidth - 5) {
+    if (mode === MODES.MOVE) {
+      if (e.buttons === 1) {
+        document.body.style.cursor = "grabbing";
+        cam.rotpos.position[0] -= e.movementX * cam.zoom;
+        cam.rotpos.position[1] -= e.movementY * cam.zoom;
+  
+        cam.UpdatePos();
+  
+        requestAnimationFrame(RenderLoop);
+      } else {
+        document.body.style.cursor = "grab";
+      }
     } else {
-      document.body.style.cursor = "grab";
+      const highlightRadiusTrigger = 0.3;
+
+      //Positions on the grid
+      const xOffsetFromCenter = e.pageX - cam.pxWidth / 2;
+      const yOffsetFromCenter = e.pageY - cam.pxHeight / 2;
+
+      const squareWidth = 50 / cam.zoom;
+
+      const posX = -(cam.rotpos.position[0] + xOffsetFromCenter) / squareWidth;
+      const posY = -(cam.rotpos.position[1] + yOffsetFromCenter) / squareWidth;
+
+      // Calculate from position, if a point is enabled or not
+      // Logic: figure out the closest point, figure out if that's in range
+      const pointX = Math.round(posX);
+      const pointY = Math.round(posY);
+
+      if (Math.sqrt((posX - pointX) ** 2 + (posY - pointY) ** 2) <= highlightRadiusTrigger) {
+        temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden = false;
+        temp.shaders[0].models['verSprite.json'].objects[highlighter].rotpos.position = [pointX * 50, pointY * 50, 1.0];
+        requestAnimationFrame(RenderLoop);
+      } else if (temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden === false) {
+        temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden = true;
+        requestAnimationFrame(RenderLoop);
+      }
     }
   }
+
 });
 
 //Zooming

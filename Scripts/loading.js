@@ -34,15 +34,15 @@ export async function CreateTexture(window, url) {
   }
 
   if (exists === false) {
-    let tex = await LoadImage("Textures/" + url);
+    let tex = await LoadImage("textures/" + url);
     return window.SetupTexture(url, tex);
   }
 }
 
 //Loads a shader from url data
 export async function LoadShader(window, cam, vsUrl, fsUrl) {
-  const vSource = await LoadFileText("Shaders/" + vsUrl);
-  const fSource = await LoadFileText("Shaders/" + fsUrl);
+  const vSource = await LoadFileText("shaders/" + vsUrl);
+  const fSource = await LoadFileText("shaders/" + fsUrl);
 
   //Hacky solution, to be fixed at some point
   let type = "3D";
@@ -54,7 +54,7 @@ export async function LoadShader(window, cam, vsUrl, fsUrl) {
 
 //Loads model from txt file
 export async function LoadModel(url, window) {
-  const data = await LoadFileText("Models/" + url);
+  const data = await LoadFileText("models/" + url);
   const jsonData = JSON.parse(data);
 
   const arrayBuffer = jsonData['ARRAY_BUFFER']
