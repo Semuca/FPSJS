@@ -1,4 +1,4 @@
-import { Screen } from "./shader.js";
+import { Screen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadMap } from "./loading.js";
 

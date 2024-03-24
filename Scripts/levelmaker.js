@@ -1,4 +1,4 @@
-import { Screen } from "./shader.js";
+import { Screen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadFileText, CreateTexture, LoadModel, LoadShader } from "./loading.js";
 import { RotPos } from "./objec.js";
@@ -14,18 +14,22 @@ const MODES = {
 const MOUSE = {
   IDLE: 0,
   ADJUSTING: 1,
+  DRAWING: 2,
 }
 
-let mode = MODES.MOVE;
+let mode = MODES.PLACE;
 let mouse = MOUSE.IDLE;
+document.body.style.cursor = "pointer";
 
 let tile = 0;
-let tiles = {};
-// let walls = [];
+let currentPoint = undefined;
+let cursorWorldPosition = undefined;
+const walls = [];
 
 
 let line;
 let highlighter;
+let secondHighlighter;
 let selector;
 let sprites;
 
@@ -65,16 +69,17 @@ async function Setup() {
 
   await CreateTexture(temp, "tframe.png");
   highlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
-  temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden = true;
-  selector = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width + sidebar.pxWidth / 8, 1.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, "tframe.png");
+  highlighter.hidden = true;
+  secondHighlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
+  secondHighlighter.hidden = true;
 
+  selector = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width + sidebar.pxWidth / 8, 1.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, "tframe.png");
+  
   //Load line models
   await LoadShader(temp, cam, "2DflatlineVertexShader.vs", "lineFragmentShader.fs");
   modelData = await LoadModel("flatline.json", temp);
   temp.shaders[1].CreateModel("flatline.json", modelData);
-  temp.shaders[1].InstanceObject("flatline.json", new RotPos([0.0, 0.0, 0.0], undefined, [0.0, 0.0]), physicsScene, 0);
-
-  line = temp.shaders[1].models["flatline.json"].objects[0];
+  line = temp.shaders[1].InstanceObject("flatline.json", new RotPos([0.0, 0.0, 0.0], undefined, [0.0, 0.0]), physicsScene, 0);
 
   requestAnimationFrame(RenderLoop);
 }
@@ -170,7 +175,26 @@ function RenderLoop(now) {
 
   temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
-  //Draws sprites
+  // Draw line from selected point to cursor
+  if (currentPoint && mouse === MOUSE.DRAWING) {
+    line.rotpos.position[0] = cam.rotpos.position[0] + -currentPoint[0] * 50;
+    line.rotpos.position[1] = cam.rotpos.position[1] + currentPoint[1] * 50;
+
+    // Get x and y distance
+    const xDist = line.rotpos.position[0] - cursorWorldPosition[0] * 50;
+    const yDist = cursorWorldPosition[1] * 50 - line.rotpos.position[1];
+    line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
+    const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? Math.PI : 0);
+
+    quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
+    temp.gl.uniformMatrix4fv(
+      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
+      false,
+      line.GetMatrix());
+    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
+  }
+
+  // Draws sprites
   temp.shaders[0].DrawScene(0);
 
   DrawSidebar();
@@ -199,16 +223,16 @@ window.addEventListener("keydown", e => {
     let element = document.createElement('a');
 
     let text = "";
-    for (let i = -50; i <= 50; i++) {
-      for (let j = -50; j <= 50; j++) {
-        if (tiles[i][j] != undefined) {
-          text += temp.shaders[0].models["verSprite.json"].objects[tiles[i][j]].texId
-        } else {
-          text += " ";
-        }
-      }
-      text += "\r\n";
-    }
+    // for (let i = -50; i <= 50; i++) {
+    //   for (let j = -50; j <= 50; j++) {
+    //     if (tiles[i][j] != undefined) {
+    //       text += temp.shaders[0].models["verSprite.json"].objects[tiles[i][j]].texId
+    //     } else {
+    //       text += " ";
+    //     }
+    //   }
+    //   text += "\r\n";
+    // }
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
     element.setAttribute('download', "map");
 
@@ -244,38 +268,7 @@ document.addEventListener("mousedown", e => {
   }
 
   if (e.pageX < cam.pxWidth - 5 && mode === MODES.PLACE) {
-    if (keysDown["ShiftLeft"] == true) {
-      return;
-    }
-
-    //Positions on the grid
-    const xOffsetFromCenter = e.pageX - cam.pxWidth / 2;
-    const yOffsetFromCenter = e.pageY - cam.pxHeight / 2;
-
-    const squareWidth = 50 / cam.zoom;
-
-    const posX = Math.floor(-(cam.rotpos.position[0] + xOffsetFromCenter) / squareWidth);
-    const posY = Math.floor(-(cam.rotpos.position[1] + yOffsetFromCenter) / squareWidth);
-
-    // Delete tile on Z
-    if (keysDown["KeyZ"] == true && tiles[posX][posY] != undefined) {
-      temp.shaders[0].DeleteObject("verSprite.json", tiles[posX][posY]);
-      tiles[posX][posY] = undefined;
-
-
-      requestAnimationFrame(RenderLoop);
-      return;
-    }
-
-    // Create tile if it's not there
-    if (tiles[posX][posY] != undefined) {
-      temp.shaders[0].models["verSprite.json"].objects[tiles[posX][posY]].texId = (tile + 1) % textureGroup.length; //This basically forces the first few textures to be part of the texturegroup
-    } else {
-      tiles[posX][posY] = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([posX * 50.0 + 25.0, posY * 50.0 + 25.0, 0.0], Math.PI, [25.0, 25.0]), physicsScene, 0, textureGroup[tile] + ".png");
-    }
-
-    // Create wall
-    
+    mouse = MOUSE.DRAWING;
 
     requestAnimationFrame(RenderLoop);
 
@@ -285,7 +278,7 @@ document.addEventListener("mousedown", e => {
 
     if (textureGroup[x + 4 * y] != undefined) {
       tile = x + 4 * y;
-      temp.shaders[0].models['verSprite.json'].objects[selector].rotpos.position[0] = sidebar.pxWidth / 2 - (x % 4) * sidebar.pxWidth / 4 - sidebar.pxWidth / 8;
+      selector.rotpos.position[0] = sidebar.pxWidth / 2 - (x % 4) * sidebar.pxWidth / 4 - sidebar.pxWidth / 8;
       //TODO: Implement y-selector for this
 
       requestAnimationFrame(RenderLoop);
@@ -294,6 +287,18 @@ document.addEventListener("mousedown", e => {
 });
 
 document.addEventListener("mouseup", e => {
+  if (mouse === MOUSE.DRAWING) {
+    // Create line
+    // if (tiles[posX][posY] != undefined) {
+    //   temp.shaders[0].models["verSprite.json"].objects[tiles[posX][posY]].texId = (tile + 1) % textureGroup.length; //This basically forces the first few textures to be part of the texturegroup
+    // } else {
+    //   tiles[posX][posY] = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([posX * 50.0 + 25.0, posY * 50.0 + 25.0, 0.0], Math.PI, [25.0, 25.0]), physicsScene, 0, textureGroup[tile] + ".png");
+    // }
+    // walls.push();
+    // temp.shaders[0].InstanceObject();
+    requestAnimationFrame(RenderLoop);
+  }
+
   mouse = MOUSE.IDLE;
 });
 
@@ -331,6 +336,7 @@ document.addEventListener("mousemove", e => {
       requestAnimationFrame(RenderLoop);
     }
   } else if (e.pageX < cam.pxWidth - 5) {
+    cursorWorldPosition = cam.CursorToWorldPosition([e.pageX, e.pageY]);
     if (mode === MODES.MOVE) {
       if (e.buttons === 1) {
         document.body.style.cursor = "grabbing";
@@ -343,31 +349,29 @@ document.addEventListener("mousemove", e => {
       } else {
         document.body.style.cursor = "grab";
       }
-    } else {
+    } else if (mouse === MOUSE.IDLE) {
       const highlightRadiusTrigger = 0.3;
-
-      //Positions on the grid
-      const xOffsetFromCenter = e.pageX - cam.pxWidth / 2;
-      const yOffsetFromCenter = e.pageY - cam.pxHeight / 2;
-
-      const squareWidth = 50 / cam.zoom;
-
-      const posX = -(cam.rotpos.position[0] + xOffsetFromCenter) / squareWidth;
-      const posY = -(cam.rotpos.position[1] + yOffsetFromCenter) / squareWidth;
 
       // Calculate from position, if a point is enabled or not
       // Logic: figure out the closest point, figure out if that's in range
-      const pointX = Math.round(posX);
-      const pointY = Math.round(posY);
+      const pointX = Math.round(cursorWorldPosition[0]);
+      const pointY = Math.round(cursorWorldPosition[1]);
 
-      if (Math.sqrt((posX - pointX) ** 2 + (posY - pointY) ** 2) <= highlightRadiusTrigger) {
-        temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden = false;
-        temp.shaders[0].models['verSprite.json'].objects[highlighter].rotpos.position = [pointX * 50, pointY * 50, 1.0];
-        requestAnimationFrame(RenderLoop);
-      } else if (temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden === false) {
-        temp.shaders[0].models['verSprite.json'].objects[highlighter].hidden = true;
+      if (Math.sqrt((cursorWorldPosition[0] - pointX) ** 2 + (cursorWorldPosition[1] - pointY) ** 2) <= highlightRadiusTrigger) {
+        if (highlighter.rotpos.position[0] != pointX * 50 || highlighter.rotpos.position[1] != pointY * 50 || highlighter.hidden === true) {
+          highlighter.hidden = false;
+          currentPoint = [-pointX, pointY];
+          highlighter.rotpos.position = [pointX * 50, pointY * 50, 1.0];
+
+          requestAnimationFrame(RenderLoop);
+        }
+      } else if (highlighter.hidden === false) {
+        highlighter.hidden = true;
+        currentPoint = undefined;
         requestAnimationFrame(RenderLoop);
       }
+    } else if (mouse === MOUSE.DRAWING) {
+      requestAnimationFrame(RenderLoop);
     }
   }
 

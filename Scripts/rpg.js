@@ -1,4 +1,4 @@
-import { Screen } from "./shader.js";
+import { Screen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadFileText, CreateTexture, LoadModel, LoadShader } from "./loading.js";
 import { RotPos } from "./objec.js";
