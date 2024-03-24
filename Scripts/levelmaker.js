@@ -16,6 +16,8 @@ let mode = MODES.PLACE;
 
 let tile = 0;
 let currentPoint = undefined;
+let secondPoint = undefined;
+
 let cursorWorldPosition = undefined;
 const walls = [];
 
@@ -167,6 +169,26 @@ function RenderLoop(now) {
 
   temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
+  // Draw walls
+  walls.forEach((wall) => {
+    // Draw line from point
+    line.rotpos.position[0] = cam.rotpos.position[0] - wall[0] * 50;
+    line.rotpos.position[1] = cam.rotpos.position[1] + wall[1] * 50;
+
+    // Get x and y distance
+    const xDist = (wall[0] - wall[2]) * 50;
+    const yDist = (wall[1] - wall[3]) * 50;
+    line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
+    const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? 0 : -Math.PI);
+
+    quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
+    temp.gl.uniformMatrix4fv(
+      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
+      false,
+      line.GetMatrix());
+    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
+  });
+
   // Draw line from selected point to cursor
   if (currentPoint && mode === MODES.DRAWING) {
     line.rotpos.position[0] = cam.rotpos.position[0] + highlighter.rotpos.position[0];
@@ -208,9 +230,9 @@ cam.onMouseDown = () => {
 };
 
 cam.onMouseMove = (e) => {
+  const highlightRadiusTrigger = 0.3;
   cursorWorldPosition = cam.CursorToWorldPosition([e.pageX, e.pageY]);
   if (mode === MODES.PLACE) {
-    const highlightRadiusTrigger = 0.3;
 
     // Calculate from position, if a point is enabled or not
     // Logic: figure out the closest point, figure out if that's in range
@@ -242,6 +264,21 @@ cam.onMouseMove = (e) => {
       document.body.style.cursor = "grab";
     }
   } else if (mode === MODES.DRAWING) {
+    // Calculate from position, if a point is enabled or not
+    // Logic: figure out the closest point, figure out if that's in range
+    const pointX = Math.round(cursorWorldPosition[0]);
+    const pointY = Math.round(cursorWorldPosition[1]);
+
+    if (Math.sqrt((cursorWorldPosition[0] - pointX) ** 2 + (cursorWorldPosition[1] - pointY) ** 2) <= highlightRadiusTrigger) {
+      if (secondHighlighter.rotpos.position[0] != pointX * 50 || secondHighlighter.rotpos.position[1] != pointY * 50 || secondHighlighter.hidden === true) {
+        secondHighlighter.hidden = false;
+        secondPoint = [-pointX, pointY];
+        secondHighlighter.rotpos.position = [pointX * 50, pointY * 50, 1.0];
+      }
+    } else if (secondHighlighter.hidden === false) {
+      secondHighlighter.hidden = true;
+      secondPoint = undefined;
+    }
     requestAnimationFrame(RenderLoop);
   }
 };
@@ -250,12 +287,14 @@ cam.onMouseMove = (e) => {
 cam.onMouseUp = () => {
   if (mode === MODES.DRAWING) {
     mode = MODES.PLACE;
+    secondHighlighter.hidden = true;
+    walls.push([currentPoint[0], currentPoint[1], secondPoint[0], secondPoint[1]]);
     requestAnimationFrame(RenderLoop);
   }  
 };
 
 // Select tile
-sidebar.onMouseDown = () => {
+sidebar.onMouseDown = (e) => {
   let x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
   let y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
 
