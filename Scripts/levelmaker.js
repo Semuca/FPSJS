@@ -1,4 +1,4 @@
-import { Screen } from "./screen.js";
+import { Screen, toggleFullScreen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadFileText, CreateTexture, LoadModel, LoadShader } from "./loading.js";
 import { RotPos } from "./objec.js";
@@ -8,18 +8,11 @@ let time = 0;
 
 const MODES = {
   MOVE: 0,
-  PLACE: 1
-}
-
-const MOUSE = {
-  IDLE: 0,
-  ADJUSTING: 1,
+  PLACE: 1,
   DRAWING: 2,
 }
 
 let mode = MODES.PLACE;
-let mouse = MOUSE.IDLE;
-document.body.style.cursor = "pointer";
 
 let tile = 0;
 let currentPoint = undefined;
@@ -33,14 +26,13 @@ let secondHighlighter;
 let selector;
 let sprites;
 
-let keysDown = {};
-
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 let physicsScene = new PhysicsScene();
 let textureGroup;
 
 const temp = new Screen("canvas");
 let cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], "2D", 0);
+cam.cursor = "pointer";
 let sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], "2D", 1);
 cam.PreDraw();
 
@@ -176,13 +168,13 @@ function RenderLoop(now) {
   temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
   // Draw line from selected point to cursor
-  if (currentPoint && mouse === MOUSE.DRAWING) {
-    line.rotpos.position[0] = cam.rotpos.position[0] + -currentPoint[0] * 50;
-    line.rotpos.position[1] = cam.rotpos.position[1] + currentPoint[1] * 50;
+  if (currentPoint && mode === MODES.DRAWING) {
+    line.rotpos.position[0] = cam.rotpos.position[0] + highlighter.rotpos.position[0];
+    line.rotpos.position[1] = cam.rotpos.position[1] + highlighter.rotpos.position[1];
 
     // Get x and y distance
-    const xDist = line.rotpos.position[0] - cursorWorldPosition[0] * 50;
-    const yDist = cursorWorldPosition[1] * 50 - line.rotpos.position[1];
+    const xDist = highlighter.rotpos.position[0] - cursorWorldPosition[0] * 50;
+    const yDist = cursorWorldPosition[1] * 50 - highlighter.rotpos.position[1];
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? Math.PI : 0);
 
@@ -207,175 +199,108 @@ function DrawSidebar() {
   temp.shaders[0].DrawScene(1);
 }
 
-//Sets the keysDown and the keysUp, means smoother movement
-window.addEventListener("keyup", e => {
-  keysDown[e.code] = false;
-});
-
-//Should use keycodes or just key? to research
-window.addEventListener("keydown", e => {
-
-  //Set what keys are being currently held down
-  keysDown[e.code] = true;
-
-  // Downloads the map
-  if (e.code === "KeyC") {
-    let element = document.createElement('a');
-
-    let text = "";
-    // for (let i = -50; i <= 50; i++) {
-    //   for (let j = -50; j <= 50; j++) {
-    //     if (tiles[i][j] != undefined) {
-    //       text += temp.shaders[0].models["verSprite.json"].objects[tiles[i][j]].texId
-    //     } else {
-    //       text += " ";
-    //     }
-    //   }
-    //   text += "\r\n";
-    // }
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-    element.setAttribute('download', "map");
-
-    element.style.display = "none";
-    document.body.appendChild(element);
-
-    element.click();
-
-    document.body.removeChild(element);
-  }
-
-  //Toggle fullscreen on enter
-  if (e.code === "Enter") {
-    toggleFullScreen();
-    return;
-  }
-
-  //Switch modes on Space
-  if (e.code === "Space") {
-    mode = (mode === MODES.MOVE) ? MODES.PLACE : MODES.MOVE;
-    document.body.style.cursor = (mode === MODES.MOVE) ? "grab" : "pointer";
-  }
-});
-
-//For placing tiles
-document.addEventListener("mousedown", e => {
-  if (e.button != 0) {
-    return;
-  }
-
-  if (mouse === MOUSE.ADJUSTING) {
-    return;
-  }
-
-  if (e.pageX < cam.pxWidth - 5 && mode === MODES.PLACE) {
-    mouse = MOUSE.DRAWING;
-
+// Start drawing when the mouse is pressed down
+cam.onMouseDown = () => {
+  if (mode === MODES.PLACE) {
+    mode = MODES.DRAWING;
     requestAnimationFrame(RenderLoop);
+  }
+};
 
-  } else if (e.pageX > cam.pxWidth + 5) {
-    let x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
-    let y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
+cam.onMouseMove = (e) => {
+  cursorWorldPosition = cam.CursorToWorldPosition([e.pageX, e.pageY]);
+  if (mode === MODES.PLACE) {
+    const highlightRadiusTrigger = 0.3;
 
-    if (textureGroup[x + 4 * y] != undefined) {
-      tile = x + 4 * y;
-      selector.rotpos.position[0] = sidebar.pxWidth / 2 - (x % 4) * sidebar.pxWidth / 4 - sidebar.pxWidth / 8;
-      //TODO: Implement y-selector for this
+    // Calculate from position, if a point is enabled or not
+    // Logic: figure out the closest point, figure out if that's in range
+    const pointX = Math.round(cursorWorldPosition[0]);
+    const pointY = Math.round(cursorWorldPosition[1]);
 
+    if (Math.sqrt((cursorWorldPosition[0] - pointX) ** 2 + (cursorWorldPosition[1] - pointY) ** 2) <= highlightRadiusTrigger) {
+      if (highlighter.rotpos.position[0] != pointX * 50 || highlighter.rotpos.position[1] != pointY * 50 || highlighter.hidden === true) {
+        highlighter.hidden = false;
+        currentPoint = [-pointX, pointY];
+        highlighter.rotpos.position = [pointX * 50, pointY * 50, 1.0];
+
+        requestAnimationFrame(RenderLoop);
+      }
+    } else if (highlighter.hidden === false) {
+      highlighter.hidden = true;
+      currentPoint = undefined;
       requestAnimationFrame(RenderLoop);
     }
-  }
-});
-
-document.addEventListener("mouseup", e => {
-  if (mouse === MOUSE.DRAWING) {
-    // Create line
-    // if (tiles[posX][posY] != undefined) {
-    //   temp.shaders[0].models["verSprite.json"].objects[tiles[posX][posY]].texId = (tile + 1) % textureGroup.length; //This basically forces the first few textures to be part of the texturegroup
-    // } else {
-    //   tiles[posX][posY] = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([posX * 50.0 + 25.0, posY * 50.0 + 25.0, 0.0], Math.PI, [25.0, 25.0]), physicsScene, 0, textureGroup[tile] + ".png");
-    // }
-    // walls.push();
-    // temp.shaders[0].InstanceObject();
-    requestAnimationFrame(RenderLoop);
-  }
-
-  mouse = MOUSE.IDLE;
-});
-
-document.addEventListener("mousemove", e => {
-  if (mouse === MOUSE.ADJUSTING || (cam.pxWidth - 5 < e.pageX && e.pageX < cam.pxWidth + 5)) { //For changing lengths of windows. Not great right now, because the cursor can slip off this very easily. To work on later
+  } else if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
-      mouse = MOUSE.ADJUSTING;
-      cam.pxWidth += e.movementX;
-      cam.width = cam.pxWidth / temp.canvas.width;
+      document.body.style.cursor = "grabbing";
+      cam.rotpos.position[0] -= e.movementX * cam.zoom;
+      cam.rotpos.position[1] -= e.movementY * cam.zoom;
 
-      cam.RecalculateProjMatrix();
-
-      //Resize sidebar
-      sidebar.pxWidth -= e.movementX;
-      sidebar.width = sidebar.pxWidth / temp.canvas.width;
-      sidebar.tlCorner[0] = sidebar.brCorner[0] - sidebar.pxWidth / temp.canvas.width; //(a*b - c) / b == a - c / b
-
-      sidebar.RecalculateProjMatrix();
-
-      //Resize sidebar elements
-      let j = 0;
-      for (let i = 0; i < sprites.length; i++) {
-        if (sprites[i].worldIndex != 1) {
-          return;
-        }
-
-        sprites[i].rotpos.scale[0] = sidebar.pxWidth / 8;
-        sprites[i].rotpos.scale[1] = sidebar.pxWidth / 8;
-
-        sprites[i].rotpos.position[0] = sidebar.pxWidth / 2 - ((j % 4) + 1) * sidebar.pxWidth / 4 + sidebar.pxWidth / 8;
-        sprites[i].rotpos.position[1] = sidebar.pxHeight / 2 - sidebar.pxWidth / 4 * (Math.floor(j / 4) + 1) + sidebar.pxWidth / 8;
-        j += 1;
-      }
-
+      cam.UpdatePos();
       requestAnimationFrame(RenderLoop);
+    } else {
+      document.body.style.cursor = "grab";
     }
-  } else if (e.pageX < cam.pxWidth - 5) {
-    cursorWorldPosition = cam.CursorToWorldPosition([e.pageX, e.pageY]);
-    if (mode === MODES.MOVE) {
-      if (e.buttons === 1) {
-        document.body.style.cursor = "grabbing";
-        cam.rotpos.position[0] -= e.movementX * cam.zoom;
-        cam.rotpos.position[1] -= e.movementY * cam.zoom;
-  
-        cam.UpdatePos();
-  
-        requestAnimationFrame(RenderLoop);
-      } else {
-        document.body.style.cursor = "grab";
-      }
-    } else if (mouse === MOUSE.IDLE) {
-      const highlightRadiusTrigger = 0.3;
-
-      // Calculate from position, if a point is enabled or not
-      // Logic: figure out the closest point, figure out if that's in range
-      const pointX = Math.round(cursorWorldPosition[0]);
-      const pointY = Math.round(cursorWorldPosition[1]);
-
-      if (Math.sqrt((cursorWorldPosition[0] - pointX) ** 2 + (cursorWorldPosition[1] - pointY) ** 2) <= highlightRadiusTrigger) {
-        if (highlighter.rotpos.position[0] != pointX * 50 || highlighter.rotpos.position[1] != pointY * 50 || highlighter.hidden === true) {
-          highlighter.hidden = false;
-          currentPoint = [-pointX, pointY];
-          highlighter.rotpos.position = [pointX * 50, pointY * 50, 1.0];
-
-          requestAnimationFrame(RenderLoop);
-        }
-      } else if (highlighter.hidden === false) {
-        highlighter.hidden = true;
-        currentPoint = undefined;
-        requestAnimationFrame(RenderLoop);
-      }
-    } else if (mouse === MOUSE.DRAWING) {
-      requestAnimationFrame(RenderLoop);
-    }
+  } else if (mode === MODES.DRAWING) {
+    requestAnimationFrame(RenderLoop);
   }
+};
 
-});
+// Stop drawing when the mouse is lifted up
+cam.onMouseUp = () => {
+  if (mode === MODES.DRAWING) {
+    mode = MODES.PLACE;
+    requestAnimationFrame(RenderLoop);
+  }  
+};
+
+// Select tile
+sidebar.onMouseDown = () => {
+  let x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
+  let y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
+
+  if (textureGroup[x + 4 * y] != undefined) {
+    tile = x + 4 * y;
+    selector.rotpos.position[0] = sidebar.pxWidth / 2 - (x % 4) * sidebar.pxWidth / 4 - sidebar.pxWidth / 8;
+    // TODO: Implement y-selector for this
+
+    requestAnimationFrame(RenderLoop);
+  }
+};
+
+// Downloads the map on C
+temp.keyDownCallbacks["KeyC"] = () => {
+  let element = document.createElement('a');
+
+  let text = "";
+  // for (let i = -50; i <= 50; i++) {
+  //   for (let j = -50; j <= 50; j++) {
+  //     if (tiles[i][j] != undefined) {
+  //       text += temp.shaders[0].models["verSprite.json"].objects[tiles[i][j]].texId
+  //     } else {
+  //       text += " ";
+  //     }
+  //   }
+  //   text += "\r\n";
+  // }
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', "map");
+
+  element.style.display = "none";
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+};
+
+temp.keyDownCallbacks["Enter"] = toggleFullScreen;
+
+temp.keyDownCallbacks["Space"] = () => {
+  mode = (mode === MODES.MOVE) ? MODES.PLACE : MODES.MOVE;
+  cam.cursor = (mode === MODES.MOVE) ? "grab" : "pointer";
+};
+
 
 //Zooming
 document.addEventListener("wheel", e => {
@@ -411,14 +336,3 @@ window.addEventListener("resize", e => {
 
   requestAnimationFrame(RenderLoop);
 });
-
-//Toggles fullscreen
-function toggleFullScreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen();
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-  }
-}

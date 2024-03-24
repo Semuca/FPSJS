@@ -1,9 +1,13 @@
-import { Shader } from "./shader.js";
+import { Shader, Camera } from "./shader.js";
+
+export const SCREENACTION = {
+  IDLE: 0,
+  RESIZING: 1,
+}
 
 //What is placed on the page.
 export class Screen {
     //Constructor requires an identifier for a canvas
-    //TIDYING STATUS: GREEN
     constructor(canvasID) {
       this.canvas = document.getElementById(canvasID);
       this.canvas.width = this.canvas.clientWidth;
@@ -21,26 +25,117 @@ export class Screen {
       this.textures = []; //For the context of webgl, we need to track what objects use what texture
   
       this.cameras = []; //Multiple cameras
+      this.margin = 5;
   
       //A lot of this texture stuff needs to be sorted out. Redundancies induce discrepencies, especially when deleting textures
       //Is there a better way to store these?
       this.texObjects = {}; //TextureID to Texture Objects hashmap (Maybe include texture names later too)
       this.texIds = {}; //Texture name to TextureID hashmap
       
-      // this.keysDown = {};
       // Add event listeners to mouse events
-      // document.addEventListener("mousedown", e => {
+      this.screenAction = SCREENACTION.IDLE;
+      this.resizingCameras = [];
+
+      document.addEventListener("mousedown", e => {
+        const focussedCameras = this.getCamerasFromCursor(e);
+
+        // If there are multiple cameras, start resizing
+        if (focussedCameras.length >= 2) {
+          this.screenAction = SCREENACTION.RESIZING;
+          this.resizingCameras = focussedCameras;
+        } else if (focussedCameras.length == 1) {
+          focussedCameras.at(0).onMouseDown(e);
+        }
+      });
+
+      document.addEventListener("mousemove", e => {
+        if (this.screenAction === SCREENACTION.RESIZING) {
+          // TODO: Resize the two cameras
+          // cam.pxWidth += e.movementX;
+          // cam.width = cam.pxWidth / temp.canvas.width;
+
+          // cam.RecalculateProjMatrix();
+
+          // Resize sidebar
+          // sidebar.pxWidth -= e.movementX;
+          // sidebar.width = sidebar.pxWidth / temp.canvas.width;
+          // sidebar.tlCorner[0] = sidebar.brCorner[0] - sidebar.pxWidth / temp.canvas.width; //(a*b - c) / b == a - c / b
+
+          // sidebar.RecalculateProjMatrix();
+
+          // Resize sidebar elements
+          // let j = 0;
+          // for (let i = 0; i < sprites.length; i++) {
+          //  if (sprites[i].worldIndex != 1) {
+          //    return;
+          //  }
+
+          //  sprites[i].rotpos.scale[0] = sidebar.pxWidth / 8;
+          //  sprites[i].rotpos.scale[1] = sidebar.pxWidth / 8;
+
+          //  sprites[i].rotpos.position[0] = sidebar.pxWidth / 2 - ((j % 4) + 1) * sidebar.pxWidth / 4 + sidebar.pxWidth / 8;
+          //  sprites[i].rotpos.position[1] = sidebar.pxHeight / 2 - sidebar.pxWidth / 4 * (Math.floor(j / 4) + 1) + sidebar.pxWidth / 8;
+          //  j += 1;
+          // }
+
+          //requestAnimationFrame(RenderLoop);
+          return;
+        }
+
+        const focussedCameras = this.getCamerasFromCursor(e);
+
+        // If there are multiple cameras, start resizing
+        if (focussedCameras.length >= 2) {
+          document.body.style.cursor = "ew-resize";
+        } else if (focussedCameras.length == 1) {
+          document.body.style.cursor = focussedCameras.at(0).cursor;
+        }
         
-      // });
+        if (focussedCameras.length == 1) {
+          focussedCameras.at(0).onMouseMove(e);
+        }
+      });
 
-      // document.addEventListener("mousemove", e => {
+      document.addEventListener("mouseup", e => {
+        // If just done resizing, end here
+        if (this.screenAction === SCREENACTION.RESIZING) {
+          this.screenAction = SCREENACTION.IDLE;
+          this.resizingCameras = [];
+          return;
+        }
 
-      // });
+        const focussedCameras = this.getCamerasFromCursor(e);
 
-      // document.addEventListener("mouseup", e => {
-        
-      // });
+        if (focussedCameras.length == 1) {
+          focussedCameras.at(0).onMouseUp(e);
+        }
+      });
 
+      // Manage what keys are being held down
+      this.keysDown = {};
+      this.keyDownCallbacks = {};
+      this.keyUpCallbacks = {};
+
+      window.addEventListener("keydown", e => {
+        this.keysDown[e.code] = true;
+        if (this.keyDownCallbacks[e.code]) {
+          this.keyDownCallbacks[e.code]();
+        }
+      });
+
+      window.addEventListener("keyup", e => {
+        this.keysDown[e.code] = false;
+        if (this.keyUpCallbacks[e.code]) {
+          this.keyUpCallbacks[e.code]();
+        }
+      });
+    }
+
+    getCamerasFromCursor(e) {
+      return this.cameras.filter((camera) => 
+        (camera.tlCorner[0] * this.canvas.width - this.margin <= e.pageX && e.pageX <= camera.brCorner[0] * this.canvas.width + this.margin) &&
+        (camera.tlCorner[1] * this.canvas.height - this.margin <= e.pageY && e.pageY <= camera.brCorner[1] * this.canvas.height + this.margin)
+      );
     }
   
     //Not entirely set on the structure here, maybe think about it later
@@ -100,3 +195,14 @@ export class Screen {
       return this.textures.length - 1;
     }
   }
+
+//Toggles fullscreen
+export function toggleFullScreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+}

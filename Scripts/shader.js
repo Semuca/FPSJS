@@ -35,6 +35,13 @@ export class Camera {
 
     this.viewMatrix = mat4.create();
     this.UpdatePos();
+
+    // Set up events
+    this.cursor = "default";
+
+    this.onMouseDown = (e) => {};
+    this.onMouseMove = (e) => {};
+    this.onMouseUp = (e) => {};
   }
 
   //(Should get a better name) Calculates projection matrix based on whether the camera is 2D or 3D
