@@ -252,6 +252,10 @@ cam.onMouseMove = (e) => {
       currentPoint = undefined;
       requestAnimationFrame(RenderLoop);
     }
+
+    // Calculate line that is being hovered over
+
+
   } else if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
       document.body.style.cursor = "grabbing";
@@ -288,7 +292,7 @@ cam.onMouseUp = () => {
   if (mode === MODES.DRAWING) {
     mode = MODES.PLACE;
     secondHighlighter.hidden = true;
-    walls.push([currentPoint[0], currentPoint[1], secondPoint[0], secondPoint[1]]);
+    if (secondPoint) walls.push([currentPoint[0], currentPoint[1], secondPoint[0], secondPoint[1]]);
     requestAnimationFrame(RenderLoop);
   }  
 };
@@ -309,19 +313,9 @@ sidebar.onMouseDown = (e) => {
 
 // Downloads the map on C
 temp.keyDownCallbacks["KeyC"] = () => {
-  let element = document.createElement('a');
+  const element = document.createElement('a');
 
-  let text = "";
-  // for (let i = -50; i <= 50; i++) {
-  //   for (let j = -50; j <= 50; j++) {
-  //     if (tiles[i][j] != undefined) {
-  //       text += temp.shaders[0].models["verSprite.json"].objects[tiles[i][j]].texId
-  //     } else {
-  //       text += " ";
-  //     }
-  //   }
-  //   text += "\r\n";
-  // }
+  const text = JSON.stringify({ walls });
   element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
   element.setAttribute('download', "map");
 
@@ -338,6 +332,8 @@ temp.keyDownCallbacks["Enter"] = toggleFullScreen;
 temp.keyDownCallbacks["Space"] = () => {
   mode = (mode === MODES.MOVE) ? MODES.PLACE : MODES.MOVE;
   cam.cursor = (mode === MODES.MOVE) ? "grab" : "pointer";
+  highlighter.hidden = true;
+  requestAnimationFrame(RenderLoop);
 };
 
 
