@@ -1,3 +1,4 @@
+import { Point2D } from "./geometry.js";
 import { Model, Objec, RotPos } from "./objec.js";
 
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
@@ -68,10 +69,10 @@ export class Camera {
 
     const squareWidth = 50 / this.zoom;
 
-    const posX = -this.rotpos.position[0] / 50 - xOffsetFromCenter / squareWidth;
+    const posX = this.rotpos.position[0] / 50 + xOffsetFromCenter / squareWidth;
     const posY = -this.rotpos.position[1] / 50 - yOffsetFromCenter / squareWidth;
 
-    return [posX, posY];
+    return new Point2D(posX, posY);
   }
 
   SetUniform(uniform, property) {

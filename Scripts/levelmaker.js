@@ -2,6 +2,7 @@ import { Screen, toggleFullScreen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadFileText, CreateTexture, LoadModel, LoadShader } from "./loading.js";
 import { RotPos } from "./objec.js";
+import { distancePointToPoint, Point2D, Segment2D, ShortestDistanceFromPointToSegment } from "./geometry.js";
 
 let zoom = 50.0;
 let time = 0;
@@ -20,7 +21,7 @@ let secondPoint = undefined;
 
 let cursorWorldPosition = undefined;
 const walls = [];
-
+let highlightedWall = undefined;
 
 let line;
 let highlighter;
@@ -170,16 +171,18 @@ function RenderLoop(now) {
   temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
   // Draw walls
-  walls.forEach((wall) => {
+  walls.forEach((wall, index) => {
     // Draw line from point
-    line.rotpos.position[0] = cam.rotpos.position[0] - wall[0] * 50;
-    line.rotpos.position[1] = cam.rotpos.position[1] + wall[1] * 50;
+    line.rotpos.position[0] = cam.rotpos.position[0] - wall.point1.x * 50;
+    line.rotpos.position[1] = cam.rotpos.position[1] + wall.point1.y * 50;
 
     // Get x and y distance
-    const xDist = (wall[0] - wall[2]) * 50;
-    const yDist = (wall[1] - wall[3]) * 50;
+    const xDist = (wall.point1.x - wall.point2.x) * 50;
+    const yDist = (wall.point1.y - wall.point2.y) * 50;
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? 0 : -Math.PI);
+
+    if (index === highlightedWall) temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array([0.0, 1.0, 1.0, 1.0]));
 
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
     temp.gl.uniformMatrix4fv(
@@ -187,6 +190,8 @@ function RenderLoop(now) {
       false,
       line.GetMatrix());
     temp.gl.drawArrays(temp.gl.LINES, 0, 2);
+
+    if (index === highlightedWall) temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array([1.0, 1.0, 1.0, 1.0]));
   });
 
   // Draw line from selected point to cursor
@@ -195,8 +200,8 @@ function RenderLoop(now) {
     line.rotpos.position[1] = cam.rotpos.position[1] + highlighter.rotpos.position[1];
 
     // Get x and y distance
-    const xDist = highlighter.rotpos.position[0] - cursorWorldPosition[0] * 50;
-    const yDist = cursorWorldPosition[1] * 50 - highlighter.rotpos.position[1];
+    const xDist = highlighter.rotpos.position[0] + cursorWorldPosition.x * 50;
+    const yDist = cursorWorldPosition.y * 50 - highlighter.rotpos.position[1];
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? Math.PI : 0);
 
@@ -233,29 +238,32 @@ cam.onMouseMove = (e) => {
   const highlightRadiusTrigger = 0.3;
   cursorWorldPosition = cam.CursorToWorldPosition([e.pageX, e.pageY]);
   if (mode === MODES.PLACE) {
+    let drawFlag = false;
 
     // Calculate from position, if a point is enabled or not
     // Logic: figure out the closest point, figure out if that's in range
-    const pointX = Math.round(cursorWorldPosition[0]);
-    const pointY = Math.round(cursorWorldPosition[1]);
+    const roundedPoint = new Point2D(Math.round(cursorWorldPosition.x), Math.round(cursorWorldPosition.y));
 
-    if (Math.sqrt((cursorWorldPosition[0] - pointX) ** 2 + (cursorWorldPosition[1] - pointY) ** 2) <= highlightRadiusTrigger) {
-      if (highlighter.rotpos.position[0] != pointX * 50 || highlighter.rotpos.position[1] != pointY * 50 || highlighter.hidden === true) {
+    if (distancePointToPoint(cursorWorldPosition, roundedPoint) <= highlightRadiusTrigger) {
+      if (highlighter.rotpos.position[0] != roundedPoint.x * 50 || highlighter.rotpos.position[1] != roundedPoint.y * 50 || highlighter.hidden === true) {
         highlighter.hidden = false;
-        currentPoint = [-pointX, pointY];
-        highlighter.rotpos.position = [pointX * 50, pointY * 50, 1.0];
+        currentPoint = new Point2D(roundedPoint.x, roundedPoint.y);
+        highlighter.rotpos.position = [-roundedPoint.x * 50, roundedPoint.y * 50, 1.0];
 
-        requestAnimationFrame(RenderLoop);
+        drawFlag = true;
       }
     } else if (highlighter.hidden === false) {
       highlighter.hidden = true;
       currentPoint = undefined;
-      requestAnimationFrame(RenderLoop);
+      drawFlag = true;
     }
 
     // Calculate line that is being hovered over
-
-
+    const oldHighlightedWall = highlightedWall;
+    highlightedWall = walls.findIndex((wall) => ShortestDistanceFromPointToSegment(cursorWorldPosition, wall) <= highlightRadiusTrigger);
+    if (highlightedWall != oldHighlightedWall) drawFlag = true;
+    
+    if (drawFlag) requestAnimationFrame(RenderLoop);
   } else if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
       document.body.style.cursor = "grabbing";
@@ -270,14 +278,15 @@ cam.onMouseMove = (e) => {
   } else if (mode === MODES.DRAWING) {
     // Calculate from position, if a point is enabled or not
     // Logic: figure out the closest point, figure out if that's in range
-    const pointX = Math.round(cursorWorldPosition[0]);
-    const pointY = Math.round(cursorWorldPosition[1]);
+    const roundedPoint = new Point2D(Math.round(cursorWorldPosition.x), Math.round(cursorWorldPosition.y));
 
-    if (Math.sqrt((cursorWorldPosition[0] - pointX) ** 2 + (cursorWorldPosition[1] - pointY) ** 2) <= highlightRadiusTrigger) {
-      if (secondHighlighter.rotpos.position[0] != pointX * 50 || secondHighlighter.rotpos.position[1] != pointY * 50 || secondHighlighter.hidden === true) {
+    if (distancePointToPoint(cursorWorldPosition, roundedPoint) <= highlightRadiusTrigger) {
+      if (secondHighlighter.rotpos.position[0] != roundedPoint.x * 50 || secondHighlighter.rotpos.position[1] != roundedPoint.y * 50 || secondHighlighter.hidden === true) {
         secondHighlighter.hidden = false;
-        secondPoint = [-pointX, pointY];
-        secondHighlighter.rotpos.position = [pointX * 50, pointY * 50, 1.0];
+        secondPoint = new Point2D(roundedPoint.x, roundedPoint.y);
+        secondHighlighter.rotpos.position = [-roundedPoint.x * 50, roundedPoint.y * 50, 1.0];
+
+        requestAnimationFrame(RenderLoop);
       }
     } else if (secondHighlighter.hidden === false) {
       secondHighlighter.hidden = true;
@@ -292,7 +301,7 @@ cam.onMouseUp = () => {
   if (mode === MODES.DRAWING) {
     mode = MODES.PLACE;
     secondHighlighter.hidden = true;
-    if (secondPoint) walls.push([currentPoint[0], currentPoint[1], secondPoint[0], secondPoint[1]]);
+    if (secondPoint) walls.push(new Segment2D(currentPoint, secondPoint));
     requestAnimationFrame(RenderLoop);
   }  
 };

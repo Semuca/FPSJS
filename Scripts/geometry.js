@@ -22,7 +22,7 @@ export class Line2D {
 }
 
 export function getYIntercept(gradient, point) {
-    return gradient * point.x - point.y;
+    return point.y - gradient * point.x;
 }
 
 export class Segment2D {
@@ -35,7 +35,7 @@ export class Segment2D {
         this.upperXBound = Math.max(point1.x, point2.x);
 
         this.gradient = (this.point1.y - this.point2.y) / (this.point1.x - this.point2.x);
-        this.normalGradient = 1 / this.gradient;
+        this.normalGradient = -1 / this.gradient;
 
         this.yIntercept = getYIntercept(this.gradient, this.point1);
     }
@@ -54,7 +54,7 @@ export function IntersectionLineAndSegment(line, segment) {
     // x(m1 - m2) = c2 - c1
     // x = (c2 - c1) / (m1 - m2)
     // Make sure x is within points
-    const x = (segment.yIntercept - line.yIntercept) / (segment.gradient - line.gradient);
+    const x = (segment.yIntercept - line.yIntercept) / (line.gradient - segment.gradient);
 
     if (segment.lowerXBound <= x && x <= segment.upperXBound) return new Point2D(x, line.atX(x));
     return undefined;

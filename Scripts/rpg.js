@@ -157,8 +157,6 @@ function Tick() {
     playerPos.position[0] += movX; //Why subtraction??
     playerPos.position[1] += movY;
 
-    console.log(playerPos.position);
-
     cam.UpdatePos();
     requestAnimationFrame(Render);
   }

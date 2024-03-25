@@ -322,7 +322,6 @@ document.addEventListener("mousemove", e => {
     }
   } else if (mode === MODES.MOVE && e.pageX < cam.pxWidth - 5) {
     // Highlight the spot
-    console.log();
 
     if (e.buttons === 1) {
       document.body.style.cursor = "grabbing";
