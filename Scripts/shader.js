@@ -68,8 +68,8 @@ export class Camera {
 
     const squareWidth = 50 / this.zoom;
 
-    const posX = -(this.rotpos.position[0] + xOffsetFromCenter) / squareWidth;
-    const posY = -(this.rotpos.position[1] + yOffsetFromCenter) / squareWidth;
+    const posX = -this.rotpos.position[0] / 50 - xOffsetFromCenter / squareWidth;
+    const posY = -this.rotpos.position[1] / 50 - yOffsetFromCenter / squareWidth;
 
     return [posX, posY];
   }
