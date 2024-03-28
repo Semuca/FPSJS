@@ -13,6 +13,13 @@ const MODES = {
   DRAWING: 2,
 }
 
+class Wall extends Segment2D {
+  constructor(point1, point2, texture) {
+    super(point1, point2);
+    this.texture = texture;
+  }
+}
+
 let mode = MODES.PLACE;
 
 let tile = 0;
@@ -21,13 +28,15 @@ let secondPoint = undefined;
 
 let cursorWorldPosition = undefined;
 const walls = [];
-let highlightedWall = undefined;
+let highlightedWall = -1;
 
 let line;
+let hover;
+
 let highlighter;
 let secondHighlighter;
+
 let selector;
-let sprites;
 
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 let physicsScene = new PhysicsScene();
@@ -48,19 +57,17 @@ async function Setup() {
   temp.shaders[0].CreateModel("verSprite.json", modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
-  textureGroup = await LoadFileText("../textures.txt");
-  textureGroup = textureGroup.split("\n");
-  for (let i = 0; i < textureGroup.length; i++) {
-    await CreateTexture(temp, textureGroup[i] + ".png");
-  }
+  textureGroup = await LoadFileText("../textures.json");
+  textureGroup = JSON.parse(textureGroup).textures;
 
+  await Promise.all(textureGroup.map((texture) => CreateTexture(temp, texture)));
 
   // Load sidebar
   let width = sidebar.pxWidth / 4;
   for (let i = 0; i < textureGroup.length; i++) {
-    temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - ((i % 4) + 1) * width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + sidebar.pxWidth / 8, 0.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, textureGroup[i] + ".png");
+    temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - ((i % 4) + 1) * width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + sidebar.pxWidth / 8, 0.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, textureGroup[i]);
   }
-  sprites = temp.shaders[0].models["verSprite.json"].objects;
+  temp.shaders[0].models["verSprite.json"].objects;
 
   await CreateTexture(temp, "tframe.png");
   highlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
@@ -68,8 +75,11 @@ async function Setup() {
   secondHighlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
   secondHighlighter.hidden = true;
 
+  hover = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [20, 20]), physicsScene, 0, "texture.png");
+  hover.hidden = true;
+
   selector = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width + sidebar.pxWidth / 8, 1.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, "tframe.png");
-  
+
   //Load line models
   await LoadShader(temp, cam, "2DflatlineVertexShader.vs", "lineFragmentShader.fs");
   modelData = await LoadModel("flatline.json", temp);
@@ -172,6 +182,16 @@ function RenderLoop(now) {
 
   // Draw walls
   walls.forEach((wall, index) => {
+    let colour = [1.0, 1.0, 1.0, 1.0];
+    if (index === highlightedWall) {
+      colour = [0.0, 1.0, 1.0, 1.0];
+    } else if (highlightedWall != -1 && wall.texture === walls[highlightedWall].texture) {
+      colour = [1.0, 0.0, 1.0, 1.0];
+    }
+
+    temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array(colour));
+
+
     // Draw line from point
     line.rotpos.position[0] = cam.rotpos.position[0] - wall.point1.x * 50;
     line.rotpos.position[1] = cam.rotpos.position[1] + wall.point1.y * 50;
@@ -182,8 +202,6 @@ function RenderLoop(now) {
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? 0 : -Math.PI);
 
-    if (index === highlightedWall) temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array([0.0, 1.0, 1.0, 1.0]));
-
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
     temp.gl.uniformMatrix4fv(
       temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
@@ -191,7 +209,6 @@ function RenderLoop(now) {
       line.GetMatrix());
     temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
-    if (index === highlightedWall) temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array([1.0, 1.0, 1.0, 1.0]));
   });
 
   // Draw line from selected point to cursor
@@ -229,8 +246,10 @@ function DrawSidebar() {
 // Start drawing when the mouse is pressed down
 cam.onMouseDown = () => {
   if (mode === MODES.PLACE) {
-    mode = MODES.DRAWING;
-    requestAnimationFrame(RenderLoop);
+    if (currentPoint) {
+      mode = MODES.DRAWING;
+      requestAnimationFrame(RenderLoop);
+    }
   }
 };
 
@@ -261,8 +280,18 @@ cam.onMouseMove = (e) => {
     // Calculate line that is being hovered over
     const oldHighlightedWall = highlightedWall;
     highlightedWall = walls.findIndex((wall) => ShortestDistanceFromPointToSegment(cursorWorldPosition, wall) <= highlightRadiusTrigger);
-    if (highlightedWall != oldHighlightedWall) drawFlag = true;
-    
+    if (oldHighlightedWall != -1 || highlightedWall != -1) {
+      if (highlightedWall === -1) {
+        hover.hidden = true;
+      } else {
+        hover.rotpos.position = [-cursorWorldPosition.x * 50, cursorWorldPosition.y * 50 + 25, 1.0];
+        hover.texId = temp.texIds[walls[highlightedWall].texture];
+        hover.hidden = false;
+      }
+
+      drawFlag = true;
+    }
+
     if (drawFlag) requestAnimationFrame(RenderLoop);
   } else if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
@@ -297,13 +326,21 @@ cam.onMouseMove = (e) => {
 };
 
 // Stop drawing when the mouse is lifted up
-cam.onMouseUp = () => {
+cam.onMouseUp = (e) => {
   if (mode === MODES.DRAWING) {
-    mode = MODES.PLACE;
-    secondHighlighter.hidden = true;
-    if (secondPoint) walls.push(new Segment2D(currentPoint, secondPoint));
-    requestAnimationFrame(RenderLoop);
-  }  
+    if (currentPoint && secondPoint) {
+      mode = MODES.PLACE;
+      secondHighlighter.hidden = true;
+      if (secondPoint) walls.push(new Wall(currentPoint, secondPoint, textureGroup[tile]));
+      requestAnimationFrame(RenderLoop);
+    }
+  } else if (mode === MODES.PLACE) {
+    if (temp.keysDown["ShiftLeft"] && highlightedWall != undefined) {
+      // Delete wall
+      walls.splice(highlightedWall, 1)
+      requestAnimationFrame(RenderLoop);
+    }
+  }
 };
 
 // Select tile

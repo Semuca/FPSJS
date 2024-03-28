@@ -1,3 +1,0 @@
-texture
-4
-door

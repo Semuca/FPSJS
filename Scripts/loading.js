@@ -94,7 +94,7 @@ export async function LoadMap(window, url, physicsScene, renderLoop) {
   jsonData.objects.map((object) => {
     InstantiateObjec(window.shaders[modelsToShaderIndex[object.object]], object.object, new RotPos(object.position, object.rotation, object.scale), physicsScene);}
   );
-  
+
   requestAnimationFrame(renderLoop);
 }
 
