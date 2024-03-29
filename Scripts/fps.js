@@ -16,7 +16,7 @@ let physicsScene = new PhysicsScene();
 
 const temp = new Screen("canvas");
 temp.AddCamera([0.0, 0.0], [1.0, 1.0], "3D", 0);
-LoadMap(temp, "osiris.json", physicsScene, RenderLoop);
+LoadMap(temp, "map.json", physicsScene, RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop(now) {
@@ -106,7 +106,7 @@ window.addEventListener("keydown", e => {
     temp.shaders[0].CreateObject(new Objec(models["lineObject.txt"].modelData, new RotPos([0.0, 0.0, 0.0]), physicsScene));
     return;
   }
- 
+
   //Swap the focus on object on 'X'
   if (e.code === "KeyX") {
     objectFocus += 1;
@@ -115,7 +115,7 @@ window.addEventListener("keydown", e => {
     }
     return;
   }
- 
+
   //Disable physics on 'Z'
   if (e.code === "KeyZ") {
     if (temp.shaders[0].objects[objectFocus].physics.enabled === false) {
@@ -125,7 +125,7 @@ window.addEventListener("keydown", e => {
     }
     return;
   }
- 
+
   //Delete currently focussed object on 'V'
   if (e.code === "KeyV") {
     temp.shaders[0].RemoveObject(objectFocus);
@@ -134,7 +134,7 @@ window.addEventListener("keydown", e => {
     }
     return;
   }
- 
+
   //Switch object shaders
   if (e.code === "KeyB") {
     shaderFocus += 1;

@@ -118,7 +118,7 @@ export class Shader {
   //vertexSource should be the source code for the vertex shader, fragmentSource should be the source code for the fragment shader
   CompileProgram(vertexSource, fragmentSource) {
     //Automatically cull backfaces for now, change later if needed
-    this.gl.enable(this.gl.CULL_FACE);
+    // this.gl.enable(this.gl.CULL_FACE);
 
     //If there's already a shader program in here, deallocate the memory
     if (this.programInfo === null) {
@@ -225,7 +225,7 @@ export class Shader {
       "ELEMENT_ARRAY_BUFFER" : {data},
       "TEXTURE" : {img}
     }
-    
+
     I have no idea if this will turn out to be the most efficient system, but I'm doing it for now
     */
 

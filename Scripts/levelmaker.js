@@ -361,8 +361,26 @@ sidebar.onMouseDown = (e) => {
 temp.keyDownCallbacks["KeyC"] = () => {
   const element = document.createElement('a');
 
-  const text = JSON.stringify({ walls });
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  const text = JSON.stringify({
+    shaders: [{
+      vertexShader: "vertexShader.vs",
+      fragmentShader: "fragmentShader.fs"
+    }],
+    models: {
+      "plane.json": 0,
+    },
+    objects: walls.map((wall) => {
+      const q = quat.create();
+      quat.rotateY(q, q, -Math.atan(wall.gradient));
+      return {
+        object: "plane.json",
+        position: [(wall.point1.x + wall.point2.x), 0, (wall.point1.y + wall.point2.y)],
+        rotation: q,
+        scale: [wall.length, 1, 1]
+      };
+    })
+  });
+  element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(text));
   element.setAttribute('download', "map");
 
   element.style.display = "none";

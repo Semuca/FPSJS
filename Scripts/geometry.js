@@ -65,6 +65,8 @@ export class Segment2D extends Line2D {
 
         this.lowerYBound = Math.min(point1.y, point2.y);
         this.upperYBound = Math.max(point1.y, point2.y);
+
+        this.length = distancePointToPoint(point1, point2);
     }
 }
 
