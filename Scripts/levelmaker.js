@@ -376,7 +376,8 @@ temp.keyDownCallbacks["KeyC"] = () => {
         object: "plane.json",
         position: [(wall.point1.x + wall.point2.x), 0, (wall.point1.y + wall.point2.y)],
         rotation: q,
-        scale: [wall.length, 1, 1]
+        scale: [wall.length, 1, 1],
+        texture: wall.texture,
       };
     })
   });

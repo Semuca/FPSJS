@@ -254,11 +254,9 @@ export class Shader {
     const newObject = new Objec(this.models[name], rotpos, worldIndex);
     const objects = this.models[name].objects;
     let added = false;
-    let index;
     for (let i = 0; i < objects.length; i++) {
       if (objects[i] === undefined) {
         objects[i] = newObject;
-        index = i;
         added = true;
         break;
       }
@@ -266,7 +264,6 @@ export class Shader {
 
     if (added == false) {
       objects.push(newObject);
-      index = objects.length - 1;
     }
 
     if (this.cam.type == "3D") {

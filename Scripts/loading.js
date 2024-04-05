@@ -91,13 +91,17 @@ export async function LoadMap(window, url, physicsScene, renderLoop) {
     modelsToShaderIndex[model] = shaderIndex;
   }));
 
-  jsonData.objects.map((object) => {
-    InstantiateObjec(window.shaders[modelsToShaderIndex[object.object]], object.object, new RotPos(object.position, object.rotation, object.scale), physicsScene);}
+  jsonData.objects.forEach(async (object) => {
+    if (!Object.keys(window.texIds).includes(object.texture)) {
+      await CreateTexture(window, object.texture);
+    }
+
+    InstantiateObjec(window.shaders[modelsToShaderIndex[object.object]], object.object, new RotPos(object.position, object.rotation, object.scale), physicsScene, object.texture);}
   );
 
   requestAnimationFrame(renderLoop);
 }
 
-function InstantiateObjec(shader, url, rotpos, physicsScene) {
-  shader.InstanceObject(url, rotpos, physicsScene, 0);
+function InstantiateObjec(shader, url, rotpos, physicsScene, texName) {
+  shader.InstanceObject(url, rotpos, physicsScene, 0, texName);
 }
