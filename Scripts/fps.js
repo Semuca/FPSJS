@@ -1,4 +1,4 @@
-import { Screen } from "./screen.js";
+import { Screen, toggleFullScreen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadMap } from "./loading.js";
 
@@ -9,13 +9,11 @@ let isPaused = false;
 let rotX = 180;
 let rotY = 0;
 
-let keysDown = {};
-
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 let physicsScene = new PhysicsScene();
 
 const temp = new Screen("canvas");
-temp.AddCamera([0.0, 0.0], [1.0, 1.0], "3D", 0);
+const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], "3D", 0);
 LoadMap(temp, "map.json", physicsScene, RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
@@ -43,8 +41,8 @@ function RenderLoop(now) {
   vec3.normalize(_cameraRight, _cameraRight);
   vec3.cross(_cameraUp, _vec, _cameraRight);
 
-  const movX = ((keysDown["KeyA"] ? 1 : 0) - (keysDown["KeyD"] ? 1 : 0)) / 10;
-  const movZ = ((keysDown["KeyW"] ? 1 : 0) - (keysDown["KeyS"] ? 1 : 0)) / 10;
+  const movX = ((temp.keysDown["KeyA"] ? 1 : 0) - (temp.keysDown["KeyD"] ? 1 : 0)) / 10;
+  const movZ = ((temp.keysDown["KeyW"] ? 1 : 0) - (temp.keysDown["KeyS"] ? 1 : 0)) / 10;
   const movVec = [movX * _cameraRight[0] + movZ * _vec[0], 0.0, movX * _cameraRight[2] + movZ * _vec[2]]; //Need to make this always have a constant length for consistent movement regardless of the y looking
 
   vec3.add(temp.cameras[0].rotpos.position, temp.cameras[0].rotpos.position, movVec);
@@ -73,88 +71,18 @@ canvas.addEventListener("click", function (e) {
   }
 });
 
-//Sets the keysDown and the keysUp, means smoother movement
-window.addEventListener("keyup", e => {
-  if (isPaused === true) {
-    return;
-  }
-  keysDown[e.code] = false;
-});
+temp.keyDownCallbacks["Enter"] = () => {
+  toggleFullScreen();
+}
 
-window.addEventListener("keydown", e => {
-  //If paused, we only want to compile the console
-  if (isPaused === true) {
-    if (e.code === "KeyC" && document.pointerLockElement != null) {
-      temp.shaders[0].ReplaceVertexShader(terminal.value);
-    }
-
-    return;
-  }
-
-  //Set what keys are being currently held down
-  keysDown[e.code] = true;
-
-  //Toggle fullscreen on enter
-  if (e.key === "Enter") {
-    toggleFullScreen();
-    return;
-  }
-
-  /*
-  //Create new object at origin on 'C'
-  if (e.code === "KeyC") {
-    temp.shaders[0].CreateObject(new Objec(models["lineObject.txt"].modelData, new RotPos([0.0, 0.0, 0.0]), physicsScene));
-    return;
-  }
-
-  //Swap the focus on object on 'X'
-  if (e.code === "KeyX") {
-    objectFocus += 1;
-    if (objectFocus >= temp.shaders[0].objects.length) {
-      objectFocus = 0;
-    }
-    return;
-  }
-
-  //Disable physics on 'Z'
-  if (e.code === "KeyZ") {
-    if (temp.shaders[0].objects[objectFocus].physics.enabled === false) {
-      temp.shaders[0].objects[objectFocus].physics.enabled = true;
-    } else {
-      temp.shaders[0].objects[objectFocus].physics.enabled = false;
-    }
-    return;
-  }
-
-  //Delete currently focussed object on 'V'
-  if (e.code === "KeyV") {
-    temp.shaders[0].RemoveObject(objectFocus);
-    if (objectFocus >= temp.shaders[0].objects.length) {
-      objectFocus = 0;
-    }
-    return;
-  }
-
-  //Switch object shaders
-  if (e.code === "KeyB") {
-    shaderFocus += 1;
-    if (shaderFocus >= temp.shaders.length) {
-      shaderFocus = 0;
-    }
-    return;
-  }*/
-});
-
-
-document.addEventListener("mousemove", e => {
+cam.onMouseMove = (e) => {
   if (document.pointerLockElement === null || isPaused === true) {
     return;
   }
 
   rotX += e.movementX;
   rotY += e.movementY;
-});
-
+}
 
 //Resizing for the window. What's the difference between "resize" and "onresize"?
 window.addEventListener("resize", e => {
@@ -167,14 +95,3 @@ window.addEventListener("resize", e => {
     camera.RecalculateProjMatrix();
   });
 });
-
-//Toggles fullscreen
-function toggleFullScreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen();
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-  }
-}
