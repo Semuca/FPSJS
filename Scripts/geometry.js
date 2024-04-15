@@ -1,4 +1,3 @@
-
 export class Point2D {
     constructor(x, y) {
         this.x = x;
@@ -60,6 +59,8 @@ export class Segment2D extends Line2D {
         this.point1 = point1;
         this.point2 = point2;
 
+        this.angle = Math.atan2(point2.y - point1.y, point2.x - point1.x);
+
         this.lowerXBound = Math.min(point1.x, point2.x);
         this.upperXBound = Math.max(point1.x, point2.x);
 
@@ -75,6 +76,75 @@ export function isPointUnderLine(point, line) {
 
     // If the line is vertical, check if the point is to the left
     return (atX === undefined) ? point.x < line.xIntercept : point.y < atX;
+}
+
+export function IntersectionSegmentAndSegment(segment1, segment2) {
+
+    //If the segments are parallel, cover the case where they can overlap
+    if (segment1.gradient === segment2.gradient) {
+
+        // If they're vertical lines...
+        if (Math.abs(segment1.gradient) === Infinity && segment1.xIntercept === segment2.xIntercept) {
+            const isOverlapLeftSegment = (segment1.upperYBound < segment2.lowerYBound);
+            const isOverlapRightSegment = (segment2.upperYBound < segment1.lowerYBound);
+
+            if (isOverlapLeftSegment) return new Segment2D(new Point2D(segment1.upperXBound, segment1.upperYBound), new Point2D(segment2.lowerXBound, segment2.lowerYBound));
+
+            if (isOverlapRightSegment) return new Segment2D(new Point2D(segment1.upperXBound, segment1.upperYBound), new Point2D(segment2.lowerXBound, segment2.lowerYBound));
+
+        } else if (segment1.yIntercept === segment2.yIntercept) {
+            const isOverlapLeftSegment = (segment1.upperXBound < segment2.lowerXBound);
+            const isOverlapRightSegment = (segment2.upperXBound < segment1.lowerXBound);
+
+            if (isOverlapLeftSegment) return new Segment2D(new Point2D(segment1.upperXBound, segment1.upperYBound), new Point2D(segment2.lowerXBound, segment2.lowerYBound));
+
+            if (isOverlapRightSegment) return new Segment2D(new Point2D(segment1.upperXBound, segment1.upperYBound), new Point2D(segment2.lowerXBound, segment2.lowerYBound));
+        }
+        return undefined;
+    }
+
+    if (Math.abs(segment1.gradient) === Infinity) {
+        const intersectionY = segment2.atX(segment1.point1.x);
+        if (segment1.lowerYBound <= intersectionY && intersectionY <= segment1.upperYBound &&
+            segment2.lowerYBound <= intersectionY && intersectionY <= segment2.upperYBound) {
+            return new Point2D(segment1.point1.x, intersectionY);
+        }
+
+        return undefined;
+    } else if (segment1.gradient === 0) { //Segment 1 is a horizontal line
+        const intersectionX = segment2.atY(segment1.point1.y); // Get intersection x point if they were both lines
+        if (segment1.lowerXBound <= intersectionX && intersectionX <= segment1.upperXBound &&
+            segment2.lowerXBound <= intersectionX && intersectionX <= segment2.upperXBound) {
+            return new Point2D(intersectionX, segment1.point1.y);
+        }
+
+        return undefined;
+
+    } else if (Math.abs(segment2.gradient) === Infinity) {
+        const intersectionY = segment1.atX(segment2.point1.x);
+        if (segment1.lowerYBound <= intersectionY && intersectionY <= segment1.upperYBound &&
+            segment2.lowerYBound <= intersectionY && intersectionY <= segment2.upperYBound) {
+            return new Point2D(segment2.point1.x, intersectionY);
+        }
+
+        return undefined;
+    } else if (segment2.gradient === 0) {
+        const intersectionX = segment1.atY(segment2.point1.y); // Get intersection x point if they were both lines
+        if (segment1.lowerXBound <= intersectionX && intersectionX <= segment1.upperXBound &&
+            segment2.lowerXBound <= intersectionX && intersectionX <= segment2.upperXBound) {
+            return new Point2D(intersectionX, segment2.point1.y);
+        }
+
+        return undefined;
+    }
+
+    const x = (segment2.yIntercept - segment1.yIntercept) / (segment1.gradient - segment2.gradient);
+
+    if (segment1.lowerXBound <= x && x <= segment1.upperXBound &&
+        segment2.lowerXBound <= x && x <= segment2.upperXBound) {
+        return new Point2D(x, segment1.atX(x));
+    }
+    return undefined;
 }
 
 export function IntersectionLineAndSegment(line, segment) {

@@ -108,7 +108,6 @@ export class Shader {
   constructor(window, gl, cam) {
     this.window = window;
     this.gl = gl;
-    this.objects = [];
     this.models = {};
 
     this.cam = cam;

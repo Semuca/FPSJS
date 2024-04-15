@@ -1,1 +1,133 @@
-{"shaders":[{"vertexShader":"vertexShader.vs","fragmentShader":"fragmentShader.fs"}],"models":{"plane.json":0},"objects":[{"object":"plane.json","position":[0,0,6],"rotation":{"0":0,"1":0,"2":0,"3":1},"scale":[2,1,1],"texture":"texture.png"},{"object":"plane.json","position":[5,0,3],"rotation":{"0":0,"1":0.3826834261417389,"2":0,"3":0.9238795042037964},"scale":[1.4142135623730951,1,1],"texture":"texture.png"},{"object":"plane.json","position":[6,0,0],"rotation":{"0":0,"1":-0.7071067690849304,"2":0,"3":0.7071067690849304},"scale":[2,1,1],"texture":"texture.png"},{"object":"plane.json","position":[1,0,-2],"rotation":{"0":0,"1":0,"2":0,"3":1},"scale":[5,1,1],"texture":"texture.png"},{"object":"plane.json","position":[-3,0,2],"rotation":{"0":0,"1":-0.6154122352600098,"2":0,"3":0.7882054448127747},"scale":[4.123105625617661,1,1],"texture":"texture.png"},{"object":"plane.json","position":[3,0,5],"rotation":{"0":0,"1":0.3826834261417389,"2":0,"3":0.9238795042037964},"scale":[1.4142135623730951,1,1],"texture":"door.png"}]}
+{
+    "shaders": [
+        {
+            "vertexShader": "vertexShader.vs",
+            "fragmentShader": "fragmentShader.fs"
+        }
+    ],
+    "models": {
+        "plane.json": 0
+    },
+    "objects": [
+        {
+            "object": "plane.json",
+            "position": [
+                0,
+                0,
+                6
+            ],
+            "rotation": {
+                "0": 0,
+                "1": 0,
+                "2": 0,
+                "3": 1
+            },
+            "scale": [
+                2,
+                1,
+                1
+            ],
+            "texture": "texture.png"
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                5,
+                0,
+                3
+            ],
+            "rotation": {
+                "0": 0,
+                "1": 0.3826834261417389,
+                "2": 0,
+                "3": 0.9238795042037964
+            },
+            "scale": [
+                1.4142135623730951,
+                1,
+                1
+            ],
+            "texture": "texture.png"
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                6,
+                0,
+                0
+            ],
+            "rotation": {
+                "0": 0,
+                "1": -0.7071067690849304,
+                "2": 0,
+                "3": 0.7071067690849304
+            },
+            "scale": [
+                2,
+                1,
+                1
+            ],
+            "texture": "texture.png"
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                1,
+                0,
+                -2
+            ],
+            "rotation": {
+                "0": 0,
+                "1": 0,
+                "2": 0,
+                "3": 1
+            },
+            "scale": [
+                5,
+                1,
+                1
+            ],
+            "texture": "texture.png"
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                -3,
+                0,
+                2
+            ],
+            "rotation": {
+                "0": 0,
+                "1": -0.6154122352600098,
+                "2": 0,
+                "3": 0.7882054448127747
+            },
+            "scale": [
+                4.123105625617661,
+                1,
+                1
+            ],
+            "texture": "texture.png"
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                3,
+                0,
+                5
+            ],
+            "rotation": {
+                "0": 0,
+                "1": 0.3826834261417389,
+                "2": 0,
+                "3": 0.9238795042037964
+            },
+            "scale": [
+                1.4142135623730951,
+                1,
+                1
+            ],
+            "texture": "door.png"
+        }
+    ]
+}
