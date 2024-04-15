@@ -77,7 +77,7 @@ function RenderLoop(now) {
       const wallSegment = new Segment2D(point1, point2);
 
 
-      const intersection = IntersectionSegmentAndSegment(moveSegment, wallSegment, logging);
+      const intersection = IntersectionSegmentAndSegment(moveSegment, wallSegment);
 
       if (intersection instanceof Point2D) {
         // Move back along the segment the distance of the radius (towards point 1)
