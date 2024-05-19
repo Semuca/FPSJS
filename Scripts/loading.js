@@ -59,16 +59,16 @@ export async function LoadModel(url, window) {
 
   const arrayBuffer = jsonData['ARRAY_BUFFER']
   const keys = Object.keys(arrayBuffer);
-  for (let i = 0; i < keys.length; i++) {
-    const len = arrayBuffer[keys[i]][0].length;
-    arrayBuffer[keys[i]] = [arrayBuffer[keys[i]].flat(), len, len * 4, 0]; // Store metadata about the array in the object
-  }
+  keys.forEach((key) => {
+    const len = arrayBuffer[key][0].length;
+    arrayBuffer[key] = [arrayBuffer[key].flat(), len, len * 4, 0]; // Todo: Store metadata about the array in the object
+  });
 
-  if (jsonData['ELEMENT_ARRAY_BUFFER'] != undefined) {
+  if (jsonData['ELEMENT_ARRAY_BUFFER']) {
     jsonData['ELEMENT_ARRAY_BUFFER'] = jsonData['ELEMENT_ARRAY_BUFFER'].flat();
   }
 
-  if (jsonData['TEXTURE'] != undefined) {
+  if (jsonData['TEXTURE']) {
     jsonData['TEXTURE'] = await CreateTexture(window, jsonData['TEXTURE']);
   }
 

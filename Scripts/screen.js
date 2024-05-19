@@ -5,7 +5,7 @@ export const SCREENACTION = {
   RESIZING: 1,
 }
 
-//What is placed on the page.
+// Fills up one canvas
 export class Screen {
     //Constructor requires an identifier for a canvas
     constructor(canvasID) {

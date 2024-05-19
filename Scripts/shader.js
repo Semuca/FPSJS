@@ -340,21 +340,18 @@ export class Shader {
       this.gl.bindVertexArray(model.vao);
 
       //Get the number of points
-      let vertexCount = undefined
-      if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) { //kinda wasteful
-        vertexCount = model.modelData["ELEMENT_ARRAY_BUFFER"].length;
-      }
-
+      const vertexCount = model.modelData["ELEMENT_ARRAY_BUFFER"] ? model.modelData["ELEMENT_ARRAY_BUFFER"].length : undefined;
       //Set texture and mode
-      let mode = this.gl.LINES;
-      if (model.modelData["TEXTURE"] != undefined) {
+      const mode = model.modelData["TEXTURE"] != undefined ? this.gl.TRIANGLES: this.gl.LINES;
+      if (mode === this.gl.TRIANGLES) {
         this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
         this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
-        mode = this.gl.TRIANGLES;
       }
 
       // Draw every object
       model.objects.forEach((object) => {
+        // object.callbackFn(this.window);
+
         // Only render objects in our current world
         if (object.worldIndex != worldIndex) {
           return;
@@ -366,7 +363,7 @@ export class Shader {
         }
 
         //Should be universalised - Need to set this back after (Shouldn't this be a uniform?)
-        if (object.texAttributes != undefined) {
+        if (object.texAttributes) {
           model.ModifyAttribute("aTextureCoord", object.texAttributes);
         }
 
@@ -382,7 +379,7 @@ export class Shader {
           false,
           object.GetMatrix());
 
-        if (model.modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
+        if (model.modelData["ELEMENT_ARRAY_BUFFER"]) {
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
           this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);
         } else {

@@ -32,6 +32,24 @@ export class Objec {
     this.worldIndex = worldIndex;
 
     this.matrix = mat4.create();
+
+    this.callbackFn = (window) => {
+      const vec = vec3.create();
+      vec3.subtract(vec, this.rotpos.position, window.cameras[0].rotpos.position);
+      vec3.normalize(vec, vec);
+
+      const up = vec3.fromValues(0.0, 1.0, 0.0);
+      const right = vec3.create();
+      vec3.cross(right, up, vec);
+      vec3.normalize(right, right);
+      vec3.cross(up, vec, right);
+      vec3.normalize(up, up);
+
+      const lookAtMatrix = mat4.create();
+      mat4.targetTo(lookAtMatrix, this.rotpos.position, window.cameras[0].rotpos.position, up);
+
+      mat4.getRotation(this.rotpos.rotation, lookAtMatrix);
+    }
   }
 
   TiePhysicsObjec(physicsScene) {

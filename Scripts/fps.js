@@ -63,7 +63,7 @@ function RenderLoop(now) {
 
     // Calculate if the plane segment intersects with it
     // Get shortest distance
-    let i = 0;
+    // let i = 0;
     temp.shaders[0].models["plane.json"].objects.forEach((object) => {
       const rotationVec = vec3.create();
       const angle = quat.getAxisAngle(rotationVec, object.rotpos.rotation);
@@ -89,7 +89,7 @@ function RenderLoop(now) {
         proposedMoveVec[2] = x;
       }
 
-      i++;
+      // i++;
     });
 
     temp.cameras[0].rotpos.position = proposedMoveVec;
@@ -105,7 +105,7 @@ function RenderLoop(now) {
     temp.shaders.forEach((shader) => shader.DrawScene(0));
   });
 
-  if (isPaused === false) {
+  if (!isPaused) {
     requestAnimationFrame(RenderLoop);
   }
 }
