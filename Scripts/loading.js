@@ -84,7 +84,7 @@ export async function LoadMap(window, url, physicsScene, renderLoop) {
   await Promise.all(jsonData.shaders.map((shader) => LoadShader(window, window.cameras[0], shader.vertexShader, shader.fragmentShader)));
 
   // Loads all models
-  const modelsToShaderIndex = {}
+  const modelsToShaderIndex = {};
   await Promise.all(Object.entries(jsonData.models).map(async ([model, shaderIndex]) => {
     const modelData = await LoadModel(model, window);
     window.shaders[shaderIndex].CreateModel(model, modelData);
@@ -96,8 +96,8 @@ export async function LoadMap(window, url, physicsScene, renderLoop) {
       await CreateTexture(window, object.texture);
     }
 
-    InstantiateObjec(window.shaders[modelsToShaderIndex[object.object]], object.object, new RotPos(object.position, object.rotation, object.scale), physicsScene, object.texture);}
-  );
+    InstantiateObjec(window.shaders[modelsToShaderIndex[object.object]], object.object, new RotPos(object.position, object.rotation, object.scale), physicsScene, object.texture, object.tags ?? []);
+  });
 
   requestAnimationFrame(renderLoop);
 }

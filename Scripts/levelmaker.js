@@ -2,7 +2,7 @@ import { Screen, toggleFullScreen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadFileText, CreateTexture, LoadModel, LoadShader } from "./loading.js";
 import { RotPos } from "./objec.js";
-import { distancePointToPoint, Point2D, Segment2D, ShortestDistanceFromPointToSegment } from "./geometry.js";
+import { roundToNearest, distancePointToPoint, Point2D, Segment2D, ShortestDistanceFromPointToSegment } from "./geometry.js";
 
 let zoom = 50.0;
 let time = 0;
@@ -11,6 +11,13 @@ const MODES = {
   MOVE: 0,
   PLACE: 1,
   DRAWING: 2,
+}
+
+class Sprite extends Point2D {
+  constructor(point1, texture) {
+    super(point1);
+    this.texture = texture;
+  }
 }
 
 class Wall extends Segment2D {
@@ -27,6 +34,8 @@ let currentPoint = undefined;
 let secondPoint = undefined;
 
 let cursorWorldPosition = undefined;
+
+const sprites = [];
 const walls = [];
 let highlightedWall = -1;
 
@@ -46,18 +55,18 @@ const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], "2D", 0);
 cam.cursor = "pointer";
 const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], "2D", 1);
 
-let currentSidebarIndex = 0;
-let textureGroups = [];
+let currentSidepaneIndex = 0;
+let sidepanes = [];
 
 function ClearSidebar() {
   temp.shaders[0].DeleteAllObjects(1);
 }
 
 function UpdateSidebar(sidebarIndex) {
-  const textureGroup = textureGroups.at(sidebarIndex);
+  const textureGroup = sidepanes.at(sidebarIndex).textures;
   if (!textureGroup) return;
 
-  currentSidebarIndex = sidebarIndex;
+  currentSidepaneIndex = sidebarIndex;
 
   const width = sidebar.pxWidth / 4;
 
@@ -80,13 +89,13 @@ async function Setup() {
   temp.shaders[0].CreateModel("verSprite.json", modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
-  const rawTextureData = await LoadFileText("../textures.json");
-  textureGroups = JSON.parse(rawTextureData).textures;
+  const sidepaneData = await LoadFileText("../sidepanes.json");
+  sidepanes = JSON.parse(sidepaneData).sidepanes;
 
-  await Promise.allSettled([textureGroups.flat().map((texture) => CreateTexture(temp, texture)), CreateTexture(temp, "tframe.png")]);
+  await Promise.allSettled([sidepanes.map((sidepane) => sidepane.textures).flat().map((texture) => CreateTexture(temp, texture)), CreateTexture(temp, "tframe.png")]);
 
   // Load sidebar
-  UpdateSidebar(currentSidebarIndex);
+  UpdateSidebar(currentSidepaneIndex);
 
   highlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
   highlighter.hidden = true;
@@ -224,7 +233,6 @@ function RenderLoop(now) {
       false,
       line.GetMatrix());
     temp.gl.drawArrays(temp.gl.LINES, 0, 2);
-
   });
 
   // Draw line from selected point to cursor
@@ -261,10 +269,18 @@ function DrawSidebar() {
 
 // Start drawing when the mouse is pressed down
 cam.onMouseDown = () => {
-  if (mode === MODES.PLACE) {
-    if (currentPoint) {
-      mode = MODES.DRAWING;
-      requestAnimationFrame(RenderLoop);
+  if (sidepanes[currentSidepaneIndex].place === "point" && highlighter.hidden === false) {
+    sprites.push(new Sprite(new Point2D(highlighter.rotpos.position[0] / 50, highlighter.rotpos.position[1] / 50), sidepanes[currentSidepaneIndex].textures[tile]));
+
+    temp.shaders[0].InstanceObject("verSprite.json", new RotPos([highlighter.rotpos.position[0], highlighter.rotpos.position[1], 0], Math.PI, [25, 25]), physicsScene, 0, sidepanes[currentSidepaneIndex].textures[tile]);
+
+    requestAnimationFrame(RenderLoop);
+  } else if (sidepanes[currentSidepaneIndex].place === "line") {
+    if (mode === MODES.PLACE) {
+      if (currentPoint) {
+        mode = MODES.DRAWING;
+        requestAnimationFrame(RenderLoop);
+      }
     }
   }
 };
@@ -277,7 +293,7 @@ cam.onMouseMove = (e) => {
 
     // Calculate from position, if a point is enabled or not
     // Logic: figure out the closest point, figure out if that's in range
-    const roundedPoint = new Point2D(Math.round(cursorWorldPosition.x), Math.round(cursorWorldPosition.y));
+    const roundedPoint = new Point2D(roundToNearest(cursorWorldPosition.x, sidepanes[currentSidepaneIndex].selector), roundToNearest(cursorWorldPosition.y, sidepanes[currentSidepaneIndex].selector));
 
     if (distancePointToPoint(cursorWorldPosition, roundedPoint) <= highlightRadiusTrigger) {
       if (highlighter.rotpos.position[0] != roundedPoint.x * 50 || highlighter.rotpos.position[1] != roundedPoint.y * 50 || highlighter.hidden === true) {
@@ -347,7 +363,7 @@ cam.onMouseUp = (e) => {
     if (currentPoint && secondPoint) {
       mode = MODES.PLACE;
       secondHighlighter.hidden = true;
-      if (secondPoint) walls.push(new Wall(currentPoint, secondPoint, textureGroups[currentSidebarIndex][tile]));
+      if (secondPoint) walls.push(new Wall(currentPoint, secondPoint, sidepanes[currentSidepaneIndex].textures[tile]));
       requestAnimationFrame(RenderLoop);
     }
   } else if (mode === MODES.PLACE) {
@@ -364,7 +380,7 @@ sidebar.onMouseDown = (e) => {
   let x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
   let y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
 
-  if (textureGroups[currentSidebarIndex][x + 4 * y] != undefined) {
+  if (sidepanes[currentSidepaneIndex].textures[x + 4 * y] != undefined) {
     tile = x + 4 * y;
     selector.rotpos.position[0] = sidebar.pxWidth / 2 - (x % 4) * sidebar.pxWidth / 4 - sidebar.pxWidth / 8;
     // TODO: Implement y-selector for this
@@ -385,7 +401,7 @@ temp.keyDownCallbacks["KeyC"] = () => {
     models: {
       "plane.json": 0,
     },
-    objects: walls.map((wall) => {
+    objects: [walls.map((wall) => {
       const q = quat.create();
       quat.rotateY(q, q, -Math.atan(wall.gradient));
       return {
@@ -394,8 +410,20 @@ temp.keyDownCallbacks["KeyC"] = () => {
         rotation: q,
         scale: [wall.length, 1, 1],
         texture: wall.texture,
+        tags: ["wall"]
+      };
+    }),
+    sprites.map((sprite) => {
+      return {
+        object: "verSprite.json",
+        position: [sprite.x, 0, sprite.y],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+        texture: sprite.texture,
+        tags: ["sprite"]
       };
     })
+    ]
   });
   element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(text));
   element.setAttribute('download', "map");
@@ -418,14 +446,14 @@ temp.keyDownCallbacks["Space"] = () => {
 };
 
 temp.keyDownCallbacks["Digit1"] = () => {
-  if (currentSidebarIndex === 0) return;
+  if (currentSidepaneIndex === 0) return;
   ClearSidebar();
   UpdateSidebar(0);
   requestAnimationFrame(RenderLoop);
 };
 
 temp.keyDownCallbacks["Digit2"] = () => {
-  if (currentSidebarIndex === 1) return;
+  if (currentSidepaneIndex === 1) return;
   ClearSidebar();
   UpdateSidebar(1);
   requestAnimationFrame(RenderLoop);

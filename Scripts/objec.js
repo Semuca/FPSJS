@@ -24,12 +24,12 @@ export class Model { //Should store the information that is generic to all objec
 
 //Instance of object
 export class Objec {
-  constructor(model, rotpos, worldIndex) {
-    this.objectData = model.modelData; //Is this necessary?
+  constructor(rotpos, worldIndex) {
     this.rotpos = rotpos;
     this.hidden = false;
 
     this.worldIndex = worldIndex;
+    this.tags = new Set();
 
     this.matrix = mat4.create();
 
@@ -50,6 +50,10 @@ export class Objec {
 
       mat4.getRotation(this.rotpos.rotation, lookAtMatrix);
     }
+  }
+
+  AddTags(tags) {
+    tags.forEach(tag => this.tags.add(tag));
   }
 
   TiePhysicsObjec(physicsScene) {

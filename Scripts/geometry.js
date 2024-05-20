@@ -1,3 +1,7 @@
+export function roundToNearest(number, to) {
+    return Math.round(number / to) * to;
+}
+
 export class Point2D {
     constructor(x, y) {
         this.x = x;

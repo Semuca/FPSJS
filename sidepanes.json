@@ -1,0 +1,19 @@
+{
+    "sidepanes": [
+        {
+            "textures": [
+                "texture.png",
+                "door.png"
+            ],
+            "selector": 1,
+            "place": "line"
+        },
+        {
+            "textures": [
+                "4.png"
+            ],
+            "selector": 0.5,
+            "place": "point"
+        }
+    ]
+}

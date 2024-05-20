@@ -240,9 +240,10 @@ export class Shader {
   }
 
   //Creates an instance of a model in the world
-  InstanceObject(name, rotpos, physicsScene, worldIndex, texName) {
-    const newObject = new Objec(this.models[name], rotpos, worldIndex);
+  InstanceObject(name, rotpos, physicsScene, worldIndex = 0, texName, tags = []) {
+    const newObject = new Objec(rotpos, worldIndex);
     const objects = this.models[name].objects;
+
     let added = false;
     for (let i = 0; i < objects.length; i++) {
       if (objects[i] === undefined) {
@@ -261,6 +262,8 @@ export class Shader {
     }
 
     newObject.texId = this.window.texIds[texName];
+    newObject.AddTags(tags);
+
     return newObject; //Return object
   }
 
