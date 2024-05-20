@@ -40,14 +40,37 @@ let selector;
 
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 let physicsScene = new PhysicsScene();
-let textureGroup;
 
 const temp = new Screen("canvas");
-let cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], "2D", 0);
+const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], "2D", 0);
 cam.cursor = "pointer";
-let sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], "2D", 1);
-cam.PreDraw();
+const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], "2D", 1);
 
+let currentSidebarIndex = 0;
+let textureGroups = [];
+
+function ClearSidebar() {
+  temp.shaders[0].DeleteAllObjects(1);
+}
+
+function UpdateSidebar(sidebarIndex) {
+  const textureGroup = textureGroups.at(sidebarIndex);
+  if (!textureGroup) return;
+
+  currentSidebarIndex = sidebarIndex;
+
+  const width = sidebar.pxWidth / 4;
+
+  textureGroup.forEach((texture, i) => {
+    temp.shaders[0].InstanceObject("verSprite.json", new RotPos([width * 2 - ((i % 4) + 1) * width + width / 2, sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + width / 2, 0], Math.PI, [width / 2, width / 2]), physicsScene, 1, texture);
+  });
+
+  selector = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([width * 2 - width + width / 2, sidebar.pxHeight / 2 - width + width / 2, 1.0], Math.PI, [width / 2, width / 2]), physicsScene, 1, "tframe.png");
+
+  DrawSidebar();
+}
+
+cam.PreDraw();
 Setup();
 
 async function Setup() {
@@ -57,19 +80,14 @@ async function Setup() {
   temp.shaders[0].CreateModel("verSprite.json", modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
-  textureGroup = await LoadFileText("../textures.json");
-  textureGroup = JSON.parse(textureGroup).textures;
+  const rawTextureData = await LoadFileText("../textures.json");
+  textureGroups = JSON.parse(rawTextureData).textures;
 
-  await Promise.all(textureGroup.map((texture) => CreateTexture(temp, texture)));
+  await Promise.allSettled([textureGroups.flat().map((texture) => CreateTexture(temp, texture)), CreateTexture(temp, "tframe.png")]);
 
   // Load sidebar
-  let width = sidebar.pxWidth / 4;
-  for (let i = 0; i < textureGroup.length; i++) {
-    temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - ((i % 4) + 1) * width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + sidebar.pxWidth / 8, 0.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, textureGroup[i]);
-  }
-  temp.shaders[0].models["verSprite.json"].objects;
+  UpdateSidebar(currentSidebarIndex);
 
-  await CreateTexture(temp, "tframe.png");
   highlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
   highlighter.hidden = true;
   secondHighlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0, "tframe.png");
@@ -77,8 +95,6 @@ async function Setup() {
 
   hover = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [20, 20]), physicsScene, 0, "texture.png");
   hover.hidden = true;
-
-  selector = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([sidebar.pxWidth / 2 - width + sidebar.pxWidth / 8, sidebar.pxHeight / 2 - width + sidebar.pxWidth / 8, 1.0], Math.PI, [sidebar.pxWidth / 8, sidebar.pxWidth / 8]), physicsScene, 1, "tframe.png");
 
   //Load line models
   await LoadShader(temp, cam, "2DflatlineVertexShader.vs", "lineFragmentShader.fs");
@@ -331,7 +347,7 @@ cam.onMouseUp = (e) => {
     if (currentPoint && secondPoint) {
       mode = MODES.PLACE;
       secondHighlighter.hidden = true;
-      if (secondPoint) walls.push(new Wall(currentPoint, secondPoint, textureGroup[tile]));
+      if (secondPoint) walls.push(new Wall(currentPoint, secondPoint, textureGroups[currentSidebarIndex][tile]));
       requestAnimationFrame(RenderLoop);
     }
   } else if (mode === MODES.PLACE) {
@@ -348,7 +364,7 @@ sidebar.onMouseDown = (e) => {
   let x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
   let y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
 
-  if (textureGroup[x + 4 * y] != undefined) {
+  if (textureGroups[currentSidebarIndex][x + 4 * y] != undefined) {
     tile = x + 4 * y;
     selector.rotpos.position[0] = sidebar.pxWidth / 2 - (x % 4) * sidebar.pxWidth / 4 - sidebar.pxWidth / 8;
     // TODO: Implement y-selector for this
@@ -398,6 +414,20 @@ temp.keyDownCallbacks["Space"] = () => {
   mode = (mode === MODES.MOVE) ? MODES.PLACE : MODES.MOVE;
   cam.cursor = (mode === MODES.MOVE) ? "grab" : "pointer";
   highlighter.hidden = true;
+  requestAnimationFrame(RenderLoop);
+};
+
+temp.keyDownCallbacks["Digit1"] = () => {
+  if (currentSidebarIndex === 0) return;
+  ClearSidebar();
+  UpdateSidebar(0);
+  requestAnimationFrame(RenderLoop);
+};
+
+temp.keyDownCallbacks["Digit2"] = () => {
+  if (currentSidebarIndex === 1) return;
+  ClearSidebar();
+  UpdateSidebar(1);
   requestAnimationFrame(RenderLoop);
 };
 

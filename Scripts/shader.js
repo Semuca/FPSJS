@@ -264,10 +264,20 @@ export class Shader {
     return newObject; //Return object
   }
 
+  DeleteAllObjects(worldIndex) {
+    Object.values(this.models).forEach((model) => {
+      model.objects = model.objects.filter((object) => {
+        if (object.worldIndex != worldIndex) return true;
+
+        object.Destructor();
+        return false;
+      });
+    });
+  }
+
   // Deletes object instance - will not automatically remove models
   DeleteObject(name, index) {
-    this.models[name].objects[index].Destructor();
-    this.models[name].objects[index] = undefined;
+    this.models[name].objects.splice(index, 1);
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
