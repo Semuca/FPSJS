@@ -210,34 +210,15 @@ export class Shader {
     this.gl.bindVertexArray(this.models[name].vao);
     this.models[name].shader = this;
 
+    // Construct all buffers
+    Object.entries(this.models[name].modelData["ARRAY_BUFFER"]).forEach(([key, buffer]) => {
+      this.models[name].buffers[key] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0]));
+      this.SetVertexAttribArray(this.programInfo.attribLocations[key], buffer[1], this.gl.FLOAT, false, buffer[2], buffer[3]);
+    });
 
-    //Input: _obj should have javascript object, where labels that exactly match the attribInfo labels link to data that allows the gl context to assign a buffer
-    /*
-
-    E.g. for object.txt, _obj =
-
-    {
-      "ARRAY_BUFFER" : {
-        "aVertexPosition" : {data, numComponents (in a unit), stride, offset},
-        "aTexturePosition" :      "             "               "               "
-      },
-      "ELEMENT_ARRAY_BUFFER" : {data},
-      "TEXTURE" : {img}
-    }
-
-    I have no idea if this will turn out to be the most efficient system, but I'm doing it for now
-    */
-
-    const keys = Object.keys(this.models[name].modelData["ARRAY_BUFFER"]);
-
-    for (let i = 0; i < keys.length; i++) {
-      let buffer = this.models[name].modelData["ARRAY_BUFFER"][keys[i]];
-      this.models[name].buffers[keys[i]] = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(buffer[0]));
-      this.SetVertexAttribArray(this.programInfo.attribLocations[keys[i]], buffer[1], this.gl.FLOAT, false, buffer[2], buffer[3]);
-    }
-
+    // Construct element array buffer
     if (this.models[name].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-      this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.models[name].modelData["ELEMENT_ARRAY_BUFFER"]));
+      this.models[name].buffers["ELEMENT_ARRAY_BUFFER"] = this.InitBuffer(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.models[name].modelData["ELEMENT_ARRAY_BUFFER"]));
     }
 
     //Could you just have a global model name hashtable?
@@ -246,6 +227,16 @@ export class Shader {
       //this.models[name].texture = this.window.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
       this.models[name].textureId = this.models[name].modelData["TEXTURE"];
     }
+  }
+
+  DeleteModel(name) {
+    // Need to undo vao
+    // Delete buffers
+    Object.values(this.models[name].modelData).forEach((buffer) => {
+      this.gl.deleteBuffer(buffer);
+    });
+
+    delete this.models[name];
   }
 
   //Creates an instance of a model in the world
