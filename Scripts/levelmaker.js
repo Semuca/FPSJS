@@ -389,6 +389,36 @@ sidebar.onMouseDown = (e) => {
   }
 };
 
+// Loads a map on U
+temp.keyDownCallbacks["KeyU"] = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+
+  input.onchange = async e => {
+    const file = JSON.parse(await e.target.files[0].text());
+    file.objects.forEach((object) => {
+      if (object.tags.includes("wall")) {
+        const rotationVec = vec3.create();
+        const angle = quat.getAxisAngle(rotationVec, object.rotation);
+
+        const scale = object.scale[0];
+        const xBonus = Math.cos(angle) * scale;
+        const yBonus = Math.sin(angle) * scale * (rotationVec[1] < 0 ? 1 : -1);
+
+        const point1 = new Point2D(object.position[2] + yBonus, object.position[0] + xBonus);
+        const point2 = new Point2D(object.position[2] - yBonus, object.position[0] - xBonus);
+
+        walls.push(new Wall(point1, point2, object.texture));
+      } else if (object.tags.includes("sprite")) {
+        sprites.push(new Sprite(new Point2D(object.position[0], object.position[2]), object.texture));
+        temp.shaders[0].InstanceObject("verSprite.json", new RotPos([object.position[0] * 50, object.position[2] * 50, 0], Math.PI, [25, 25]), physicsScene, 0, object.texture);
+      }
+    });
+  };
+
+  input.click();
+};
+
 // Downloads the map on C
 temp.keyDownCallbacks["KeyC"] = () => {
   const element = document.createElement('a');
@@ -401,7 +431,7 @@ temp.keyDownCallbacks["KeyC"] = () => {
     models: {
       "plane.json": 0,
     },
-    objects: [walls.map((wall) => {
+    objects: walls.map((wall) => {
       const q = quat.create();
       quat.rotateY(q, q, -Math.atan(wall.gradient));
       return {
@@ -412,18 +442,18 @@ temp.keyDownCallbacks["KeyC"] = () => {
         texture: wall.texture,
         tags: ["wall"]
       };
-    }),
-    sprites.map((sprite) => {
-      return {
-        object: "verSprite.json",
-        position: [sprite.x, 0, sprite.y],
-        rotation: [0, 0, 0, 1],
-        scale: [1, 1, 1],
-        texture: sprite.texture,
-        tags: ["sprite"]
-      };
-    })
-    ]
+    }).concat(
+      sprites.map((sprite) => {
+        return {
+          object: "plane.json",
+          position: [sprite.x, 0, sprite.y],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
+          texture: sprite.texture,
+          tags: ["sprite"]
+        };
+      })
+    )
   });
   element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(text));
   element.setAttribute('download', "map");

@@ -76,7 +76,7 @@ export async function LoadModel(url, window) {
 }
 
 // Creates a map file
-export async function LoadMap(window, url, physicsScene, renderLoop) {
+export async function LoadMap(window, url, physicsScene, renderLoop, callbackFunctions) {
   const data = await LoadFileText(url);
   const jsonData = JSON.parse(data);
 
@@ -96,12 +96,19 @@ export async function LoadMap(window, url, physicsScene, renderLoop) {
       await CreateTexture(window, object.texture);
     }
 
-    InstantiateObjec(window.shaders[modelsToShaderIndex[object.object]], object.object, new RotPos(object.position, object.rotation, object.scale), physicsScene, object.texture, object.tags ?? []);
+    const tags = object.tags ?? [];
+    const objec = InstantiateObjec(window.shaders[modelsToShaderIndex[object.object]], object.object, new RotPos(object.position, object.rotation, object.scale), physicsScene, object.texture, tags);
+
+    tags.forEach(tag => {
+      if (callbackFunctions[tag]) {
+        objec.callbackFn = callbackFunctions[tag];
+      }
+    });
   });
 
   requestAnimationFrame(renderLoop);
 }
 
 function InstantiateObjec(shader, url, rotpos, physicsScene, texName) {
-  shader.InstanceObject(url, rotpos, physicsScene, 0, texName);
+  return shader.InstanceObject(url, rotpos, physicsScene, 0, texName);
 }

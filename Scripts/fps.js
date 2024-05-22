@@ -17,7 +17,28 @@ let physicsScene = new PhysicsScene();
 
 const temp = new Screen("canvas");
 const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], "3D", 0);
-LoadMap(temp, "map.json", physicsScene, RenderLoop);
+
+const callbackFunctions = {
+  "sprite": (window, object) => {
+    const vec = vec3.create();
+    vec3.subtract(vec, object.rotpos.position, window.cameras[0].rotpos.position);
+    vec3.normalize(vec, vec);
+
+    const up = vec3.fromValues(0.0, 1.0, 0.0);
+    const right = vec3.create();
+    vec3.cross(right, up, vec);
+    vec3.normalize(right, right);
+    vec3.cross(up, vec, right);
+    vec3.normalize(up, up);
+
+    const lookAtMatrix = mat4.create();
+    mat4.targetTo(lookAtMatrix, object.rotpos.position, window.cameras[0].rotpos.position, up);
+
+    mat4.getRotation(object.rotpos.rotation, lookAtMatrix);
+  }
+};
+
+LoadMap(temp, "map.json", physicsScene, RenderLoop, callbackFunctions);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop(now) {
@@ -94,8 +115,6 @@ function RenderLoop(now) {
 
     temp.cameras[0].rotpos.position = proposedMoveVec;
   }
-
-
 
   vec3.add(_vec, _vec, temp.cameras[0].rotpos.position);
 

@@ -354,7 +354,7 @@ export class Shader {
 
       // Draw every object
       model.objects.forEach((object) => {
-        // object.callbackFn(this.window);
+        object.callbackFn(this.window, object);
 
         // Only render objects in our current world
         if (object.worldIndex != worldIndex) {
