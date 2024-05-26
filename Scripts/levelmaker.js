@@ -364,7 +364,7 @@ cam.onMouseUp = (e) => {
       mode = MODES.PLACE;
       secondHighlighter.hidden = true;
       if (secondPoint) walls.push(new Wall(currentPoint, secondPoint, sidepanes[currentSidepaneIndex].textures[tile]));
-      requestAnimationFrame(RenderLoop);
+      cam.onMouseMove(e);
     }
   } else if (mode === MODES.PLACE) {
     if (temp.keysDown["ShiftLeft"] && highlightedWall != undefined) {
