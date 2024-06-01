@@ -1,0 +1,17 @@
+{
+  "name": "fpsjs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "watch": "tsc -w"
+  },
+  "author": "Semuca",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.3"
+  }
+}
