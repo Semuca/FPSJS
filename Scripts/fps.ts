@@ -46,7 +46,7 @@ const callbackFunctions = {
   const modelData = await LoadModel(temp, "verSprite.json");
   temp.shaders[0].CreateModel("verSprite.json", modelData);
 
-  const test = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 0.0], Math.PI, [10, 10]), physicsScene, 0);
+  const test = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5], Math.PI, [10, 10]), physicsScene, 0);
   requestAnimationFrame(RenderLoop);
 })();
 

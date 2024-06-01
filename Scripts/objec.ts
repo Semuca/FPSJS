@@ -55,7 +55,7 @@ export class Objec {
   }
 
   GetMatrix() {
-    if (this.rotpos.position.length != 3 || this.rotpos.scale.length != 3) return;
+    // if (this.rotpos.position.length != 3 || this.rotpos.scale.length != 3) return;
     mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, this.rotpos.position, this.rotpos.scale);
     return this.matrix;
   }

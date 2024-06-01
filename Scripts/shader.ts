@@ -172,7 +172,7 @@ export class Shader {
     uniformLocations: {},
   };
 
-  //Constructor requires webgl context
+  // Constructor requires webgl context
   constructor(screen: FScreen, gl: WebGL2RenderingContext, camera: Camera, type: string) {
     this.screen = screen;
     this.gl = gl;
@@ -180,45 +180,40 @@ export class Shader {
     this.type = type;
   }
 
-  //Compiles a shader program from source code
-  //vertexSource should be the source code for the vertex shader, fragmentSource should be the source code for the fragment shader
-  CompileProgram(vertexSource, fragmentSource) {
-    //Automatically cull backfaces for now, change later if needed
+  // Compiles a shader program from source code
+  // vertexSource should be the source code for the vertex shader, fragmentSource should be the source code for the fragment shader
+  CompileProgram(vertexSource: string, fragmentSource: string): void {
+    // Automatically cull backfaces for now, change later if needed
     // this.gl.enable(this.gl.CULL_FACE);
 
-    //If there's already a shader program in here, deallocate the memory
-    if (this.programInfo === null) {
-      console.log("painis"); //Really?
-    }
-
-    //Creates shaders
+    // Creates shaders
     this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
     this.fragmentShader = this.CreateShader(
       this.gl.FRAGMENT_SHADER,
       fragmentSource
     );
 
-    //Attaches shaders, links the program
+    // Attaches shaders, links the program
     this.shaderProgram = this.gl.createProgram();
     this.gl.attachShader(this.shaderProgram, this.vertexShader);
     this.gl.attachShader(this.shaderProgram, this.fragmentShader);
     this.gl.linkProgram(this.shaderProgram);
 
-    //Ensures OpenGL has loaded correctly
+    // Ensures OpenGL has loaded correctly
     if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
       alert(
         "Unable to initialize the shader program: " +
           this.gl.getProgramInfoLog(this.shaderProgram)
       );
-      return null;
+      return;
     }
 
     this.AssembleProgramInfo();
     this.AdditionalSetup();
   }
 
-  //Replaces vertex shader. Debug feature that should probably be removed at some point
-  ReplaceVertexShader(source) {
+  // Replaces vertex shader. Debug feature that should probably be removed at some point
+  ReplaceVertexShader(source: string): void {
     this.gl.shaderSource(this.vertexShader, source);
     this.gl.compileShader(this.vertexShader);
     this.gl.linkProgram(this.shaderProgram);
@@ -250,7 +245,7 @@ export class Shader {
   }
 
   //Creates info for the shader class to interact with the shader program - Mainly uniform and attribute locations
-  AssembleProgramInfo() {
+  AssembleProgramInfo(): void {
     //Set up program info object
     this.programInfo = {
       attribLocations: {},
@@ -347,20 +342,7 @@ export class Shader {
     tags = []
   ) {
     const newObject = new Objec(rotpos, worldIndex);
-    const objects = this.models[name].objects;
-
-    let added = false;
-    for (let i = 0; i < objects.length; i++) {
-      if (objects[i] === undefined) {
-        objects[i] = newObject;
-        added = true;
-        break;
-      }
-    }
-
-    if (added == false) {
-      objects.push(newObject);
-    }
+    this.models[name].objects.push(newObject);
 
     if (this.camera.type == "3D") {
       newObject.TiePhysicsObjec(physicsScene);
@@ -372,7 +354,7 @@ export class Shader {
     return newObject; //Return object
   }
 
-  DeleteAllObjects(worldIndex) {
+  DeleteAllObjects(worldIndex: number): void {
     Object.values(this.models).forEach((model) => {
       model.objects = model.objects.filter((object) => {
         if (object.worldIndex != worldIndex) return true;
@@ -384,13 +366,13 @@ export class Shader {
   }
 
   // Deletes object instance - will not automatically remove models
-  DeleteObject(name, index) {
+  DeleteObject(name: string, index: number): void {
     this.models[name].objects.splice(index, 1);
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
   //TIDYING STATUS: GREEN
-  InitBuffer(bufferType, data) {
+  InitBuffer(bufferType: GLenum, data) {
     //Create buffer, bind it to a type, fill the target with data
     const buffer = this.gl.createBuffer();
     this.gl.bindBuffer(bufferType, buffer);
