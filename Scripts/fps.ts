@@ -2,7 +2,7 @@ import { FScreen, toggleFullScreen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
 import { LoadMap, LoadShader, LoadModel } from "./loading.js";
 import { IntersectionSegmentAndSegment, Point2D, Segment2D } from "./geometry.js";
-import { RotPos } from "./objec.js";
+import { Objec, RotPos, RotPos2D } from "./objec.js";
 import { mat4, quat, vec3 } from "gl-matrix";
 
 let time = 0;
@@ -21,10 +21,10 @@ const temp = new FScreen("canvas");
 const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], "2D", 0);
 // const ui = temp.AddCamera([0.0, 0.0], [1.0, 1.0], "2D", 0);
 
-const callbackFunctions = {
+const callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void> = {
   "sprite": (window, object) => {
     const vec = vec3.create();
-    vec3.subtract(vec, object.rotpos.position, window.cameras[0].rotpos.position);
+    vec3.subtract(vec, object.rotpos.position as vec3, window.cameras[0].rotpos.position as vec3);
     vec3.normalize(vec, vec);
 
     const up = vec3.fromValues(0.0, 1.0, 0.0);
@@ -35,7 +35,7 @@ const callbackFunctions = {
     vec3.normalize(up, up);
 
     const lookAtMatrix = mat4.create();
-    mat4.targetTo(lookAtMatrix, object.rotpos.position, window.cameras[0].rotpos.position, up);
+    mat4.targetTo(lookAtMatrix, object.rotpos.position as vec3, window.cameras[0].rotpos.position, up);
 
     mat4.getRotation(object.rotpos.rotation, lookAtMatrix);
   }
@@ -46,7 +46,7 @@ const callbackFunctions = {
   const modelData = await LoadModel(temp, "verSprite.json");
   temp.shaders[0].CreateModel("verSprite.json", modelData);
 
-  const test = temp.shaders[0].InstanceObject("verSprite.json", new RotPos([0.5, 0.5], Math.PI, [10, 10]), physicsScene, 0);
+  const test = temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([0.5, 0.5], Math.PI, [10, 10]), 0);
   requestAnimationFrame(RenderLoop);
 })();
 
@@ -59,7 +59,7 @@ const callbackFunctions = {
 // });
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
-function RenderLoop(now) {
+function RenderLoop(now: DOMHighResTimeStamp) {
 
   //Don't update if mouse pointer is not locked
   if (document.pointerLockElement === null) {
@@ -96,7 +96,7 @@ function RenderLoop(now) {
     const proposedMoveVec = vec3.create();
     vec3.add(proposedMoveVec, temp.cameras[0].rotpos.position as vec3, movVec);
 
-    const currentPoint = new Point2D(temp.cameras[0].rotpos.position[2], temp.cameras[0].rotpos.position[0]);
+    const currentPoint = new Point2D(temp.cameras[0].rotpos.position[2] as number, temp.cameras[0].rotpos.position[0]);
     const proposedMovePoint = new Point2D(proposedMoveVec[2], proposedMoveVec[0]);
     const moveSegment = new Segment2D(currentPoint, proposedMovePoint);
 
@@ -111,8 +111,8 @@ function RenderLoop(now) {
       const xBonus = Math.cos(angle) * scale;
       const yBonus = Math.sin(angle) * scale * (rotationVec[1] < 0 ? 1 : -1);
 
-      const point1 = new Point2D(object.rotpos.position[2] + yBonus, object.rotpos.position[0] + xBonus);
-      const point2 = new Point2D(object.rotpos.position[2] - yBonus, object.rotpos.position[0] - xBonus);
+      const point1 = new Point2D(object.rotpos.position[2] as number + yBonus, object.rotpos.position[0] + xBonus);
+      const point2 = new Point2D(object.rotpos.position[2] as number - yBonus, object.rotpos.position[0] - xBonus);
       const wallSegment = new Segment2D(point1, point2);
 
 

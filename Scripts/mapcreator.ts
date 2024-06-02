@@ -80,7 +80,7 @@ async function Setup() {
 }
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
-function RenderLoop(now) {
+function RenderLoop(now: DOMHighResTimeStamp) {
   now *= 0.001;  // convert to seconds
   const deltaTime = now - time;
   time = now;

@@ -16,7 +16,7 @@ export class FScreen {
     screenAction = SCREENACTION.IDLE;
     resizingCameras: Camera[] = [];
 
-    textures = []; //For the context of webgl, we need to track what objects use what texture
+    textures: WebGLTexture[] = []; //For the context of webgl, we need to track what objects use what texture
 
     //A lot of this texture stuff needs to be sorted out. Redundancies induce discrepencies, especially when deleting textures
     //Is there a better way to store these?
@@ -35,7 +35,7 @@ export class FScreen {
       this.canvas.width = this.canvas.clientWidth;
       this.canvas.height = this.canvas.clientHeight;
 
-      this.gl = this.canvas.getContext("webgl2");
+      this.gl = this.canvas.getContext("webgl2") as WebGL2RenderingContext;
 
       //Ensure webgl is properly set up
       if (!this.gl) {
@@ -51,7 +51,7 @@ export class FScreen {
           this.screenAction = SCREENACTION.RESIZING;
           this.resizingCameras = focussedCameras;
         } else if (focussedCameras.length == 1) {
-          focussedCameras.at(0).onMouseDown(e);
+          focussedCameras.at(0)?.onMouseDown(e);
         }
       });
 
@@ -95,11 +95,11 @@ export class FScreen {
         if (focussedCameras.length >= 2) {
           document.body.style.cursor = "ew-resize";
         } else if (focussedCameras.length == 1) {
-          document.body.style.cursor = focussedCameras.at(0).cursor;
+          document.body.style.cursor = focussedCameras.at(0)?.cursor ?? "default";
         }
 
         if (focussedCameras.length == 1) {
-          focussedCameras.at(0).onMouseMove(e);
+          focussedCameras.at(0)?.onMouseMove(e);
         }
       });
 
@@ -114,7 +114,7 @@ export class FScreen {
         const focussedCameras = this.getCamerasFromCursor(e);
 
         if (focussedCameras.length == 1) {
-          focussedCameras.at(0).onMouseUp(e);
+          focussedCameras.at(0)?.onMouseUp(e);
         }
       });
 
@@ -133,7 +133,7 @@ export class FScreen {
       });
     }
 
-    getCamerasFromCursor(e) {
+    getCamerasFromCursor(e: MouseEvent) {
       return this.cameras.filter((camera) =>
         (camera.tlCorner[0] * this.canvas.width - this.margin <= e.pageX && e.pageX <= camera.brCorner[0] * this.canvas.width + this.margin) &&
         (camera.tlCorner[1] * this.canvas.height - this.margin <= e.pageY && e.pageY <= camera.brCorner[1] * this.canvas.height + this.margin)
@@ -141,7 +141,7 @@ export class FScreen {
     }
 
     //Not entirely set on the structure here, maybe think about it later
-    AddShader(cam, vsSource, fsSource, type) {
+    AddShader(cam: Camera, vsSource: string, fsSource: string, type: string) {
       const shader = new Shader(this, this.gl, cam, type);
       shader.CompileProgram(vsSource, fsSource);
       shader.type = type;
@@ -149,24 +149,28 @@ export class FScreen {
     }
 
     //tlCorner and brCorner are in percentage of screenspace taken up. Might be good to also have an option for pixels
-    AddCamera(tlCorner, brCorner, type, worldIndex) {
+    AddCamera(tlCorner: [number, number], brCorner: [number, number], type: string, worldIndex: number) {
       this.cameras.push(new Camera(this, tlCorner, brCorner, type, worldIndex));
       return this.cameras[this.cameras.length - 1];
     }
 
     //Set up a texture to be rendered by opengl
-    SetupTexture(name: string, tex: TexImageSource) {
+    SetupTexture(name: string, tex: TexImageSource): number | undefined {
       const texId = this.GetNewTextureId();
       this.texIds[name] = texId;
-      this.texObjects[texId] = this.CreateTexture(tex, texId);
+
+      const texture = this.CreateTexture(tex, texId);
+      if (!texture) return;
+      this.texObjects[texId] = texture;
 
       return texId;
     }
 
     //Sets up a texture in the webgl context
-    CreateTexture(tex: TexImageSource, texId: number): WebGLTexture {
+    CreateTexture(tex: TexImageSource, texId: number): WebGLTexture | undefined {
       //Creates texture and binds it to WebGL
       const texture = this.gl.createTexture();
+      if (!texture) return;
       this.gl.activeTexture(this.gl.TEXTURE0 + texId);
       this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
@@ -189,7 +193,7 @@ export class FScreen {
     GetNewTextureId() {
       for (let i = 0; i < this.textures.length; i++) { //O(n) time. I think this theoretically could be O(logN), but i don't think it's that important
         if (this.textures[i] != i) {
-          this.textures.splice(i, 0, i);
+          this.textures.splice(i, 0);
 
           return i;
         }

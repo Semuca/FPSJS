@@ -1,8 +1,9 @@
 import { mat4 } from "gl-matrix";
 import { Point2D } from "./geometry.js";
-import { Model, Objec, RotPos } from "./objec.js";
+import { Model, Objec, RotPos, RotPos2D } from "./objec.js";
 import { FScreen } from "./screen.js";
 import { PhysicsScene } from "./physics.js";
+import { ModelData } from "./loading.js";
 
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
 export class Camera {
@@ -35,9 +36,9 @@ export class Camera {
   // Set up events
   cursor: string = "default";
 
-  onMouseDown = (e) => {};
-  onMouseMove = (e) => {};
-  onMouseUp = (e) => {};
+  onMouseDown = (e: MouseEvent) => {};
+  onMouseMove = (e: MouseEvent) => {};
+  onMouseUp = (e: MouseEvent) => {};
 
   constructor(
     window: FScreen,
@@ -107,7 +108,7 @@ export class Camera {
     this.SetUniform("uViewMatrix", this.viewMatrix);
   }
 
-  CursorToWorldPosition(cursorPosition) {
+  CursorToWorldPosition(cursorPosition: [number, number]) {
     const xOffsetFromCenter = cursorPosition[0] - this.pxWidth / 2;
     const yOffsetFromCenter = cursorPosition[1] - this.pxHeight / 2;
 
@@ -120,10 +121,10 @@ export class Camera {
     return new Point2D(posX, posY);
   }
 
-  SetUniform(uniform, property) {
+  SetUniform(uniform: string, property: Iterable<GLfloat>) {
     //Should have a list of shaders this camera uses, and run through those.
     this.window.shaders.forEach((shader) => {
-      if (shader.programInfo.uniformLocations[uniform]) {
+      if (shader.programInfo.uniformLocations[uniform] && shader.shaderProgram) {
         this.window.gl.useProgram(shader.shaderProgram);
 
         this.window.gl.uniformMatrix4fv(
@@ -160,9 +161,9 @@ export class Shader {
 
   models: Record<string, Model> = {};
 
-  vertexShader: WebGLShader;
-  fragmentShader: WebGLShader;
-  shaderProgram: WebGLProgram;
+  vertexShader?: WebGLShader;
+  fragmentShader?: WebGLShader;
+  shaderProgram?: WebGLProgram;
 
   programInfo: {
     attribLocations: Record<string, number>;
@@ -188,13 +189,16 @@ export class Shader {
 
     // Creates shaders
     this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
+    if (!this.vertexShader) return;
     this.fragmentShader = this.CreateShader(
       this.gl.FRAGMENT_SHADER,
       fragmentSource
     );
+    if (!this.fragmentShader) return;
 
     // Attaches shaders, links the program
-    this.shaderProgram = this.gl.createProgram();
+    this.shaderProgram = this.gl.createProgram() ?? undefined;
+    if (!this.shaderProgram) return;
     this.gl.attachShader(this.shaderProgram, this.vertexShader);
     this.gl.attachShader(this.shaderProgram, this.fragmentShader);
     this.gl.linkProgram(this.shaderProgram);
@@ -214,6 +218,7 @@ export class Shader {
 
   // Replaces vertex shader. Debug feature that should probably be removed at some point
   ReplaceVertexShader(source: string): void {
+    if (!this.vertexShader || !this.shaderProgram) return;
     this.gl.shaderSource(this.vertexShader, source);
     this.gl.compileShader(this.vertexShader);
     this.gl.linkProgram(this.shaderProgram);
@@ -223,9 +228,10 @@ export class Shader {
   }
 
   //Loads a vertex/fragment shader from source code and return it's id
-  CreateShader(type: GLenum, source: string): WebGLShader {
+  CreateShader(type: GLenum, source: string): WebGLShader | undefined {
     //Create shader
     const shader = this.gl.createShader(type); //Returns a WebGLShader object
+    if (!shader) return undefined;
 
     //Pass in source code and compile
     this.gl.shaderSource(shader, source);
@@ -238,7 +244,7 @@ export class Shader {
           this.gl.getShaderInfoLog(shader)
       );
       this.gl.deleteShader(shader);
-      return null;
+      return undefined;
     }
 
     return shader;
@@ -246,6 +252,8 @@ export class Shader {
 
   //Creates info for the shader class to interact with the shader program - Mainly uniform and attribute locations
   AssembleProgramInfo(): void {
+    if (!this.shaderProgram) return;
+
     //Set up program info object
     this.programInfo = {
       attribLocations: {},
@@ -265,6 +273,7 @@ export class Shader {
     //Fill attribute locations in programInfo so we can send data to them later
     for (var i = 0; i < attribCount; i++) {
       const attribInfo = this.gl.getActiveAttrib(this.shaderProgram, i);
+      if (!attribInfo) continue;
       this.programInfo.attribLocations[attribInfo.name] =
         this.gl.getAttribLocation(this.shaderProgram, attribInfo.name);
     }
@@ -272,53 +281,59 @@ export class Shader {
     //Fill uniform locations in programInfo so we can send data to them later
     for (var i = 0; i < uniformCount; i++) {
       const uniformInfo = this.gl.getActiveUniform(this.shaderProgram, i);
-      this.programInfo.uniformLocations[uniformInfo.name] =
-        this.gl.getUniformLocation(this.shaderProgram, uniformInfo.name);
+      if (!uniformInfo) continue;
+      const uniformLocation = this.gl.getUniformLocation(this.shaderProgram, uniformInfo.name);
+      if (!uniformLocation) continue;
+      this.programInfo.uniformLocations[uniformInfo.name] = uniformLocation;
     }
   }
 
   //Brings a model from data into opengl. This model can then be instantiated
   //TIDYING STATUS: ORANGE
-  CreateModel(name: string, modelData) {
-    this.models[name] = new Model(modelData);
+  CreateModel(name: string, modelData: ModelData) {
+    //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
+    const vao = this.gl.createVertexArray();
+    this.gl.bindVertexArray(vao);
+    if (!vao) return;
+
+    this.models[name] = new Model(modelData, this, vao);
     //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
-    //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
-    this.models[name].vao = this.gl.createVertexArray();
-    this.gl.bindVertexArray(this.models[name].vao);
-    this.models[name].shader = this;
-
     // Construct all buffers
-    Object.entries(this.models[name].modelData["ARRAY_BUFFER"]).forEach(
-      ([key, buffer]) => {
-        this.models[name].buffers[key] = this.InitBuffer(
+    Object.entries(modelData["ARRAY_BUFFER"]).forEach(
+      ([key, bufferData]) => {
+        const buffer = this.InitBuffer(
           this.gl.ARRAY_BUFFER,
-          new Float32Array(buffer[0])
+          new Float32Array(bufferData[0])
         );
-        this.SetVertexAttribArray(
+        if (!buffer) return;
+        this.models[name].buffers[key] = buffer;
+        this.gl.vertexAttribPointer(
           this.programInfo.attribLocations[key],
-          buffer[1],
+          bufferData[1],
           this.gl.FLOAT,
           false,
-          buffer[2],
-          buffer[3]
+          bufferData[2],
+          bufferData[3]
         );
+        this.gl.enableVertexAttribArray(this.programInfo.attribLocations[key]);
       }
     );
 
     // Construct element array buffer
-    if (this.models[name].modelData["ELEMENT_ARRAY_BUFFER"] != undefined) {
-      this.models[name].buffers["ELEMENT_ARRAY_BUFFER"] = this.InitBuffer(
+    if (this.models[name].modelData.ELEMENT_ARRAY_BUFFER != undefined) {
+      const buffer = this.InitBuffer(
         this.gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(this.models[name].modelData["ELEMENT_ARRAY_BUFFER"])
+        new Uint16Array(this.models[name].modelData.ELEMENT_ARRAY_BUFFER)
       );
+      if (buffer) this.models[name].buffers.ELEMENT_ARRAY_BUFFER = buffer;
     }
 
     //Could you just have a global model name hashtable?
-    if (this.models[name].modelData["TEXTURE"] != undefined) {
+    if (this.models[name].modelData.TEXTURE != undefined) {
       // this.models[name].textureId = this.window.GetNewTextureId();
       //this.models[name].texture = this.window.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
-      this.models[name].textureId = this.models[name].modelData["TEXTURE"];
+      this.models[name].textureId = parseInt(this.models[name].modelData.TEXTURE);
     }
   }
 
@@ -335,22 +350,20 @@ export class Shader {
   //Creates an instance of a model in the world
   InstanceObject(
     name: string,
-    rotpos: RotPos,
-    physicsScene: PhysicsScene,
+    rotpos: RotPos | RotPos2D,
     worldIndex: number = 0,
     texName?: string,
-    tags = []
+    tags: string[] = []
   ) {
-    const newObject = new Objec(rotpos, worldIndex);
-    this.models[name].objects.push(newObject);
+    const newObject = new Objec(rotpos, worldIndex, texName ? this.screen.texIds[texName] : undefined);
 
-    if (this.camera.type == "3D") {
-      newObject.TiePhysicsObjec(physicsScene);
-    }
+    // if (this.camera.type == "3D") {
+    //   newObject.TiePhysicsObjec(physicsScene);
+    // }
 
-    newObject.texId = this.screen.texIds[texName];
     newObject.AddTags(tags);
 
+    this.models[name].objects.push(newObject);
     return newObject; //Return object
   }
 
@@ -372,40 +385,19 @@ export class Shader {
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
   //TIDYING STATUS: GREEN
-  InitBuffer(bufferType: GLenum, data) {
+  InitBuffer(bufferType: GLenum, data: AllowSharedBufferSource): WebGLBuffer | undefined {
     //Create buffer, bind it to a type, fill the target with data
     const buffer = this.gl.createBuffer();
+    if (!buffer) return undefined;
     this.gl.bindBuffer(bufferType, buffer);
     this.gl.bufferData(bufferType, data, this.gl.STATIC_DRAW); //Static_draw is hardcoded?
     return buffer;
   }
 
-  //Set the layout of the buffer (attribute) attached to GL_ARRAY_BUFFER. THIS NEEDS TO BE CLEARED WHEN A NEW SOURCE REPLACES THIS
-  //What the hell, this needs a better description. Not even sure if this function is necessary, but keep it for now.
-  //TIDYING STATUS: ???
-
-  //A VertexAttribArray tells the shader how to interpret an attribute (What data it is, in what groups it's in)
-  SetVertexAttribArray(
-    attribLocation,
-    numComponents,
-    type,
-    normalize,
-    stride,
-    offset
-  ) {
-    this.gl.vertexAttribPointer(
-      attribLocation,
-      numComponents,
-      type,
-      normalize,
-      stride,
-      offset
-    );
-    this.gl.enableVertexAttribArray(attribLocation);
-  }
-
   //Needs a better name. A lot of this can be tidied up by moving it to the camera class
-  AdditionalSetup() {
+  AdditionalSetup(): void {
+    if (!this.shaderProgram) return;
+
     //Various miscellaneous options
     this.gl.clearColor(0.0, 0.0, 0.0, 1.0); //Clear to black, fully opaque
     this.gl.clearDepth(1.0); //Clear everything
@@ -437,7 +429,8 @@ export class Shader {
     }
   }
 
-  DrawScene(worldIndex: number) {
+  DrawScene(worldIndex: number): void {
+    if (!this.shaderProgram) return;
     const offset = 0;
 
     this.gl.useProgram(this.shaderProgram);
@@ -448,15 +441,14 @@ export class Shader {
       this.gl.bindVertexArray(model.vao);
 
       //Get the number of points
-      const vertexCount = model.modelData["ELEMENT_ARRAY_BUFFER"]
-        ? model.modelData["ELEMENT_ARRAY_BUFFER"].length
-        : undefined;
+      const vertexCount = model.modelData.ELEMENT_ARRAY_BUFFER?.length;
+
       //Set texture and mode
       const mode =
-        model.modelData["TEXTURE"] != undefined
+        model.modelData.TEXTURE != undefined
           ? this.gl.TRIANGLES
           : this.gl.LINES;
-      if (mode === this.gl.TRIANGLES) {
+      if (mode === this.gl.TRIANGLES && model.textureId != undefined) {
         this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
         this.gl.uniform1i(
           this.programInfo.uniformLocations.uSampler,
@@ -495,7 +487,7 @@ export class Shader {
           object.GetMatrix()
         );
 
-        if (model.modelData["ELEMENT_ARRAY_BUFFER"]) {
+        if (model.modelData.ELEMENT_ARRAY_BUFFER && vertexCount) {
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
           this.gl.drawElements(
             mode,
@@ -507,13 +499,13 @@ export class Shader {
           this.gl.drawArrays(
             mode,
             offset,
-            model.modelData["ARRAY_BUFFER"]["aVertexPosition"][0].length /
-              model.modelData["ARRAY_BUFFER"]["aVertexPosition"][1]
+            model.modelData.ARRAY_BUFFER.aVertexPosition[0].length /
+              model.modelData.ARRAY_BUFFER.aVertexPosition[1]
           ); //bad hardcoding, oh well
         }
 
         //If the object we just rendered has a custom texture id, swap back to the old one
-        if (object.texId != undefined) {
+        if (object.texId != undefined && model.textureId != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
           this.gl.uniform1i(
             this.programInfo.uniformLocations.uSampler,

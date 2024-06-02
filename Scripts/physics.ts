@@ -1,7 +1,7 @@
 // I've considered data redundancy with storing object points, however usually models have many more points then objects, and the collider doesn't match up anyway
 
 import { vec2, vec3 } from "gl-matrix";
-import { Objec } from "./objec";
+import { Objec, RotPos } from "./objec";
 
 // I'm not sure, but I don't think I should consider shapes that collider along 2 edges to be intersection i.e two squares right next to each other. It means when calculating positions, things are easier (no epsilon addition)
 
@@ -9,12 +9,12 @@ import { Objec } from "./objec";
 export class PhysicsScene {
     pobjecs: PhysicsObjec[] = [];
 
-    addPobjec(pobjec) {
+    addPobjec(pobjec: PhysicsObjec) {
         this.pobjecs.push(pobjec);
         return this.pobjecs.length - 1; //an id that can be used to destroy the pobjec
     }
 
-    ProposedMove(position, movement, pobjecID) { //Somehow this isn't working perfectly, won't slide along objects
+    ProposedMove(position: vec3, movement: vec3, pobjecID: number) { //Somehow this isn't working perfectly, won't slide along objects
         let newPos = vec3.create();
         vec3.add(newPos, position, movement);
         //newPos[0] = position[0] + movement[0]; //Really need to create my own math library, this is not on
@@ -101,7 +101,7 @@ export class PhysicsScene {
         return newPos;
     }
 
-    CheckForCollision(newPos, secondPobj, _sX, _sY, _sZ) { // Since both pobecs are cubes of size 1m^3, this will hold
+    CheckForCollision(newPos: vec3, secondPobj: number, _sX: number, _sY: number, _sZ: number) { // Since both pobecs are cubes of size 1m^3, this will hold
         if (Math.abs(newPos[0] - this.pobjecs[secondPobj].position[0]) < _sX && //Checks if we intersect on every axis, if so, we intersect in 3d
             Math.abs(newPos[1] - this.pobjecs[secondPobj].position[1]) < _sY &&
             Math.abs(newPos[2] - this.pobjecs[secondPobj].position[2]) < _sZ) {
@@ -117,25 +117,24 @@ export class PhysicsObjec { // How do we do circles?. How do we check for concav
     //this.points = pointsArray; // All points are 3-dimensional right now
     //} Having physics objects based off an array of points would be cool, but ultimately very hard to do right now
 
-    position: vec2 | vec3;
-
     sizeX: number;
     sizeY: number;
     sizeZ: number;
 
     physicsScene: PhysicsScene;
-    objec: Objec;
+    rotpos: RotPos;
+    position: vec3;
     id: number;
     enabled: boolean = true;
 
-    constructor(objec: Objec, physicsScene) {
-        this.position = objec.rotpos.position;
-        this.sizeX = objec.rotpos.scale[0];
-        this.sizeY = objec.rotpos.scale[1];
-        this.sizeZ = objec.rotpos.scale.at(2);
+    constructor(rotpos: RotPos, physicsScene: PhysicsScene) {
+        this.rotpos = rotpos;
+        this.position = rotpos.position;
+        this.sizeX = rotpos.scale[0];
+        this.sizeY = rotpos.scale[1];
+        this.sizeZ = rotpos.scale[2];
 
         this.physicsScene = physicsScene;
-        this.objec = objec;
         this.id = physicsScene.addPobjec(this);
     }
 
@@ -148,7 +147,7 @@ export class PhysicsObjec { // How do we do circles?. How do we check for concav
             //this.position.y = newPos[1];
             //this.position.z = newPos[2];
 
-            vec3.copy(this.objec.rotpos.position as vec3, this.position as vec3);
+            vec3.copy(this.rotpos.position as vec3, this.position as vec3);
             //this.objec.rotpos.position[0] = this.position.x;
             //this.objec.rotpos.position[1] = this.position.y;
             //this.objec.rotpos.position[2] = this.position.z;

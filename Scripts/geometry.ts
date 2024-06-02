@@ -6,7 +6,7 @@ export class Point2D {
     x: number;
     y: number;
 
-    constructor(x, y) {
+    constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
     }
@@ -127,7 +127,7 @@ export function IntersectionSegmentAndSegment(segment1: Segment2D, segment2: Seg
     }
 
     if (Math.abs(segment1.gradient) === Infinity) {
-        const intersectionY = segment2.atX(segment1.point1.x);
+        const intersectionY = segment2.atX(segment1.point1.x) as number;
         if (segment1.lowerYBound <= intersectionY && intersectionY <= segment1.upperYBound &&
             segment2.lowerYBound <= intersectionY && intersectionY <= segment2.upperYBound) {
             return new Point2D(segment1.point1.x, intersectionY);
@@ -135,7 +135,7 @@ export function IntersectionSegmentAndSegment(segment1: Segment2D, segment2: Seg
 
         return undefined;
     } else if (segment1.gradient === 0) { //Segment 1 is a horizontal line
-        const intersectionX = segment2.atY(segment1.point1.y); // Get intersection x point if they were both lines
+        const intersectionX = segment2.atY(segment1.point1.y) as number; // Get intersection x point if they were both lines
         if (segment1.lowerXBound <= intersectionX && intersectionX <= segment1.upperXBound &&
             segment2.lowerXBound <= intersectionX && intersectionX <= segment2.upperXBound) {
             return new Point2D(intersectionX, segment1.point1.y);
@@ -144,7 +144,7 @@ export function IntersectionSegmentAndSegment(segment1: Segment2D, segment2: Seg
         return undefined;
 
     } else if (Math.abs(segment2.gradient) === Infinity) {
-        const intersectionY = segment1.atX(segment2.point1.x);
+        const intersectionY = segment1.atX(segment2.point1.x) as number;
         if (segment1.lowerYBound <= intersectionY && intersectionY <= segment1.upperYBound &&
             segment2.lowerYBound <= intersectionY && intersectionY <= segment2.upperYBound) {
             return new Point2D(segment2.point1.x, intersectionY);
@@ -152,7 +152,7 @@ export function IntersectionSegmentAndSegment(segment1: Segment2D, segment2: Seg
 
         return undefined;
     } else if (segment2.gradient === 0) {
-        const intersectionX = segment1.atY(segment2.point1.y); // Get intersection x point if they were both lines
+        const intersectionX = segment1.atY(segment2.point1.y) as number; // Get intersection x point if they were both lines
         if (segment1.lowerXBound <= intersectionX && intersectionX <= segment1.upperXBound &&
             segment2.lowerXBound <= intersectionX && intersectionX <= segment2.upperXBound) {
             return new Point2D(intersectionX, segment2.point1.y);
@@ -165,7 +165,7 @@ export function IntersectionSegmentAndSegment(segment1: Segment2D, segment2: Seg
 
     if (segment1.lowerXBound <= x && x <= segment1.upperXBound &&
         segment2.lowerXBound <= x && x <= segment2.upperXBound) {
-        return new Point2D(x, segment1.atX(x));
+        return new Point2D(x, segment1.atX(x) as number);
     }
     return undefined;
 }
@@ -189,18 +189,18 @@ export function IntersectionLineAndSegment(line: Line2D, segment: Segment2D): Se
 
     // If the gradient of the segment is infinity...
     if (Math.abs(segment.gradient) === Infinity) {
-        const y = line.atX(segment.point1.x);
+        const y = line.atX(segment.point1.x) as number;
         if (segment.lowerYBound <= y && y <= segment.upperYBound) return new Point2D(segment.point1.x, y);
         return undefined;
     } else if (segment.gradient === 0) {
-        const x = line.atY(segment.point1.y);
+        const x = line.atY(segment.point1.y) as number;
         if (segment.lowerXBound <= x && x <= segment.upperXBound) return new Point2D(x, segment.point1.y);
         return undefined;
     }
 
     const x = (segment.yIntercept - line.yIntercept) / (line.gradient - segment.gradient);
 
-    if (segment.lowerXBound <= x && x <= segment.upperXBound) return new Point2D(x, line.atX(x));
+    if (segment.lowerXBound <= x && x <= segment.upperXBound) return new Point2D(x, line.atX(x) as number);
     return undefined;
 }
 
@@ -227,7 +227,7 @@ export function ShortestDistanceFromPointToSegment(point: Point2D, segment: Segm
         return Math.min(distancePointToPoint(point, segment.point1), distancePointToPoint(point, segment.point2));
     } else {
         const intersectionPoint = IntersectionLineAndSegment(Line2D.fromGradientAndPoint(normalGradient, point), segment);
-        if (intersectionPoint instanceof Segment2D) return undefined; //TODO: Implement this
+        if (!(intersectionPoint instanceof Point2D)) return 0; //TODO: Implement this
         return distancePointToPoint(point, intersectionPoint);
     }
 }
