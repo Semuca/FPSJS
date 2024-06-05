@@ -1,12 +1,11 @@
 import { FScreen, toggleFullScreen } from "./screen.js";
-import { PhysicsScene } from "./physics.js";
 import { LoadFileText, CreateTexture, LoadModel, LoadShader, MapFile } from "./loading.js";
-import { Objec, RotPos, RotPos2D } from "./objec.js";
-import { roundToNearest, distancePointToPoint, Point2D, Segment2D, ShortestDistanceFromPointToSegment, Line2D } from "./geometry.js";
+import { Objec, RotPos2D } from "./objec.js";
+import { roundToNearest, distancePointToPoint, Point2D, Segment2D, ShortestDistanceFromPointToSegment } from "./geometry.js";
 import { quat, vec3 } from "gl-matrix";
 
 let zoom = 50.0;
-let time = 0;
+// let time = 0;
 
 const MODES = {
   MOVE: 0,
@@ -51,9 +50,6 @@ let highlighter : Objec;
 let secondHighlighter : Objec;
 
 let selector : Objec;
-
-//Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
-let physicsScene = new PhysicsScene();
 
 const temp = new FScreen("canvas");
 const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], "2D", 0);
@@ -127,10 +123,10 @@ async function Setup() {
 }
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
-function RenderLoop(now: DOMHighResTimeStamp) {
-  now *= 0.001;  // convert to seconds
-  const deltaTime = now - time;
-  time = now;
+function RenderLoop() {
+  // now *= 0.001;  // convert to seconds
+  // const deltaTime = now - time;
+  // time = now;
 
   let activeShaders = temp.shaders;
 
@@ -529,7 +525,7 @@ document.addEventListener("wheel", e => {
 
 
 //Resizing for the window. What's the difference between "resize" and "onresize"?
-window.addEventListener("resize", e => {
+window.addEventListener("resize", () => {
   temp.canvas.width = temp.canvas.clientWidth;
   temp.canvas.height = temp.canvas.clientHeight;
 

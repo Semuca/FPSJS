@@ -1,6 +1,5 @@
 import { quat, vec3 } from "gl-matrix";
 import { Objec, RotPos } from "./objec.js";
-import { PhysicsScene } from "./physics.js";
 import { FScreen } from "./screen.js";
 import { Camera } from "./shader.js";
 

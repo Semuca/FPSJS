@@ -1,5 +1,4 @@
-import { RotPos, RotPos2D } from "./objec.js";
-import { PhysicsScene } from "./physics.js";
+import { RotPos2D } from "./objec.js";
 import { Camera, Shader } from "./shader.js";
 
 // For making fonts. This can probably be an extension of a spritesheet if i ever make them
@@ -23,8 +22,8 @@ export class Font {
 
     // Creates sentence
     CreateSentence(target: Shader, posX: number, posY: number, sentence: string): void { //Putting in physicsScene here is so stupid
-        sentence.split("").map((char, index) => {
-            const numCode = this.chars[char];
+        sentence.split("").map((_char, index) => {
+            // const numCode = this.chars[char];
             // target.models["verSprite.json"].objects[target.models["verSprite.json"].objects.length - 1].texAttributes = [(numCode % 8) / 8, (Math.floor(numCode / 8) + 1) / 8, ((numCode % 8) + 1) / 8, Math.floor(numCode / 8) / 8, (numCode % 8) / 8, Math.floor(numCode / 8) / 8, ((numCode % 8) + 1) / 8, (Math.floor(numCode / 8) + 1) / 8];
             return target.InstanceObject("verSprite.json", new RotPos2D([posX - index * 20.0, posY], Math.PI, [25.0, 25.0]), 0, "def.png");
         });

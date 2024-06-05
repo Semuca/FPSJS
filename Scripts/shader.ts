@@ -2,7 +2,7 @@ import { mat4 } from "gl-matrix";
 import { Point2D } from "./geometry.js";
 import { Model, Objec, RotPos, RotPos2D } from "./objec.js";
 import { FScreen } from "./screen.js";
-import { PhysicsScene } from "./physics.js";
+// import { PhysicsScene } from "./physics.js";
 import { ModelData } from "./loading.js";
 
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
@@ -36,9 +36,9 @@ export class Camera {
   // Set up events
   cursor: string = "default";
 
-  onMouseDown = (e: MouseEvent) => {};
-  onMouseMove = (e: MouseEvent) => {};
-  onMouseUp = (e: MouseEvent) => {};
+  onMouseDown: (e: MouseEvent) => void = (_e: MouseEvent) => {};
+  onMouseMove: (e: MouseEvent) => void = (_e: MouseEvent) => {};
+  onMouseUp: (e: MouseEvent) => void = (_e: MouseEvent) => {};
 
   constructor(
     window: FScreen,
@@ -420,13 +420,11 @@ export class Shader {
       this.camera.projectionMatrix
     );
 
-    if (this.programInfo.uniformLocations.uViewMatrix != undefined) {
-      this.gl.uniformMatrix4fv(
-        this.programInfo.uniformLocations.uViewMatrix,
-        false,
-        this.camera.viewMatrix
-      );
-    }
+    this.gl.uniformMatrix4fv(
+      this.programInfo.uniformLocations.uViewMatrix,
+      false,
+      this.camera.viewMatrix
+    );
   }
 
   DrawScene(worldIndex: number): void {

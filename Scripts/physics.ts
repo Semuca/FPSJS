@@ -1,7 +1,7 @@
 // I've considered data redundancy with storing object points, however usually models have many more points then objects, and the collider doesn't match up anyway
 
-import { vec2, vec3 } from "gl-matrix";
-import { Objec, RotPos } from "./objec";
+import { vec3 } from "gl-matrix";
+import { RotPos } from "./objec";
 
 // I'm not sure, but I don't think I should consider shapes that collider along 2 edges to be intersection i.e two squares right next to each other. It means when calculating positions, things are easier (no epsilon addition)
 
