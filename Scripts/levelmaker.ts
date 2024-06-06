@@ -52,9 +52,9 @@ let secondHighlighter : Objec;
 let selector : Objec;
 
 const temp = new FScreen("canvas");
-const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], "2D", 0);
+const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
 cam.cursor = "pointer";
-const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], "2D", 1);
+const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
 
 let currentSidepaneIndex = 0;
 

@@ -40,9 +40,7 @@ export async function LoadShader(camera: Camera, vsUrl: string, fsUrl: string): 
   const vSource = await LoadFileText(`shaders/${vsUrl}`);
   const fSource = await LoadFileText(`shaders/${fsUrl}`);
 
-  //Hacky solution, to be fixed at some point
-  const type = vsUrl.substring(0, 2) === "2D" ? "2D" : "3D";
-  camera.window.AddShader(camera, vSource, fSource, type);
+  camera.window.AddShader(camera, vSource, fSource);
 }
 
 export interface ModelData {
@@ -84,8 +82,8 @@ export async function LoadMap(window: FScreen, url: string, renderLoop: FrameReq
   const data = await LoadFileText(url);
   const jsonData = JSON.parse(data) as MapFile;
 
-  // Loads all shaders
-  await Promise.all(jsonData.shaders.map((shader, index) => LoadShader(window.cameras[index], shader.vertexShader, shader.fragmentShader)));
+  // Loads all shaders TODO: Make shaders specify what cameras they should be connected to
+  await Promise.all(jsonData.shaders.map((shader) => LoadShader(window.cameras[0], shader.vertexShader, shader.fragmentShader)));
 
   // Loads all models
   const modelsToShaderIndex: Record<string, number> = {};

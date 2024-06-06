@@ -3,10 +3,15 @@
         {
             "vertexShader": "vertexShader.vs",
             "fragmentShader": "fragmentShader.fs"
+        },
+        {
+            "vertexShader": "2DspriteVertexShader.vs",
+            "fragmentShader": "spriteFragmentShader.fs"
         }
     ],
     "models": {
-        "plane.json": 0
+        "plane.json": 0,
+        "verSprite.json": 1
     },
     "objects": [
         {

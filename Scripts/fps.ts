@@ -1,11 +1,11 @@
 import { FScreen, toggleFullScreen } from "./screen.js";
-import { PhysicsScene } from "./physics.js";
-import { LoadMap, LoadShader, LoadModel } from "./loading.js";
+// import { PhysicsScene } from "./physics.js";
+import { LoadMap } from "./loading.js";
 import { IntersectionSegmentAndSegment, Point2D, Segment2D } from "./geometry.js";
-import { Objec, RotPos, RotPos2D } from "./objec.js";
+import { Objec, RotPos2D } from "./objec.js";
 import { mat4, quat, vec3 } from "gl-matrix";
 
-let time = 0;
+// let time = 0;
 let pointerLockActivation = 0;
 let isPaused = false;
 
@@ -15,16 +15,15 @@ let rotY = 0;
 const speed = 0.1;
 
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
-let physicsScene = new PhysicsScene();
+// let physicsScene = new PhysicsScene();
 
 const temp = new FScreen("canvas");
-const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], "2D", 0);
-// const ui = temp.AddCamera([0.0, 0.0], [1.0, 1.0], "2D", 0);
+const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], 0);
 
 const callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void> = {
   "sprite": (window, object) => {
     const vec = vec3.create();
-    vec3.subtract(vec, object.rotpos.position as vec3, window.cameras[0].rotpos.position as vec3);
+    vec3.subtract(vec, object.rotpos.position as vec3, window.cameras[0].rotpos.position);
     vec3.normalize(vec, vec);
 
     const up = vec3.fromValues(0.0, 1.0, 0.0);
@@ -41,22 +40,9 @@ const callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void
   }
 };
 
-(async () => {
-  await LoadShader(temp.cameras[0], "2DspriteVertexShader.vs", "spriteFragmentShader.fs");
-  const modelData = await LoadModel(temp, "verSprite.json");
-  temp.shaders[0].CreateModel("verSprite.json", modelData);
-
-  const test = temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([0.5, 0.5], Math.PI, [10, 10]), 0);
-  requestAnimationFrame(RenderLoop);
-})();
-
-// LoadMap(temp, "map.json", physicsScene, RenderLoop, callbackFunctions).then(async () => {
-//   await LoadShader(temp, temp.cameras[0], "2DspriteVertexShader.vs", "spriteFragmentShader.fs");
-//   const modelData = await LoadModel(temp, "verSprite.json");
-//   temp.shaders[1].CreateModel("verSprite.json", modelData);
-
-//   const test = temp.shaders[1].InstanceObject("verSprite.json", new RotPos([0.5, 0.5, 1.0], Math.PI, [10, 10]), physicsScene, 0);
-// });
+LoadMap(temp, "map.json", RenderLoop, callbackFunctions).then(() => {
+  temp.shaders[1].InstanceObject("verSprite.json", new RotPos2D([0.5, 0.5], Math.PI, [10, 10]), 0);
+});
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop(now: DOMHighResTimeStamp) {
@@ -67,14 +53,10 @@ function RenderLoop(now: DOMHighResTimeStamp) {
     return;
   }
   now *= 0.001;  // convert to seconds
-  const deltaTime = now - time;
-  time = now;
+  // const deltaTime = now - time;
+  // time = now;
 
-  const activeShaders = temp.shaders;
-
-  if (activeShaders.length > 0) {
-    temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT); //Temporary solution
-  }
+  temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
 
   const _vec = vec3.fromValues(Math.cos(rotX / 180), 10 * Math.sin(-rotY / 540), Math.sin(rotX / 180));
   const _cameraRight = vec3.create();
@@ -148,7 +130,7 @@ function RenderLoop(now: DOMHighResTimeStamp) {
 }
 
 //What's the difference between window.addeventlistener and document.addeventlistener?
-temp.canvas.addEventListener("click", function (e) {
+temp.canvas.addEventListener("click", () => {
   if (document.pointerLockElement === null) { //Might need to add mozPointerLock, whatever that is
     const now = performance.now();
     if (now - pointerLockActivation > 2500) { //I wouldn't consider this a good solution, but it seems to be the only one that removes a DOMerror

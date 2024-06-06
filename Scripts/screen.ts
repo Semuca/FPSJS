@@ -141,16 +141,15 @@ export class FScreen {
     }
 
     //Not entirely set on the structure here, maybe think about it later
-    AddShader(cam: Camera, vsSource: string, fsSource: string, type: string) {
-      const shader = new Shader(this, this.gl, cam, type);
+    AddShader(cam: Camera, vsSource: string, fsSource: string) {
+      const shader = new Shader(this, this.gl, cam);
       shader.CompileProgram(vsSource, fsSource);
-      shader.type = type;
       this.shaders.push(shader);
     }
 
     //tlCorner and brCorner are in percentage of screenspace taken up. Might be good to also have an option for pixels
-    AddCamera(tlCorner: [number, number], brCorner: [number, number], type: string, worldIndex: number) {
-      this.cameras.push(new Camera(this, tlCorner, brCorner, type, worldIndex));
+    AddCamera(tlCorner: [number, number], brCorner: [number, number], worldIndex: number) {
+      this.cameras.push(new Camera(this, tlCorner, brCorner, worldIndex));
       return this.cameras[this.cameras.length - 1];
     }
 

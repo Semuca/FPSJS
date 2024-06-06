@@ -10,7 +10,6 @@ export class Camera {
   window: FScreen;
   tlCorner: [number, number];
   brCorner: [number, number];
-  type: string;
   worldIndex: number;
 
   width: number;
@@ -30,7 +29,8 @@ export class Camera {
 
   rotpos: RotPos = new RotPos([0.0, 0.0, 0.0], undefined, [1.0, 1.0, 1.0]);
 
-  projectionMatrix: mat4 = mat4.create();
+  orthoMatrix: mat4 = mat4.create();
+  perspectiveMatrix: mat4 = mat4.create();
   viewMatrix: mat4 = mat4.create();
 
   // Set up events
@@ -44,14 +44,12 @@ export class Camera {
     window: FScreen,
     tlCorner: [number, number],
     brCorner: [number, number],
-    type: string,
     worldIndex: number
   ) {
     //Set window and viewport
     this.window = window;
     this.tlCorner = tlCorner;
     this.brCorner = brCorner;
-    this.type = type;
     this.worldIndex = worldIndex;
 
     //Get width and height (Theoretical, in percentages)
@@ -73,33 +71,27 @@ export class Camera {
 
   //(Should get a better name) Calculates projection matrix based on whether the camera is 2D or 3D
   RecalculateProjMatrix() {
-    if (this.type == "2D") {
-      //mat4.ortho(this.projectionMatrix, 0.0, this.window.canvas.width * this.zoom, this.window.canvas.height * this.zoom, 0.0, -1.0, 1.0);
-      mat4.ortho(
-        this.projectionMatrix,
-        (this.pxWidth * this.zoom) / 2,
-        (-this.pxWidth * this.zoom) / 2,
-        (-this.pxHeight * this.zoom) / 2,
-        (this.pxHeight * this.zoom) / 2,
-        -1.0,
-        1.0
-      );
-    } else {
-      mat4.perspective(
-        this.projectionMatrix,
-        this.fieldOfView,
-        this.aspectRatio,
-        this.zNear,
-        this.zFar
-      );
-    }
+    mat4.ortho(
+      this.orthoMatrix,
+      (this.pxWidth * this.zoom) / 2,
+      (-this.pxWidth * this.zoom) / 2,
+      (-this.pxHeight * this.zoom) / 2,
+      (this.pxHeight * this.zoom) / 2,
+      -1.0,
+      1.0
+    );
 
-    this.SetUniform("uProjectionMatrix", this.projectionMatrix);
+    mat4.perspective(
+      this.perspectiveMatrix,
+      this.fieldOfView,
+      this.aspectRatio,
+      this.zNear,
+      this.zFar
+    );
   }
 
   //Change view matrix when camera moves
   UpdatePos() {
-    if (this.rotpos.position.length != 3) return;
     mat4.fromRotationTranslation(
       this.viewMatrix,
       this.rotpos.rotation,
@@ -124,7 +116,10 @@ export class Camera {
   SetUniform(uniform: string, property: Iterable<GLfloat>) {
     //Should have a list of shaders this camera uses, and run through those.
     this.window.shaders.forEach((shader) => {
-      if (shader.programInfo.uniformLocations[uniform] && shader.shaderProgram) {
+      if (
+        shader.programInfo.uniformLocations[uniform] &&
+        shader.shaderProgram
+      ) {
         this.window.gl.useProgram(shader.shaderProgram);
 
         this.window.gl.uniformMatrix4fv(
@@ -147,7 +142,8 @@ export class Camera {
   }
 
   PreDraw() {
-    this.SetUniform("uProjectionMatrix", this.projectionMatrix);
+    this.SetUniform("uOrthoMatrix", this.orthoMatrix);
+    this.SetUniform("uPerspectiveMatrix", this.perspectiveMatrix);
     this.SetUniform("uViewMatrix", this.viewMatrix);
     this.SetViewport();
   }
@@ -157,7 +153,6 @@ export class Shader {
   screen: FScreen;
   gl: WebGL2RenderingContext;
   camera: Camera;
-  type: string;
 
   models: Record<string, Model> = {};
 
@@ -174,11 +169,14 @@ export class Shader {
   };
 
   // Constructor requires webgl context
-  constructor(screen: FScreen, gl: WebGL2RenderingContext, camera: Camera, type: string) {
+  constructor(
+    screen: FScreen,
+    gl: WebGL2RenderingContext,
+    camera: Camera,
+  ) {
     this.screen = screen;
     this.gl = gl;
     this.camera = camera;
-    this.type = type;
   }
 
   // Compiles a shader program from source code
@@ -282,7 +280,10 @@ export class Shader {
     for (var i = 0; i < uniformCount; i++) {
       const uniformInfo = this.gl.getActiveUniform(this.shaderProgram, i);
       if (!uniformInfo) continue;
-      const uniformLocation = this.gl.getUniformLocation(this.shaderProgram, uniformInfo.name);
+      const uniformLocation = this.gl.getUniformLocation(
+        this.shaderProgram,
+        uniformInfo.name
+      );
       if (!uniformLocation) continue;
       this.programInfo.uniformLocations[uniformInfo.name] = uniformLocation;
     }
@@ -300,25 +301,23 @@ export class Shader {
     //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
     // Construct all buffers
-    Object.entries(modelData["ARRAY_BUFFER"]).forEach(
-      ([key, bufferData]) => {
-        const buffer = this.InitBuffer(
-          this.gl.ARRAY_BUFFER,
-          new Float32Array(bufferData[0])
-        );
-        if (!buffer) return;
-        this.models[name].buffers[key] = buffer;
-        this.gl.vertexAttribPointer(
-          this.programInfo.attribLocations[key],
-          bufferData[1],
-          this.gl.FLOAT,
-          false,
-          bufferData[2],
-          bufferData[3]
-        );
-        this.gl.enableVertexAttribArray(this.programInfo.attribLocations[key]);
-      }
-    );
+    Object.entries(modelData["ARRAY_BUFFER"]).forEach(([key, bufferData]) => {
+      const buffer = this.InitBuffer(
+        this.gl.ARRAY_BUFFER,
+        new Float32Array(bufferData[0])
+      );
+      if (!buffer) return;
+      this.models[name].buffers[key] = buffer;
+      this.gl.vertexAttribPointer(
+        this.programInfo.attribLocations[key],
+        bufferData[1],
+        this.gl.FLOAT,
+        false,
+        bufferData[2],
+        bufferData[3]
+      );
+      this.gl.enableVertexAttribArray(this.programInfo.attribLocations[key]);
+    });
 
     // Construct element array buffer
     if (this.models[name].modelData.ELEMENT_ARRAY_BUFFER != undefined) {
@@ -333,7 +332,9 @@ export class Shader {
     if (this.models[name].modelData.TEXTURE != undefined) {
       // this.models[name].textureId = this.window.GetNewTextureId();
       //this.models[name].texture = this.window.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
-      this.models[name].textureId = parseInt(this.models[name].modelData.TEXTURE);
+      this.models[name].textureId = parseInt(
+        this.models[name].modelData.TEXTURE
+      );
     }
   }
 
@@ -355,7 +356,11 @@ export class Shader {
     texName?: string,
     tags: string[] = []
   ) {
-    const newObject = new Objec(rotpos, worldIndex, texName ? this.screen.texIds[texName] : undefined);
+    const newObject = new Objec(
+      rotpos,
+      worldIndex,
+      texName ? this.screen.texIds[texName] : undefined
+    );
 
     // if (this.camera.type == "3D") {
     //   newObject.TiePhysicsObjec(physicsScene);
@@ -385,7 +390,10 @@ export class Shader {
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
   //TIDYING STATUS: GREEN
-  InitBuffer(bufferType: GLenum, data: AllowSharedBufferSource): WebGLBuffer | undefined {
+  InitBuffer(
+    bufferType: GLenum,
+    data: AllowSharedBufferSource
+  ): WebGLBuffer | undefined {
     //Create buffer, bind it to a type, fill the target with data
     const buffer = this.gl.createBuffer();
     if (!buffer) return undefined;
@@ -414,17 +422,29 @@ export class Shader {
 
     this.gl.useProgram(this.shaderProgram);
 
-    this.screen.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.uProjectionMatrix,
-      false,
-      this.camera.projectionMatrix
-    );
+    if (this.programInfo.uniformLocations.uOrthoMatrix) {
+      this.screen.gl.uniformMatrix4fv(
+        this.programInfo.uniformLocations.uOrthoMatrix,
+        false,
+        this.camera.orthoMatrix
+      );
+    }
 
-    this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.uViewMatrix,
-      false,
-      this.camera.viewMatrix
-    );
+    if (this.programInfo.uniformLocations.uPerspectiveMatrix) {
+      this.screen.gl.uniformMatrix4fv(
+        this.programInfo.uniformLocations.uPerspectiveMatrix,
+        false,
+        this.camera.perspectiveMatrix
+      );
+    }
+
+    if (this.programInfo.uniformLocations.uViewMatrix) {
+      this.gl.uniformMatrix4fv(
+        this.programInfo.uniformLocations.uViewMatrix,
+        false,
+        this.camera.viewMatrix
+      );
+    }
   }
 
   DrawScene(worldIndex: number): void {
