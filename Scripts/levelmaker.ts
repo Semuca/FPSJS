@@ -128,14 +128,9 @@ function RenderLoop() {
   // const deltaTime = now - time;
   // time = now;
 
-  let activeShaders = temp.shaders;
-
-  if (activeShaders.length > 0) {
-    temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT); //Temporary solution
-  }
+  temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
 
   //Should do much less draws here, but for now things seem to be fine
-
   cam.PreDraw();
 
   //Sets up grid to be drawn
