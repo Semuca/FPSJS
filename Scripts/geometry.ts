@@ -50,10 +50,12 @@ export class Line2D {
     }
 }
 
+// Rearrangement of y = mx + c to  = x - y / m
 export function getXIntercept(gradient: number, point: Point2D): number {
     return point.x - point.y / gradient;
 }
 
+// Rearrangement of y = mx + c to c = y - mx
 export function getYIntercept(gradient: number, point: Point2D): number {
     return point.y - gradient * point.x;
 }
@@ -94,11 +96,11 @@ export class Segment2D extends Line2D {
     }
 }
 
+// Determines whether point is under a line. If the line is vertical, the point is not under the line unless it is on the line
 export function isPointUnderLine(point: Point2D, line: Line2D): boolean {
-    const atX = line.atX(point.x);
+    if (Math.abs(line.gradient) === Infinity) return point.x === line.xIntercept;
 
-    // If the line is vertical, check if the point is to the left
-    return (atX === undefined) ? point.x < line.xIntercept : point.y < atX;
+    return point.y < line.atX(point.x)!;
 }
 
 export function IntersectionSegmentAndSegment(segment1: Segment2D, segment2: Segment2D): Segment2D | Point2D | undefined {
@@ -204,7 +206,7 @@ export function IntersectionLineAndSegment(line: Line2D, segment: Segment2D): Se
     return undefined;
 }
 
-export function ShortestDistanceFromPointToSegment(point: Point2D, segment: Segment2D): number {
+export function ClosestSegmentPointToPoint(point: Point2D, segment: Segment2D): Point2D {
     // First, determine what segment of the line the point is in
     //     X
     //
@@ -215,19 +217,54 @@ export function ShortestDistanceFromPointToSegment(point: Point2D, segment: Segm
     // -------O-------
     //          X
 
-    const normalGradient = segment.normalGradient;
-    const firstLine = Line2D.fromGradientAndPoint(normalGradient, segment.point1);
+    if (segment.gradient === 0) {
+        const order = segment.point1.x < segment.point2.x;
+        if (point.x < segment.point1.x && point.x < segment.point2.x) {
+            return order ? segment.point1 : segment.point2;
+        } else if (segment.point1.x < point.x && segment.point2.x < point.x) {
+            return order ? segment.point2 : segment.point1;
+        }
+
+        return new Point2D(point.x, segment.point1.y);
+    }
+
+    const firstLine = Line2D.fromGradientAndPoint(segment.normalGradient, segment.point1);
     const isUnderFirstLine = isPointUnderLine(point, firstLine);
 
-    const secondLine = Line2D.fromGradientAndPoint(normalGradient, segment.point2);
+    const secondLine = Line2D.fromGradientAndPoint(segment.normalGradient, segment.point2);
     const isUnderSecondLine = isPointUnderLine(point, secondLine);
 
     if (isUnderFirstLine === isUnderSecondLine) {
-        // Get the shortest distance to one of the end points
-        return Math.min(distancePointToPoint(point, segment.point1), distancePointToPoint(point, segment.point2));
+        // Get the shortest to one of the end points
+        if (distancePointToPoint(point, segment.point1) < distancePointToPoint(point, segment.point2)) {
+            return segment.point1;
+        }
+        return segment.point2;
     } else {
-        const intersectionPoint = IntersectionLineAndSegment(Line2D.fromGradientAndPoint(normalGradient, point), segment);
-        if (!(intersectionPoint instanceof Point2D)) return 0; //TODO: Implement this
-        return distancePointToPoint(point, intersectionPoint);
+        return IntersectionLineAndSegment(Line2D.fromGradientAndPoint(segment.normalGradient, point), segment) as Point2D;
+    }
+}
+
+export function ShortestDistanceFromPointToSegment(point: Point2D, segment: Segment2D): number {
+    return distancePointToPoint(point, ClosestSegmentPointToPoint(point, segment));
+}
+
+//TODO: Make this generic to N dimensions
+export class Circle2D {
+    center: Point2D;
+    radius: number;
+
+    constructor(center: Point2D, radius: number) {
+        this.center = center;
+        this.radius = radius;
+    }
+}
+
+export class RoundedSegment extends Segment2D {
+    radius: number;
+
+    constructor(point1: Point2D, point2: Point2D, radius: number) {
+        super(point1, point2);
+        this.radius = radius;
     }
 }
