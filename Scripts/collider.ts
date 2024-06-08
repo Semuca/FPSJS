@@ -9,7 +9,7 @@ export function MoveCircle(circle: Circle2D, vector: Point2D): void {
     const movVector = new Segment2D(circle.center, new Point2D(vector.x + circle.center.x, vector.y + circle.center.y));
 
     // Test for the first collider that intersects with the RoundedSegment
-    let smallestIntersection = Number.MAX_VALUE;
+    let smallestIntersectionDistance = Number.MAX_VALUE;
     let smallestIntersectionIndex = undefined;
     colliders.forEach((collider, index) => {
         // Calculate intersection. Based on the assumption we do not start in a collider, we can assumed that the intersection will never be a Segment2D
@@ -22,37 +22,47 @@ export function MoveCircle(circle: Circle2D, vector: Point2D): void {
         // If there is an intersection, and it would occur before the current intersection, store it
         if (intersection) {
             const distance = distancePointToPoint(movVector.point1, intersection);
-            if (distance < smallestIntersection) {
-                smallestIntersection = distance;
+            if (distance < smallestIntersectionDistance) {
+                smallestIntersectionDistance = distance;
                 smallestIntersectionIndex = index;
             }
         }
 
         if (p1Dist < circle.radius) {
             const distance = distancePointToPoint(movVector.point1, p1);
-            if (distance < smallestIntersection) {
-                smallestIntersection = distance;
+            if (distance < smallestIntersectionDistance) {
+                smallestIntersectionDistance = distance;
                 smallestIntersectionIndex = index;
             }
         }
 
         if (p2Dist < circle.radius) {
             const distance = distancePointToPoint(movVector.point1, p2);
-            if (distance < smallestIntersection) {
-                smallestIntersection = distance;
+            if (distance < smallestIntersectionDistance) {
+                smallestIntersectionDistance = distance;
                 smallestIntersectionIndex = index;
             }
         }
     });
 
-    // Calculate slide and keep going
+    // If there is no intersection, move the circle
+    if (smallestIntersectionIndex === undefined) {
+        circle.center = new Point2D(movVector.point2.x, movVector.point2.y);
+        return;
+    }
 
-    // If there is an intersection, start sliding
+    const collider = colliders[smallestIntersectionIndex];
+
+    // Move the point at collision back by the radius
+    const actualMove = vector.toMagnitude(smallestIntersectionDistance - circle.radius);
+    const positionAtCollision = new Point2D(circle.center.x + actualMove.x, circle.center.y + actualMove.y);
+
+    // Calculate slide and keep going
+    // Get acute angle between the collision gradient and the movVector
+    // Calculate length of the slide based using cosine
+    // Move the circle by the slide
+    circle.center = positionAtCollision;
+
 
     // If there is an intersection on a point, move the circle around the point
-
-    // If there is no intersection, move the circle
-    if (!smallestIntersectionIndex) {
-        circle.center = new Point2D(movVector.point2.x, movVector.point2.y);
-    }
 }
