@@ -108,7 +108,6 @@ export function isPointUnderLine(point: Point2D, line: Line2D): boolean {
   return point.y < line.atX(point.x)!;
 }
 
-// TODO: Should really make some tests for this
 export function IntersectionSegmentAndSegment(
   _segment1: Segment2D,
   _segment2: Segment2D,
@@ -127,11 +126,13 @@ export function IntersectionSegmentAndSegment(
     if (
       Math.abs(segment1.gradient) === Infinity &&
       segment1.xIntercept === segment2.xIntercept &&
-      segment1.upperYBound < segment2.lowerYBound
+      segment1.upperYBound >= segment2.lowerYBound
     ) {
       return new Segment2D(
-        new Point2D(segment1.upperXBound, segment1.upperYBound),
         new Point2D(segment2.lowerXBound, segment2.lowerYBound),
+        segment1.upperYBound < segment2.upperYBound
+          ? new Point2D(segment1.upperXBound, segment1.upperYBound)
+          : new Point2D(segment2.upperXBound, segment2.upperYBound),
       );
     } else if (
       segment1.yIntercept === segment2.yIntercept &&
@@ -139,7 +140,9 @@ export function IntersectionSegmentAndSegment(
     ) {
       return new Segment2D(
         new Point2D(segment2.lowerXBound, segment2.lowerYBound),
-        new Point2D(segment1.upperXBound, segment1.upperYBound),
+        segment1.upperXBound < segment2.upperXBound
+          ? new Point2D(segment1.upperXBound, segment1.upperYBound)
+          : new Point2D(segment2.upperXBound, segment2.upperYBound),
       );
     }
     return undefined;
