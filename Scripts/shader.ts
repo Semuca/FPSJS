@@ -1,9 +1,9 @@
-import { mat4 } from "gl-matrix";
-import { Point2D } from "./geometry.js";
-import { Model, Objec, RotPos, RotPos2D } from "./objec.js";
-import { FScreen } from "./screen.js";
+import { mat4 } from 'gl-matrix';
+import { Point2D } from './geometry.js';
+import { Model, Objec, RotPos, RotPos2D } from './objec.js';
+import { FScreen } from './screen.js';
 // import { PhysicsScene } from "./physics.js";
-import { ModelData } from "./loading.js";
+import { ModelData } from './loading.js';
 
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
 export class Camera {
@@ -34,7 +34,7 @@ export class Camera {
   viewMatrix: mat4 = mat4.create();
 
   // Set up events
-  cursor: string = "default";
+  cursor: string = 'default';
 
   onMouseDown: (e: MouseEvent) => void = (_e: MouseEvent) => {};
   onMouseMove: (e: MouseEvent) => void = (_e: MouseEvent) => {};
@@ -44,7 +44,7 @@ export class Camera {
     window: FScreen,
     tlCorner: [number, number],
     brCorner: [number, number],
-    worldIndex: number
+    worldIndex: number,
   ) {
     //Set window and viewport
     this.window = window;
@@ -78,7 +78,7 @@ export class Camera {
       (-this.pxHeight * this.zoom) / 2,
       (this.pxHeight * this.zoom) / 2,
       -1.0,
-      1.0
+      1.0,
     );
 
     mat4.perspective(
@@ -86,18 +86,14 @@ export class Camera {
       this.fieldOfView,
       this.aspectRatio,
       this.zNear,
-      this.zFar
+      this.zFar,
     );
   }
 
   //Change view matrix when camera moves
   UpdatePos() {
-    mat4.fromRotationTranslation(
-      this.viewMatrix,
-      this.rotpos.rotation,
-      this.rotpos.position
-    );
-    this.SetUniform("uViewMatrix", this.viewMatrix);
+    mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
+    this.SetUniform('uViewMatrix', this.viewMatrix);
   }
 
   CursorToWorldPosition(cursorPosition: [number, number]) {
@@ -107,8 +103,7 @@ export class Camera {
     const squareWidth = 50 / this.zoom;
 
     const posX = this.rotpos.position[0] / 50 + xOffsetFromCenter / squareWidth;
-    const posY =
-      -this.rotpos.position[1] / 50 - yOffsetFromCenter / squareWidth;
+    const posY = -this.rotpos.position[1] / 50 - yOffsetFromCenter / squareWidth;
 
     return new Point2D(posX, posY);
   }
@@ -116,16 +111,13 @@ export class Camera {
   SetUniform(uniform: string, property: Iterable<GLfloat>) {
     //Should have a list of shaders this camera uses, and run through those.
     this.window.shaders.forEach((shader) => {
-      if (
-        shader.programInfo.uniformLocations[uniform] &&
-        shader.shaderProgram
-      ) {
+      if (shader.programInfo.uniformLocations[uniform] && shader.shaderProgram) {
         this.window.gl.useProgram(shader.shaderProgram);
 
         this.window.gl.uniformMatrix4fv(
           shader.programInfo.uniformLocations[uniform],
           false,
-          property
+          property,
         );
       }
     });
@@ -137,14 +129,14 @@ export class Camera {
       this.window.canvas.width * this.tlCorner[0],
       this.window.canvas.height * this.tlCorner[1],
       this.pxWidth,
-      this.pxHeight
+      this.pxHeight,
     );
   }
 
   PreDraw() {
-    this.SetUniform("uOrthoMatrix", this.orthoMatrix);
-    this.SetUniform("uPerspectiveMatrix", this.perspectiveMatrix);
-    this.SetUniform("uViewMatrix", this.viewMatrix);
+    this.SetUniform('uOrthoMatrix', this.orthoMatrix);
+    this.SetUniform('uPerspectiveMatrix', this.perspectiveMatrix);
+    this.SetUniform('uViewMatrix', this.viewMatrix);
     this.SetViewport();
   }
 }
@@ -169,11 +161,7 @@ export class Shader {
   };
 
   // Constructor requires webgl context
-  constructor(
-    screen: FScreen,
-    gl: WebGL2RenderingContext,
-    camera: Camera,
-  ) {
+  constructor(screen: FScreen, gl: WebGL2RenderingContext, camera: Camera) {
     this.screen = screen;
     this.gl = gl;
     this.camera = camera;
@@ -188,10 +176,7 @@ export class Shader {
     // Creates shaders
     this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
     if (!this.vertexShader) return;
-    this.fragmentShader = this.CreateShader(
-      this.gl.FRAGMENT_SHADER,
-      fragmentSource
-    );
+    this.fragmentShader = this.CreateShader(this.gl.FRAGMENT_SHADER, fragmentSource);
     if (!this.fragmentShader) return;
 
     // Attaches shaders, links the program
@@ -204,8 +189,7 @@ export class Shader {
     // Ensures OpenGL has loaded correctly
     if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
       alert(
-        "Unable to initialize the shader program: " +
-          this.gl.getProgramInfoLog(this.shaderProgram)
+        'Unable to initialize the shader program: ' + this.gl.getProgramInfoLog(this.shaderProgram),
       );
       return;
     }
@@ -237,10 +221,7 @@ export class Shader {
 
     //Handle errors
     if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      alert(
-        "An error occured compiling the shaders: " +
-          this.gl.getShaderInfoLog(shader)
-      );
+      alert('An error occured compiling the shaders: ' + this.gl.getShaderInfoLog(shader));
       this.gl.deleteShader(shader);
       return undefined;
     }
@@ -259,31 +240,24 @@ export class Shader {
     };
 
     //Fills program info object with attribute and uniform locations
-    const attribCount = this.gl.getProgramParameter(
-      this.shaderProgram,
-      this.gl.ACTIVE_ATTRIBUTES
-    );
-    const uniformCount = this.gl.getProgramParameter(
-      this.shaderProgram,
-      this.gl.ACTIVE_UNIFORMS
-    );
+    const attribCount = this.gl.getProgramParameter(this.shaderProgram, this.gl.ACTIVE_ATTRIBUTES);
+    const uniformCount = this.gl.getProgramParameter(this.shaderProgram, this.gl.ACTIVE_UNIFORMS);
 
     //Fill attribute locations in programInfo so we can send data to them later
     for (var i = 0; i < attribCount; i++) {
       const attribInfo = this.gl.getActiveAttrib(this.shaderProgram, i);
       if (!attribInfo) continue;
-      this.programInfo.attribLocations[attribInfo.name] =
-        this.gl.getAttribLocation(this.shaderProgram, attribInfo.name);
+      this.programInfo.attribLocations[attribInfo.name] = this.gl.getAttribLocation(
+        this.shaderProgram,
+        attribInfo.name,
+      );
     }
 
     //Fill uniform locations in programInfo so we can send data to them later
     for (var i = 0; i < uniformCount; i++) {
       const uniformInfo = this.gl.getActiveUniform(this.shaderProgram, i);
       if (!uniformInfo) continue;
-      const uniformLocation = this.gl.getUniformLocation(
-        this.shaderProgram,
-        uniformInfo.name
-      );
+      const uniformLocation = this.gl.getUniformLocation(this.shaderProgram, uniformInfo.name);
       if (!uniformLocation) continue;
       this.programInfo.uniformLocations[uniformInfo.name] = uniformLocation;
     }
@@ -301,11 +275,8 @@ export class Shader {
     //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
     // Construct all buffers
-    Object.entries(modelData["ARRAY_BUFFER"]).forEach(([key, bufferData]) => {
-      const buffer = this.InitBuffer(
-        this.gl.ARRAY_BUFFER,
-        new Float32Array(bufferData[0])
-      );
+    Object.entries(modelData['ARRAY_BUFFER']).forEach(([key, bufferData]) => {
+      const buffer = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(bufferData[0]));
       if (!buffer) return;
       this.models[name].buffers[key] = buffer;
       this.gl.vertexAttribPointer(
@@ -314,7 +285,7 @@ export class Shader {
         this.gl.FLOAT,
         false,
         bufferData[2],
-        bufferData[3]
+        bufferData[3],
       );
       this.gl.enableVertexAttribArray(this.programInfo.attribLocations[key]);
     });
@@ -323,7 +294,7 @@ export class Shader {
     if (this.models[name].modelData.ELEMENT_ARRAY_BUFFER != undefined) {
       const buffer = this.InitBuffer(
         this.gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(this.models[name].modelData.ELEMENT_ARRAY_BUFFER)
+        new Uint16Array(this.models[name].modelData.ELEMENT_ARRAY_BUFFER),
       );
       if (buffer) this.models[name].buffers.ELEMENT_ARRAY_BUFFER = buffer;
     }
@@ -332,9 +303,7 @@ export class Shader {
     if (this.models[name].modelData.TEXTURE != undefined) {
       // this.models[name].textureId = this.window.GetNewTextureId();
       //this.models[name].texture = this.window.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
-      this.models[name].textureId = parseInt(
-        this.models[name].modelData.TEXTURE
-      );
+      this.models[name].textureId = parseInt(this.models[name].modelData.TEXTURE);
     }
   }
 
@@ -354,12 +323,12 @@ export class Shader {
     rotpos: RotPos | RotPos2D,
     worldIndex: number = 0,
     texName?: string,
-    tags: string[] = []
+    tags: string[] = [],
   ) {
     const newObject = new Objec(
       rotpos,
       worldIndex,
-      texName ? this.screen.texIds[texName] : undefined
+      texName ? this.screen.texIds[texName] : undefined,
     );
 
     // if (this.camera.type == "3D") {
@@ -390,10 +359,7 @@ export class Shader {
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
   //TIDYING STATUS: GREEN
-  InitBuffer(
-    bufferType: GLenum,
-    data: AllowSharedBufferSource
-  ): WebGLBuffer | undefined {
+  InitBuffer(bufferType: GLenum, data: AllowSharedBufferSource): WebGLBuffer | undefined {
     //Create buffer, bind it to a type, fill the target with data
     const buffer = this.gl.createBuffer();
     if (!buffer) return undefined;
@@ -416,7 +382,7 @@ export class Shader {
       this.gl.SRC_ALPHA,
       this.gl.ONE_MINUS_SRC_ALPHA,
       this.gl.ONE,
-      this.gl.ONE
+      this.gl.ONE,
     );
     this.gl.enable(this.gl.BLEND);
 
@@ -426,7 +392,7 @@ export class Shader {
       this.screen.gl.uniformMatrix4fv(
         this.programInfo.uniformLocations.uOrthoMatrix,
         false,
-        this.camera.orthoMatrix
+        this.camera.orthoMatrix,
       );
     }
 
@@ -434,7 +400,7 @@ export class Shader {
       this.screen.gl.uniformMatrix4fv(
         this.programInfo.uniformLocations.uPerspectiveMatrix,
         false,
-        this.camera.perspectiveMatrix
+        this.camera.perspectiveMatrix,
       );
     }
 
@@ -442,7 +408,7 @@ export class Shader {
       this.gl.uniformMatrix4fv(
         this.programInfo.uniformLocations.uViewMatrix,
         false,
-        this.camera.viewMatrix
+        this.camera.viewMatrix,
       );
     }
   }
@@ -462,16 +428,10 @@ export class Shader {
       const vertexCount = model.modelData.ELEMENT_ARRAY_BUFFER?.length;
 
       //Set texture and mode
-      const mode =
-        model.modelData.TEXTURE != undefined
-          ? this.gl.TRIANGLES
-          : this.gl.LINES;
+      const mode = model.modelData.TEXTURE != undefined ? this.gl.TRIANGLES : this.gl.LINES;
       if (mode === this.gl.TRIANGLES && model.textureId != undefined) {
         this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
-        this.gl.uniform1i(
-          this.programInfo.uniformLocations.uSampler,
-          model.textureId
-        );
+        this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
       }
 
       // Draw every object
@@ -492,43 +452,32 @@ export class Shader {
         //If the object has a custom defined texture id, use it
         if (object.texId != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + object.texId);
-          this.gl.uniform1i(
-            this.programInfo.uniformLocations.uSampler,
-            object.texId
-          );
+          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, object.texId);
         }
 
         //Get matrix of this objects rotpos
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
-          object.GetMatrix()
+          object.GetMatrix(),
         );
 
         if (model.modelData.ELEMENT_ARRAY_BUFFER && vertexCount) {
           //Tell opengl which texture we're currently using, then tell our shader which texture we're using
-          this.gl.drawElements(
-            mode,
-            vertexCount,
-            this.gl.UNSIGNED_SHORT,
-            offset
-          );
+          this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);
         } else {
           this.gl.drawArrays(
             mode,
             offset,
             model.modelData.ARRAY_BUFFER.aVertexPosition[0].length /
-              model.modelData.ARRAY_BUFFER.aVertexPosition[1]
+              model.modelData.ARRAY_BUFFER.aVertexPosition[1],
           ); //bad hardcoding, oh well
         }
 
         //If the object we just rendered has a custom texture id, swap back to the old one
         if (object.texId != undefined && model.textureId != undefined) {
           this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
-          this.gl.uniform1i(
-            this.programInfo.uniformLocations.uSampler,
-            model.textureId
-          );
+          this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
         }
       });
     });

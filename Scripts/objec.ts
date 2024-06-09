@@ -1,11 +1,12 @@
-import { mat4, quat, vec2, vec3 } from "gl-matrix";
+import { mat4, quat, vec2, vec3 } from 'gl-matrix';
 // import { PhysicsObjec, PhysicsScene } from "./physics.js";
-import { Shader } from "./shader.js";
-import { FScreen } from "./screen.js";
-import { ModelData } from "./loading.js";
+import { Shader } from './shader.js';
+import { FScreen } from './screen.js';
+import { ModelData } from './loading.js';
 
 //Stores data about an unloaded, uninstantiated object that is generic. I.e what shaders does this object work with?
-export class Model { //Should store the information that is generic to all objects of a certain type (i.e attribute information, texture) so we don't need to re-load them
+export class Model {
+  //Should store the information that is generic to all objects of a certain type (i.e attribute information, texture) so we don't need to re-load them
   modelData: ModelData;
   //List of all objects referenced by model
   objects: Objec[] = [];
@@ -48,7 +49,7 @@ export class Objec {
   }
 
   AddTags(tags: string[]): void {
-    tags.forEach(tag => this.tags.add(tag));
+    tags.forEach((tag) => this.tags.add(tag));
   }
 
   // TiePhysicsObjec(physicsScene: PhysicsScene): void {
@@ -57,9 +58,19 @@ export class Objec {
 
   GetMatrix() {
     if (this.rotpos instanceof RotPos2D) {
-      mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, [this.rotpos.position[0], this.rotpos.position[1], 0], [this.rotpos.scale[0], this.rotpos.scale[1], 1]);
+      mat4.fromRotationTranslationScale(
+        this.matrix,
+        this.rotpos.rotation,
+        [this.rotpos.position[0], this.rotpos.position[1], 0],
+        [this.rotpos.scale[0], this.rotpos.scale[1], 1],
+      );
     } else {
-      mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, this.rotpos.position, this.rotpos.scale);
+      mat4.fromRotationTranslationScale(
+        this.matrix,
+        this.rotpos.rotation,
+        this.rotpos.position,
+        this.rotpos.scale,
+      );
     }
     return this.matrix;
   }

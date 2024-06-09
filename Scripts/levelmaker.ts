@@ -1,8 +1,14 @@
-import { FScreen, toggleFullScreen } from "./screen.js";
-import { LoadFileText, CreateTexture, LoadModel, LoadShader, MapFile } from "./loading.js";
-import { Objec, RotPos2D } from "./objec.js";
-import { roundToNearest, distancePointToPoint, Point2D, Segment2D, ShortestDistanceFromPointToSegment } from "./geometry.js";
-import { quat, vec3 } from "gl-matrix";
+import { FScreen, toggleFullScreen } from './screen.js';
+import { LoadFileText, CreateTexture, LoadModel, LoadShader, MapFile } from './loading.js';
+import { Objec, RotPos2D } from './objec.js';
+import {
+  roundToNearest,
+  distancePointToPoint,
+  Point2D,
+  Segment2D,
+  ShortestDistanceFromPointToSegment,
+} from './geometry.js';
+import { quat, vec3 } from 'gl-matrix';
 
 let zoom = 50.0;
 // let time = 0;
@@ -11,7 +17,7 @@ const MODES = {
   MOVE: 0,
   PLACE: 1,
   DRAWING: 2,
-}
+};
 
 class Sprite extends Point2D {
   texture: string;
@@ -46,14 +52,14 @@ let highlightedWall = -1;
 let line: Objec;
 let hover: Objec;
 
-let highlighter : Objec;
-let secondHighlighter : Objec;
+let highlighter: Objec;
+let secondHighlighter: Objec;
 
-let selector : Objec;
+let selector: Objec;
 
-const temp = new FScreen("canvas");
+const temp = new FScreen('canvas');
 const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
-cam.cursor = "pointer";
+cam.cursor = 'pointer';
 const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
 
 let currentSidepaneIndex = 0;
@@ -62,7 +68,6 @@ interface Sidepane {
   textures: string[];
   selector: number;
   place: string;
-
 }
 let sidepanes: Sidepane[] = [];
 
@@ -79,10 +84,31 @@ function UpdateSidebar(sidebarIndex: number) {
   const width = sidebar.pxWidth / 4;
 
   textureGroup.forEach((texture, i) => {
-    temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([width * 2 - ((i % 4) + 1) * width + width / 2, sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + width / 2], Math.PI, [width / 2, width / 2]), 1, texture);
+    temp.shaders[0].InstanceObject(
+      'verSprite.json',
+      new RotPos2D(
+        [
+          width * 2 - ((i % 4) + 1) * width + width / 2,
+          sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + width / 2,
+        ],
+        Math.PI,
+        [width / 2, width / 2],
+      ),
+      1,
+      texture,
+    );
   });
 
-  selector = temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([width * 2 - width + width / 2, sidebar.pxHeight / 2 - width + width / 2], Math.PI, [width / 2, width / 2]), 1, "tframe.png");
+  selector = temp.shaders[0].InstanceObject(
+    'verSprite.json',
+    new RotPos2D(
+      [width * 2 - width + width / 2, sidebar.pxHeight / 2 - width + width / 2],
+      Math.PI,
+      [width / 2, width / 2],
+    ),
+    1,
+    'tframe.png',
+  );
 
   DrawSidebar();
 }
@@ -92,32 +118,57 @@ Setup();
 
 async function Setup() {
   //Load 2d shader, plus the model
-  await LoadShader(cam, "2DspriteVertexShader.vs", "spriteFragmentShader.fs");
-  let modelData = await LoadModel(temp, "verSprite.json");
-  temp.shaders[0].CreateModel("verSprite.json", modelData);
+  await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
+  let modelData = await LoadModel(temp, 'verSprite.json');
+  temp.shaders[0].CreateModel('verSprite.json', modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
-  const sidepaneData = await LoadFileText("../sidepanes.json");
+  const sidepaneData = await LoadFileText('../sidepanes.json');
   sidepanes = JSON.parse(sidepaneData).sidepanes;
 
-  await Promise.allSettled([sidepanes.map((sidepane) => sidepane.textures).flat().map((texture) => CreateTexture(temp, texture)), CreateTexture(temp, "tframe.png")]);
+  await Promise.allSettled([
+    sidepanes
+      .map((sidepane) => sidepane.textures)
+      .flat()
+      .map((texture) => CreateTexture(temp, texture)),
+    CreateTexture(temp, 'tframe.png'),
+  ]);
 
   // Load sidebar
   UpdateSidebar(currentSidepaneIndex);
 
-  highlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([0.5, 0.5], Math.PI, [10, 10]), 0, "tframe.png");
+  highlighter = temp.shaders[0].InstanceObject(
+    'verSprite.json',
+    new RotPos2D([0.5, 0.5], Math.PI, [10, 10]),
+    0,
+    'tframe.png',
+  );
   highlighter.hidden = true;
-  secondHighlighter = temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([0.5, 0.5], Math.PI, [10, 10]), 0, "tframe.png");
+  secondHighlighter = temp.shaders[0].InstanceObject(
+    'verSprite.json',
+    new RotPos2D([0.5, 0.5], Math.PI, [10, 10]),
+    0,
+    'tframe.png',
+  );
   secondHighlighter.hidden = true;
 
-  hover = temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([0.5, 0.5], Math.PI, [20, 20]), 0, "texture.png");
+  hover = temp.shaders[0].InstanceObject(
+    'verSprite.json',
+    new RotPos2D([0.5, 0.5], Math.PI, [20, 20]),
+    0,
+    'texture.png',
+  );
   hover.hidden = true;
 
   //Load line models
-  await LoadShader(cam, "2DflatlineVertexShader.vs", "lineFragmentShader.fs");
-  modelData = await LoadModel(temp, "flatline.json");
-  temp.shaders[1].CreateModel("flatline.json", modelData);
-  line = temp.shaders[1].InstanceObject("flatline.json", new RotPos2D([0.0, 0.0], undefined, [0.0, 0.0]), 0);
+  await LoadShader(cam, '2DflatlineVertexShader.vs', 'lineFragmentShader.fs');
+  modelData = await LoadModel(temp, 'flatline.json');
+  temp.shaders[1].CreateModel('flatline.json', modelData);
+  line = temp.shaders[1].InstanceObject(
+    'flatline.json',
+    new RotPos2D([0.0, 0.0], undefined, [0.0, 0.0]),
+    0,
+  );
 
   requestAnimationFrame(RenderLoop);
 }
@@ -136,25 +187,28 @@ function RenderLoop() {
   //Sets up grid to be drawn
   if (!temp.shaders[1].shaderProgram) return;
   temp.gl.useProgram(temp.shaders[1].shaderProgram);
-  temp.gl.bindVertexArray(temp.shaders[1].models["flatline.json"].vao);
-  temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array([1.0, 0.0, 0.0, 1.0]));
+  temp.gl.bindVertexArray(temp.shaders[1].models['flatline.json'].vao);
+  temp.gl.uniform4fv(
+    temp.shaders[1].programInfo.uniformLocations['colour'],
+    new Float32Array([1.0, 0.0, 0.0, 1.0]),
+  );
 
   //Grid rendering - Y
-  let offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom / 2)) % 50.0;
+  let offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2) % 50.0;
 
   quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
 
-  line.rotpos.position[0] = offsetX - cam.pxWidth * cam.zoom / 2;
-  line.rotpos.position[1] = cam.pxHeight * cam.zoom / 2;
+  line.rotpos.position[0] = offsetX - (cam.pxWidth * cam.zoom) / 2;
+  line.rotpos.position[1] = (cam.pxHeight * cam.zoom) / 2;
   line.rotpos.scale[1] = cam.pxHeight * cam.zoom;
 
   //Draws rendering every vertical line
   for (let i = 0; i < (cam.pxWidth * cam.zoom - offsetX) / 50.0; i++) {
-
     temp.gl.uniformMatrix4fv(
       temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
       false,
-      line.GetMatrix());
+      line.GetMatrix(),
+    );
 
     temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
@@ -162,21 +216,21 @@ function RenderLoop() {
   }
 
   //Grid rendering - X
-  let offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom / 2)) % 50.0;
+  let offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2) % 50.0;
 
-  line.rotpos.position[0] = cam.pxWidth * cam.zoom / 2;
-  line.rotpos.position[1] = offsetY - cam.pxHeight * cam.zoom / 2;
+  line.rotpos.position[0] = (cam.pxWidth * cam.zoom) / 2;
+  line.rotpos.position[1] = offsetY - (cam.pxHeight * cam.zoom) / 2;
   line.rotpos.scale[1] = cam.pxWidth * cam.zoom;
 
   quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI / 2);
 
   //Draws rendering every horizontal line
-  for (let i = 0; i < cam.pxHeight * cam.zoom / 50.0; i++) {
-
+  for (let i = 0; i < (cam.pxHeight * cam.zoom) / 50.0; i++) {
     temp.gl.uniformMatrix4fv(
       temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
       false,
-      line.GetMatrix());
+      line.GetMatrix(),
+    );
 
     temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
@@ -184,20 +238,24 @@ function RenderLoop() {
   }
 
   //Draw X axis
-  temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array([1.0, 1.0, 1.0, 1.0]));
+  temp.gl.uniform4fv(
+    temp.shaders[1].programInfo.uniformLocations['colour'],
+    new Float32Array([1.0, 1.0, 1.0, 1.0]),
+  );
 
   line.rotpos.position[1] = cam.rotpos.position[1];
 
   temp.gl.uniformMatrix4fv(
     temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
     false,
-    line.GetMatrix());
+    line.GetMatrix(),
+  );
 
   temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
   //Y axis
   line.rotpos.position[0] = cam.rotpos.position[0];
-  line.rotpos.position[1] = cam.pxHeight * cam.zoom / 2;
+  line.rotpos.position[1] = (cam.pxHeight * cam.zoom) / 2;
   line.rotpos.scale[1] = cam.pxHeight * cam.zoom;
 
   quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
@@ -205,7 +263,8 @@ function RenderLoop() {
   temp.gl.uniformMatrix4fv(
     temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
     false,
-    line.GetMatrix());
+    line.GetMatrix(),
+  );
 
   temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
@@ -218,8 +277,10 @@ function RenderLoop() {
       colour = [1.0, 0.0, 1.0, 1.0];
     }
 
-    temp.gl.uniform4fv(temp.shaders[1].programInfo.uniformLocations["colour"], new Float32Array(colour));
-
+    temp.gl.uniform4fv(
+      temp.shaders[1].programInfo.uniformLocations['colour'],
+      new Float32Array(colour),
+    );
 
     // Draw line from point
     line.rotpos.position[0] = cam.rotpos.position[0] - wall.point1.x * 50;
@@ -229,13 +290,14 @@ function RenderLoop() {
     const xDist = (wall.point1.x - wall.point2.x) * 50;
     const yDist = (wall.point1.y - wall.point2.y) * 50;
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
-    const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? 0 : -Math.PI);
+    const angle = Math.atan(xDist / yDist) + (yDist < 0 ? 0 : -Math.PI);
 
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
     temp.gl.uniformMatrix4fv(
       temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
       false,
-      line.GetMatrix());
+      line.GetMatrix(),
+    );
     temp.gl.drawArrays(temp.gl.LINES, 0, 2);
   });
 
@@ -248,13 +310,14 @@ function RenderLoop() {
     const xDist = highlighter.rotpos.position[0] + cursorWorldPosition.x * 50;
     const yDist = cursorWorldPosition.y * 50 - highlighter.rotpos.position[1];
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
-    const angle = Math.atan(xDist / yDist) + ((yDist < 0) ? Math.PI : 0);
+    const angle = Math.atan(xDist / yDist) + (yDist < 0 ? Math.PI : 0);
 
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
     temp.gl.uniformMatrix4fv(
       temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
       false,
-      line.GetMatrix());
+      line.GetMatrix(),
+    );
     temp.gl.drawArrays(temp.gl.LINES, 0, 2);
   }
 
@@ -273,13 +336,27 @@ function DrawSidebar() {
 
 // Start drawing when the mouse is pressed down
 cam.onMouseDown = () => {
-  if (sidepanes[currentSidepaneIndex].place === "point" && highlighter.hidden === false) {
-    sprites.push(new Sprite(new Point2D(highlighter.rotpos.position[0] / 50, highlighter.rotpos.position[1] / 50), sidepanes[currentSidepaneIndex].textures[tile]));
+  if (sidepanes[currentSidepaneIndex].place === 'point' && highlighter.hidden === false) {
+    sprites.push(
+      new Sprite(
+        new Point2D(highlighter.rotpos.position[0] / 50, highlighter.rotpos.position[1] / 50),
+        sidepanes[currentSidepaneIndex].textures[tile],
+      ),
+    );
 
-    temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([highlighter.rotpos.position[0], highlighter.rotpos.position[1]], Math.PI, [25, 25]), 0, sidepanes[currentSidepaneIndex].textures[tile]);
+    temp.shaders[0].InstanceObject(
+      'verSprite.json',
+      new RotPos2D(
+        [highlighter.rotpos.position[0], highlighter.rotpos.position[1]],
+        Math.PI,
+        [25, 25],
+      ),
+      0,
+      sidepanes[currentSidepaneIndex].textures[tile],
+    );
 
     requestAnimationFrame(RenderLoop);
-  } else if (sidepanes[currentSidepaneIndex].place === "line") {
+  } else if (sidepanes[currentSidepaneIndex].place === 'line') {
     if (mode === MODES.PLACE) {
       if (currentPoint) {
         mode = MODES.DRAWING;
@@ -297,10 +374,17 @@ cam.onMouseMove = (e) => {
 
     // Calculate from position, if a point is enabled or not
     // Logic: figure out the closest point, figure out if that's in range
-    const roundedPoint = new Point2D(roundToNearest(cursorWorldPosition.x, sidepanes[currentSidepaneIndex].selector), roundToNearest(cursorWorldPosition.y, sidepanes[currentSidepaneIndex].selector));
+    const roundedPoint = new Point2D(
+      roundToNearest(cursorWorldPosition.x, sidepanes[currentSidepaneIndex].selector),
+      roundToNearest(cursorWorldPosition.y, sidepanes[currentSidepaneIndex].selector),
+    );
 
     if (distancePointToPoint(cursorWorldPosition, roundedPoint) <= highlightRadiusTrigger) {
-      if (highlighter.rotpos.position[0] != roundedPoint.x * 50 || highlighter.rotpos.position[1] != roundedPoint.y * 50 || highlighter.hidden === true) {
+      if (
+        highlighter.rotpos.position[0] != roundedPoint.x * 50 ||
+        highlighter.rotpos.position[1] != roundedPoint.y * 50 ||
+        highlighter.hidden === true
+      ) {
         highlighter.hidden = false;
         currentPoint = new Point2D(roundedPoint.x, roundedPoint.y);
         highlighter.rotpos.position = [-roundedPoint.x * 50, roundedPoint.y * 50, 1.0];
@@ -315,7 +399,10 @@ cam.onMouseMove = (e) => {
 
     // Calculate line that is being hovered over
     const oldHighlightedWall = highlightedWall;
-    highlightedWall = walls.findIndex((wall) => ShortestDistanceFromPointToSegment(cursorWorldPosition, wall) <= highlightRadiusTrigger);
+    highlightedWall = walls.findIndex(
+      (wall) =>
+        ShortestDistanceFromPointToSegment(cursorWorldPosition, wall) <= highlightRadiusTrigger,
+    );
     if (oldHighlightedWall != -1 || highlightedWall != -1) {
       if (highlightedWall === -1) {
         hover.hidden = true;
@@ -331,22 +418,29 @@ cam.onMouseMove = (e) => {
     if (drawFlag) requestAnimationFrame(RenderLoop);
   } else if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
-      document.body.style.cursor = "grabbing";
+      document.body.style.cursor = 'grabbing';
       cam.rotpos.position[0] -= e.movementX * cam.zoom;
       cam.rotpos.position[1] -= e.movementY * cam.zoom;
 
       cam.UpdatePos();
       requestAnimationFrame(RenderLoop);
     } else {
-      document.body.style.cursor = "grab";
+      document.body.style.cursor = 'grab';
     }
   } else if (mode === MODES.DRAWING) {
     // Calculate from position, if a point is enabled or not
     // Logic: figure out the closest point, figure out if that's in range
-    const roundedPoint = new Point2D(Math.round(cursorWorldPosition.x), Math.round(cursorWorldPosition.y));
+    const roundedPoint = new Point2D(
+      Math.round(cursorWorldPosition.x),
+      Math.round(cursorWorldPosition.y),
+    );
 
     if (distancePointToPoint(cursorWorldPosition, roundedPoint) <= highlightRadiusTrigger) {
-      if (secondHighlighter.rotpos.position[0] != roundedPoint.x * 50 || secondHighlighter.rotpos.position[1] != roundedPoint.y * 50 || secondHighlighter.hidden === true) {
+      if (
+        secondHighlighter.rotpos.position[0] != roundedPoint.x * 50 ||
+        secondHighlighter.rotpos.position[1] != roundedPoint.y * 50 ||
+        secondHighlighter.hidden === true
+      ) {
         secondHighlighter.hidden = false;
         secondPoint = new Point2D(roundedPoint.x, roundedPoint.y);
         secondHighlighter.rotpos.position = [-roundedPoint.x * 50, roundedPoint.y * 50, 1.0];
@@ -367,13 +461,16 @@ cam.onMouseUp = (e) => {
     if (currentPoint && secondPoint) {
       mode = MODES.PLACE;
       secondHighlighter.hidden = true;
-      if (secondPoint) walls.push(new Wall(currentPoint, secondPoint, sidepanes[currentSidepaneIndex].textures[tile]));
+      if (secondPoint)
+        walls.push(
+          new Wall(currentPoint, secondPoint, sidepanes[currentSidepaneIndex].textures[tile]),
+        );
       cam.onMouseMove(e);
     }
   } else if (mode === MODES.PLACE) {
-    if (temp.keysDown["ShiftLeft"] && highlightedWall != undefined) {
+    if (temp.keysDown['ShiftLeft'] && highlightedWall != undefined) {
       // Delete wall
-      walls.splice(highlightedWall, 1)
+      walls.splice(highlightedWall, 1);
       requestAnimationFrame(RenderLoop);
     }
   }
@@ -386,7 +483,8 @@ sidebar.onMouseDown = (e) => {
 
   if (sidepanes[currentSidepaneIndex].textures[x + 4 * y] != undefined) {
     tile = x + 4 * y;
-    selector.rotpos.position[0] = sidebar.pxWidth / 2 - (x % 4) * sidebar.pxWidth / 4 - sidebar.pxWidth / 8;
+    selector.rotpos.position[0] =
+      sidebar.pxWidth / 2 - ((x % 4) * sidebar.pxWidth) / 4 - sidebar.pxWidth / 8;
     // TODO: Implement y-selector for this
 
     requestAnimationFrame(RenderLoop);
@@ -394,11 +492,11 @@ sidebar.onMouseDown = (e) => {
 };
 
 // Loads a map on U
-temp.keyDownCallbacks["KeyU"] = () => {
+temp.keyDownCallbacks['KeyU'] = () => {
   const input = document.createElement('input');
   input.type = 'file';
 
-  input.onchange = async e => {
+  input.onchange = async (e) => {
     const files = (e.target as HTMLInputElement).files;
     if (!files) return;
     const file = JSON.parse(await files[0].text()) as MapFile;
@@ -406,7 +504,7 @@ temp.keyDownCallbacks["KeyU"] = () => {
       if (!object.texture) return;
 
       const tags = object.tags ?? [];
-      if (tags.includes("wall")) {
+      if (tags.includes('wall')) {
         const rotationVec = vec3.create();
         const angle = quat.getAxisAngle(rotationVec, object.rotation);
 
@@ -418,9 +516,16 @@ temp.keyDownCallbacks["KeyU"] = () => {
         const point2 = new Point2D(object.position[2] - yBonus, object.position[0] - xBonus);
 
         walls.push(new Wall(point1, point2, object.texture));
-      } else if (tags.includes("sprite")) {
-        sprites.push(new Sprite(new Point2D(object.position[0], object.position[2]), object.texture));
-        temp.shaders[0].InstanceObject("verSprite.json", new RotPos2D([object.position[0] * 50, object.position[2] * 50], Math.PI, [25, 25]), 0, object.texture);
+      } else if (tags.includes('sprite')) {
+        sprites.push(
+          new Sprite(new Point2D(object.position[0], object.position[2]), object.texture),
+        );
+        temp.shaders[0].InstanceObject(
+          'verSprite.json',
+          new RotPos2D([object.position[0] * 50, object.position[2] * 50], Math.PI, [25, 25]),
+          0,
+          object.texture,
+        );
       }
     });
   };
@@ -429,45 +534,49 @@ temp.keyDownCallbacks["KeyU"] = () => {
 };
 
 // Downloads the map on C
-temp.keyDownCallbacks["KeyC"] = () => {
+temp.keyDownCallbacks['KeyC'] = () => {
   const element = document.createElement('a');
 
   const text = JSON.stringify({
-    shaders: [{
-      vertexShader: "vertexShader.vs",
-      fragmentShader: "fragmentShader.fs"
-    }],
+    shaders: [
+      {
+        vertexShader: 'vertexShader.vs',
+        fragmentShader: 'fragmentShader.fs',
+      },
+    ],
     models: {
-      "plane.json": 0,
+      'plane.json': 0,
     },
-    objects: walls.map((wall) => {
-      const q = quat.create();
-      quat.rotateY(q, q, -Math.atan(wall.gradient));
-      return {
-        object: "plane.json",
-        position: [(wall.point1.x + wall.point2.x), 0, (wall.point1.y + wall.point2.y)],
-        rotation: q,
-        scale: [wall.length, 1, 1],
-        texture: wall.texture,
-        tags: ["wall"]
-      };
-    }).concat(
-      sprites.map((sprite) => {
+    objects: walls
+      .map((wall) => {
+        const q = quat.create();
+        quat.rotateY(q, q, -Math.atan(wall.gradient));
         return {
-          object: "plane.json",
-          position: [sprite.x, 0, sprite.y],
-          rotation: [0, 0, 0, 1],
-          scale: [1, 1, 1],
-          texture: sprite.texture,
-          tags: ["sprite"]
+          object: 'plane.json',
+          position: [wall.point1.x + wall.point2.x, 0, wall.point1.y + wall.point2.y],
+          rotation: q,
+          scale: [wall.length, 1, 1],
+          texture: wall.texture,
+          tags: ['wall'],
         };
       })
-    )
+      .concat(
+        sprites.map((sprite) => {
+          return {
+            object: 'plane.json',
+            position: [sprite.x, 0, sprite.y],
+            rotation: [0, 0, 0, 1],
+            scale: [1, 1, 1],
+            texture: sprite.texture,
+            tags: ['sprite'],
+          };
+        }),
+      ),
   });
   element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(text));
-  element.setAttribute('download', "map");
+  element.setAttribute('download', 'map');
 
-  element.style.display = "none";
+  element.style.display = 'none';
   document.body.appendChild(element);
 
   element.click();
@@ -475,32 +584,31 @@ temp.keyDownCallbacks["KeyC"] = () => {
   document.body.removeChild(element);
 };
 
-temp.keyDownCallbacks["Enter"] = toggleFullScreen;
+temp.keyDownCallbacks['Enter'] = toggleFullScreen;
 
-temp.keyDownCallbacks["Space"] = () => {
-  mode = (mode === MODES.MOVE) ? MODES.PLACE : MODES.MOVE;
-  cam.cursor = (mode === MODES.MOVE) ? "grab" : "pointer";
+temp.keyDownCallbacks['Space'] = () => {
+  mode = mode === MODES.MOVE ? MODES.PLACE : MODES.MOVE;
+  cam.cursor = mode === MODES.MOVE ? 'grab' : 'pointer';
   highlighter.hidden = true;
   requestAnimationFrame(RenderLoop);
 };
 
-temp.keyDownCallbacks["Digit1"] = () => {
+temp.keyDownCallbacks['Digit1'] = () => {
   if (currentSidepaneIndex === 0) return;
   ClearSidebar();
   UpdateSidebar(0);
   requestAnimationFrame(RenderLoop);
 };
 
-temp.keyDownCallbacks["Digit2"] = () => {
+temp.keyDownCallbacks['Digit2'] = () => {
   if (currentSidepaneIndex === 1) return;
   ClearSidebar();
   UpdateSidebar(1);
   requestAnimationFrame(RenderLoop);
 };
 
-
 //Zooming
-document.addEventListener("wheel", e => {
+document.addEventListener('wheel', (e) => {
   if (e.pageX > cam.pxWidth) {
     return;
   }
@@ -518,9 +626,8 @@ document.addEventListener("wheel", e => {
   requestAnimationFrame(RenderLoop);
 });
 
-
 //Resizing for the window. What's the difference between "resize" and "onresize"?
-window.addEventListener("resize", () => {
+window.addEventListener('resize', () => {
   temp.canvas.width = temp.canvas.clientWidth;
   temp.canvas.height = temp.canvas.clientHeight;
 

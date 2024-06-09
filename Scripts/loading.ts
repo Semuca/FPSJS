@@ -1,7 +1,7 @@
-import { quat, vec3 } from "gl-matrix";
-import { Objec, RotPos } from "./objec.js";
-import { FScreen } from "./screen.js";
-import { Camera } from "./shader.js";
+import { quat, vec3 } from 'gl-matrix';
+import { Objec, RotPos } from './objec.js';
+import { FScreen } from './screen.js';
+import { Camera } from './shader.js';
 
 //Loads values from text files given by the url
 export async function LoadFileText(url: string): Promise<string> {
@@ -11,14 +11,14 @@ export async function LoadFileText(url: string): Promise<string> {
 }
 
 //Loads image from url
-async function LoadImage(url: string) : Promise<TexImageSource> {
+async function LoadImage(url: string): Promise<TexImageSource> {
   const val = new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = url;
   });
-  return await val as TexImageSource;
+  return (await val) as TexImageSource;
 }
 
 //Should create more functions for textures:
@@ -44,9 +44,9 @@ export async function LoadShader(camera: Camera, vsUrl: string, fsUrl: string): 
 }
 
 export interface ModelData {
-  ARRAY_BUFFER: Record<string, [number[], number, number, number]>,
-  ELEMENT_ARRAY_BUFFER?: number[],
-  TEXTURE?: string
+  ARRAY_BUFFER: Record<string, [number[], number, number, number]>;
+  ELEMENT_ARRAY_BUFFER?: number[];
+  TEXTURE?: string;
 }
 
 //Loads model from txt file
@@ -65,33 +65,51 @@ export async function LoadModel(window: FScreen, url: string): Promise<any> {
   }
 
   if (jsonData.TEXTURE) {
-    jsonData.TEXTURE = (await CreateTexture(window, jsonData.TEXTURE) ?? 0).toString();
+    jsonData.TEXTURE = ((await CreateTexture(window, jsonData.TEXTURE)) ?? 0).toString();
   }
 
   return jsonData;
 }
 
 export type MapFile = {
-  shaders: { vertexShader: string, fragmentShader: string }[],
-  models: Record<string, number>,
-  objects: { object: string, position: vec3, rotation: quat, scale: vec3, texture?: string, tags?: string[] }[]
+  shaders: { vertexShader: string; fragmentShader: string }[];
+  models: Record<string, number>;
+  objects: {
+    object: string;
+    position: vec3;
+    rotation: quat;
+    scale: vec3;
+    texture?: string;
+    tags?: string[];
+  }[];
 };
 
 // Creates a map file
-export async function LoadMap(window: FScreen, url: string, renderLoop: FrameRequestCallback, callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void>) {
+export async function LoadMap(
+  window: FScreen,
+  url: string,
+  renderLoop: FrameRequestCallback,
+  callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void>,
+) {
   const data = await LoadFileText(url);
   const jsonData = JSON.parse(data) as MapFile;
 
   // Loads all shaders TODO: Make shaders specify what cameras they should be connected to
-  await Promise.all(jsonData.shaders.map((shader) => LoadShader(window.cameras[0], shader.vertexShader, shader.fragmentShader)));
+  await Promise.all(
+    jsonData.shaders.map((shader) =>
+      LoadShader(window.cameras[0], shader.vertexShader, shader.fragmentShader),
+    ),
+  );
 
   // Loads all models
   const modelsToShaderIndex: Record<string, number> = {};
-  await Promise.all(Object.entries(jsonData.models).map(async ([model, shaderIndex]) => {
-    const modelData = await LoadModel(window, model);
-    window.shaders[shaderIndex].CreateModel(model, modelData);
-    modelsToShaderIndex[model] = shaderIndex;
-  }));
+  await Promise.all(
+    Object.entries(jsonData.models).map(async ([model, shaderIndex]) => {
+      const modelData = await LoadModel(window, model);
+      window.shaders[shaderIndex].CreateModel(model, modelData);
+      modelsToShaderIndex[model] = shaderIndex;
+    }),
+  );
 
   jsonData.objects.forEach(async (object) => {
     if (object.texture && !Object.keys(window.texIds).includes(object.texture)) {
@@ -99,9 +117,15 @@ export async function LoadMap(window: FScreen, url: string, renderLoop: FrameReq
     }
 
     const tags = object.tags ?? [];
-    const objec = window.shaders[modelsToShaderIndex[object.object]].InstanceObject(object.object, new RotPos(object.position, object.rotation, object.scale), 0, object.texture, tags);
+    const objec = window.shaders[modelsToShaderIndex[object.object]].InstanceObject(
+      object.object,
+      new RotPos(object.position, object.rotation, object.scale),
+      0,
+      object.texture,
+      tags,
+    );
 
-    tags.forEach(tag => {
+    tags.forEach((tag) => {
       if (callbackFunctions[tag]) {
         objec.callbackFn = callbackFunctions[tag];
       }

@@ -27,7 +27,6 @@
 // const temp = new FScreen("canvas");
 // LoadMap("osiris.txt");
 
-
 // //Should only be called once per animation frame. Starts a loop of updating shaders.
 // function RenderLoop(now) {
 
@@ -69,9 +68,7 @@
 
 //   vec3.add(_vec, _vec, temp.camera.rotpos.position);
 
-
 //   vec3.add(temp.camera.rotpos.position, temp.camera.rotpos.position, movVec);
-
 
 //   //let vec = temp.shaders[0].objects[0].rotpos.right;
 //   //console.log(vec);
@@ -237,7 +234,6 @@
 //   let rawStringAttributes = data.split("\r\n");
 //   let stringAttributes = [];
 
-
 //   //What does this generate?
 //   //Splits data by line, then splits lines by colons, then splits sublines by commas
 //   let skipped = 0;
@@ -261,16 +257,12 @@
 
 //   //console.log(stringAttributes);
 
-
-
 //   //Load all shaders
 //   let shaderCount = parseInt(stringAttributes[0][0]);
 
 //   for (let i = 0; i < shaderCount; i++) {
 //     await LoadShader(temp, stringAttributes[i + 1][0][0], stringAttributes[i + 1][0][1]);
 //   }
-
-
 
 //   //Load all unique models
 //   let modelCount = parseInt(stringAttributes[shaderCount + 1][0]);
@@ -293,7 +285,6 @@
 //   }
 
 //   //console.log(models);
-
 
 //   //Instantiate all objects
 //   for (let i = shaderCount + modelCount + 2; i < stringAttributes.length; i++) {
@@ -431,7 +422,6 @@
 //   }*/
 // });
 
-
 // document.addEventListener("mousemove", e => {
 //   if (document.pointerLockElement === null || isPaused === true) {
 //     return;
@@ -440,7 +430,6 @@
 //   rotX += e.movementX;
 //   rotY += e.movementY;
 // });
-
 
 // //Resizing for the window. What's the difference between "resize" and "onresize"?
 // window.addEventListener("resize", e => {
