@@ -34,7 +34,6 @@ export function MoveCircle(circle: Circle2D, vector: Point2D): void {
 
     // If there is an intersection, and it would occur before the current intersection, store it
     if (intersection) {
-      console.log('INTERSECTION', intersection, index);
       const distance = distancePointToPoint(movVector.point1, intersection);
       if (distance < smallestIntersectionDistance) {
         smallestIntersectionDistance = distance;
@@ -78,12 +77,13 @@ export function MoveCircle(circle: Circle2D, vector: Point2D): void {
 
   // Calculate slide and keep going
   // 1. Get acute angle between the collision gradient and the movVector
-  const angle = Math.acos(
-    ((collider.point1.x - collider.point2.x) * vector.x +
-      (collider.point1.y - collider.point2.y) * vector.y) /
-      (collider.length * movVector.length),
-  );
-  console.log('ANGLE', angle);
+  const angle =
+    Math.PI -
+    Math.acos(
+      ((collider.point1.x - collider.point2.x) * vector.x +
+        (collider.point1.y - collider.point2.y) * vector.y) /
+        (collider.length * movVector.length),
+    );
   // 2. Calculate length of the slide based using cosine
   const slideLength = Math.cos(angle) * extraMoveLength;
   // 3. Move the circle by the slide

@@ -112,9 +112,9 @@ function RenderLoop(now: DOMHighResTimeStamp) {
       0.05,
     );
 
-    console.log('MOVING', movVec, circle.center.x, circle.center.y);
+    // console.log('MOVING', movVec, circle.center.x, circle.center.y);
     MoveCircle(circle, new Point2D(movVec[2], movVec[0]));
-    console.log('LANDED', circle.center.x, circle.center.y);
+    // console.log('LANDED', circle.center.x, circle.center.y);
 
     temp.cameras[0].rotpos.position[0] = circle.center.y;
     temp.cameras[0].rotpos.position[2] = circle.center.x;
