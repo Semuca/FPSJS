@@ -112,50 +112,12 @@ function RenderLoop(now: DOMHighResTimeStamp) {
       0.05,
     );
 
-    // console.log('MOVING', movVec, circle.center.x, circle.center.y);
+    console.log('MOVING', circle.center.x, circle.center.y);
     MoveCircle(circle, new Point2D(movVec[2], movVec[0]));
-    // console.log('LANDED', circle.center.x, circle.center.y);
+    console.log('LANDED', circle.center.x, circle.center.y);
 
     temp.cameras[0].rotpos.position[0] = circle.center.y;
     temp.cameras[0].rotpos.position[2] = circle.center.x;
-    // const proposedMoveVec = vec3.create();
-    // vec3.add(proposedMoveVec, temp.cameras[0].rotpos.position as vec3, movVec);
-
-    // const currentPoint = new Point2D(temp.cameras[0].rotpos.position[2] as number, temp.cameras[0].rotpos.position[0]);
-    // const proposedMovePoint = new Point2D(proposedMoveVec[2], proposedMoveVec[0]);
-    // const moveSegment = new Segment2D(currentPoint, proposedMovePoint);
-
-    // // Calculate if the plane segment intersects with it
-    // // Get shortest distance
-    // // let i = 0;
-    // temp.shaders[0].models["plane.json"].objects.forEach((object) => {
-    //   const rotationVec = vec3.create();
-    //   const angle = quat.getAxisAngle(rotationVec, object.rotpos.rotation);
-
-    //   const scale = object.rotpos.scale[0];
-    //   const xBonus = Math.cos(angle) * scale;
-    //   const yBonus = Math.sin(angle) * scale * (rotationVec[1] < 0 ? 1 : -1);
-
-    //   const point1 = new Point2D(object.rotpos.position[2] as number + yBonus, object.rotpos.position[0] + xBonus);
-    //   const point2 = new Point2D(object.rotpos.position[2] as number - yBonus, object.rotpos.position[0] - xBonus);
-    //   const wallSegment = new Segment2D(point1, point2);
-
-    //   const intersection = IntersectionSegmentAndSegment(moveSegment, wallSegment);
-
-    //   if (intersection instanceof Point2D) {
-    //     // Move back along the segment the distance of the radius (towards point 1)
-    //     const radius = 0.05;
-    //     const x = intersection.x - radius * Math.cos(moveSegment.angle);
-    //     const y = intersection.y - radius * Math.sin(moveSegment.angle);
-
-    //     proposedMoveVec[0] = y;
-    //     proposedMoveVec[2] = x;
-    //   }
-
-    //   // i++;
-    // });
-
-    // temp.cameras[0].rotpos.position = proposedMoveVec;
   }
 
   vec3.add(_vec, _vec, temp.cameras[0].rotpos.position as vec3);
