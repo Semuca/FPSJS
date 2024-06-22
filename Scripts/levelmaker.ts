@@ -194,7 +194,7 @@ function RenderLoop() {
   );
 
   //Grid rendering - Y
-  let offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2) % 50.0;
+  const offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2) % 50.0;
 
   quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
 
@@ -216,7 +216,7 @@ function RenderLoop() {
   }
 
   //Grid rendering - X
-  let offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2) % 50.0;
+  const offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2) % 50.0;
 
   line.rotpos.position[0] = (cam.pxWidth * cam.zoom) / 2;
   line.rotpos.position[1] = offsetY - (cam.pxHeight * cam.zoom) / 2;
@@ -478,8 +478,8 @@ cam.onMouseUp = (e) => {
 
 // Select tile
 sidebar.onMouseDown = (e) => {
-  let x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
-  let y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
+  const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
+  const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
 
   if (sidepanes[currentSidepaneIndex].textures[x + 4 * y] != undefined) {
     tile = x + 4 * y;

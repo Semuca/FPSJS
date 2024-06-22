@@ -25,7 +25,7 @@ export class FScreen {
 
   // Manage what keys are being held down
   // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code
-  keysDown: Record<string, Boolean> = {};
+  keysDown: Record<string, boolean> = {};
   keyDownCallbacks: Record<string, () => void> = {};
   keyUpCallbacks: Record<string, () => void> = {};
 
@@ -189,10 +189,10 @@ export class FScreen {
     //Adjusts texture parameters
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST); //This removes blurring
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
 
-    this.gl.generateMipmap(this.gl.TEXTURE_2D); //WebGL 1 can only mipmap even-height and width textures. I know this is webgl2, but should think about compatability
+    this.gl.generateMipmap(this.gl.TEXTURE_2D);
 
     return texture;
   }

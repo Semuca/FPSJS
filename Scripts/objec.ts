@@ -40,7 +40,7 @@ export class Objec {
   worldIndex = 0;
   tags = new Set<string>();
   matrix = mat4.create();
-  callbackFn = (_screen: FScreen, _object: Objec) => {};
+  callbackFn: (_screen: FScreen, _object: Objec) => void = () => {};
 
   constructor(rotpos: RotPos | RotPos2D, worldIndex: number = 0, texId?: number) {
     this.rotpos = rotpos;
@@ -94,7 +94,7 @@ export class RotPos {
   }
 
   get forward() {
-    let vec = [0, 0, 0];
+    const vec = [0, 0, 0];
     vec[0] = 2 * (this.rotation[0] * this.rotation[2] + this.rotation[3] * this.rotation[1]);
     vec[1] = 2 * (this.rotation[1] * this.rotation[0] - this.rotation[3] * this.rotation[0]);
     vec[2] = 1 - 2 * (this.rotation[0] * this.rotation[0] + this.rotation[1] * this.rotation[1]);
@@ -102,7 +102,7 @@ export class RotPos {
   }
 
   get up() {
-    let vec = [0, 0, 0];
+    const vec = [0, 0, 0];
     vec[0] = 2 * (this.rotation[0] * this.rotation[1] - this.rotation[3] * this.rotation[2]);
     vec[1] = 1 - 2 * (this.rotation[0] * this.rotation[0] + this.rotation[2] * this.rotation[2]);
     vec[2] = 2 * (this.rotation[1] * this.rotation[2] + this.rotation[3] * this.rotation[0]);
@@ -110,7 +110,7 @@ export class RotPos {
   }
 
   get right() {
-    let vec = [0, 0, 0];
+    const vec = [0, 0, 0];
     vec[0] = 1 - 2 * (this.rotation[1] * this.rotation[1] + this.rotation[2] * this.rotation[2]);
     vec[1] = 2 * (this.rotation[0] * this.rotation[1] + this.rotation[3] * this.rotation[2]);
     vec[2] = 2 * (this.rotation[0] * this.rotation[2] - this.rotation[3] * this.rotation[1]);

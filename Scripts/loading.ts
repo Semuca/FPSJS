@@ -50,7 +50,7 @@ export interface ModelData {
 }
 
 //Loads model from txt file
-export async function LoadModel(window: FScreen, url: string): Promise<any> {
+export async function LoadModel(window: FScreen, url: string): Promise<ModelData> {
   const data = await LoadFileText(`models/${url}`);
   const jsonData = JSON.parse(data) as ModelData;
 

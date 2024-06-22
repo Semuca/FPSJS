@@ -36,9 +36,9 @@ export class Camera {
   // Set up events
   cursor: string = 'default';
 
-  onMouseDown: (e: MouseEvent) => void = (_e: MouseEvent) => {};
-  onMouseMove: (e: MouseEvent) => void = (_e: MouseEvent) => {};
-  onMouseUp: (e: MouseEvent) => void = (_e: MouseEvent) => {};
+  onMouseDown: (e: MouseEvent) => void = () => {};
+  onMouseMove: (e: MouseEvent) => void = () => {};
+  onMouseUp: (e: MouseEvent) => void = () => {};
 
   constructor(
     window: FScreen,
@@ -244,7 +244,7 @@ export class Shader {
     const uniformCount = this.gl.getProgramParameter(this.shaderProgram, this.gl.ACTIVE_UNIFORMS);
 
     //Fill attribute locations in programInfo so we can send data to them later
-    for (var i = 0; i < attribCount; i++) {
+    for (let i = 0; i < attribCount; i++) {
       const attribInfo = this.gl.getActiveAttrib(this.shaderProgram, i);
       if (!attribInfo) continue;
       this.programInfo.attribLocations[attribInfo.name] = this.gl.getAttribLocation(
@@ -254,7 +254,7 @@ export class Shader {
     }
 
     //Fill uniform locations in programInfo so we can send data to them later
-    for (var i = 0; i < uniformCount; i++) {
+    for (let i = 0; i < uniformCount; i++) {
       const uniformInfo = this.gl.getActiveUniform(this.shaderProgram, i);
       if (!uniformInfo) continue;
       const uniformLocation = this.gl.getUniformLocation(this.shaderProgram, uniformInfo.name);

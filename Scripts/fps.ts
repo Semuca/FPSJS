@@ -1,13 +1,13 @@
 import { FScreen, toggleFullScreen } from './screen.js';
 import { LoadMap } from './loading.js';
 import { Circle2D, Point2D, Segment2D } from './geometry.js';
-import { Objec, RotPos2D } from './objec.js';
+import { Objec } from './objec.js';
 import { mat4, quat, vec3 } from 'gl-matrix';
 import { colliders, MoveCircle } from './collider.js';
 
 // let time = 0;
 let pointerLockActivation = 0;
-let isPaused = false;
+const isPaused = false;
 
 let rotX = 0;
 let rotY = 0;
@@ -45,8 +45,14 @@ const callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void
   },
 };
 
-LoadMap(temp, 'map.json', RenderLoop, callbackFunctions).then(() => {
-  temp.shaders[1].InstanceObject('verSprite.json', new RotPos2D([0.5, 0.5], Math.PI, [10, 10]), 0);
+LoadMap(temp, 'map.json', RenderLoop, callbackFunctions).then(async () => {
+  // await CreateTexture(temp, 'pistol.png');
+  // temp.shaders[1].InstanceObject(
+  //   'verSprite.json',
+  //   new RotPos2D([0, -110], Math.PI, [300, 300]),
+  //   0,
+  //   'pistol.png',
+  // );
 
   // Set up colliders
   temp.shaders[0].models['plane.json'].objects.forEach((object) => {
@@ -70,13 +76,13 @@ LoadMap(temp, 'map.json', RenderLoop, callbackFunctions).then(() => {
 });
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
-function RenderLoop(now: DOMHighResTimeStamp) {
+function RenderLoop() {
   //Don't update if mouse pointer is not locked
   if (document.pointerLockElement === null) {
     requestAnimationFrame(RenderLoop);
     return;
   }
-  now *= 0.001; // convert to seconds
+  // now *= 0.001; // convert to seconds
   // const deltaTime = now - time;
   // time = now;
 
@@ -112,9 +118,7 @@ function RenderLoop(now: DOMHighResTimeStamp) {
       0.05,
     );
 
-    console.log('MOVING', circle.center.x, circle.center.y);
     MoveCircle(circle, new Point2D(movVec[2], movVec[0]));
-    console.log('LANDED', circle.center.x, circle.center.y);
 
     temp.cameras[0].rotpos.position[0] = circle.center.y;
     temp.cameras[0].rotpos.position[2] = circle.center.x;
@@ -140,7 +144,6 @@ temp.canvas.addEventListener('click', () => {
     const now = performance.now();
     if (now - pointerLockActivation > 2500) {
       //I wouldn't consider this a good solution, but it seems to be the only one that removes a DOMerror
-      temp.canvas.requestPointerLock = temp.canvas.requestPointerLock; //Do I need to do this every time?
       temp.canvas.requestPointerLock();
       pointerLockActivation = now;
     }
@@ -149,6 +152,13 @@ temp.canvas.addEventListener('click', () => {
 
 temp.keyDownCallbacks['Enter'] = () => {
   toggleFullScreen();
+};
+
+cam.onMouseDown = () => {
+  // Play an animation for the gun using sprite sheets
+  // Calculate where the shot lands on a 2d plane
+  // Spawn a decal where the shot lands (Make sure no more than 100 show)
+  // Trigger a shot landed call on whatever object the shot lands on
 };
 
 cam.onMouseMove = (e) => {

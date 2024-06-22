@@ -18,7 +18,7 @@ let font: Font; //Think of a faster way to look up fonts later
 
 //Set up new screen that takes up the entire space
 const temp = new FScreen('canvas');
-let cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], 0);
+const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], 0);
 cam.PreDraw();
 
 Setup();

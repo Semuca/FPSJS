@@ -19,7 +19,7 @@ let mode = MODES.MOVE;
 let mouse = MOUSE.PLACING;
 
 let tile = 0;
-let tiles: Record<number, Record<number, Objec>> = {};
+const tiles: Record<number, Record<number, Objec>> = {};
 for (let index = -50; index <= 50; index++) {
   tiles[index] = {};
 }
@@ -32,8 +32,8 @@ let sprites: Objec[] = [];
 let textureGroup: string[];
 
 const temp = new FScreen('canvas');
-let cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
-let sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
+const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
+const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
 cam.PreDraw();
 
 Setup();
@@ -52,7 +52,7 @@ async function Setup() {
   }
 
   // Load sidebar
-  let width = sidebar.pxWidth / 4;
+  const width = sidebar.pxWidth / 4;
   for (let i = 0; i < textureGroup.length; i++) {
     temp.shaders[0].InstanceObject(
       'verSprite.json',
@@ -99,8 +99,8 @@ async function Setup() {
 }
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
-function RenderLoop(now: DOMHighResTimeStamp) {
-  now *= 0.001; // convert to seconds
+function RenderLoop() {
+  // now *= 0.001; // convert to seconds
   // const deltaTime = now - time;
   // time = now;
   if (!temp.shaders[1].shaderProgram) return;
@@ -119,7 +119,7 @@ function RenderLoop(now: DOMHighResTimeStamp) {
   );
 
   //Grid rendering - Y
-  let offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2) % 50.0;
+  const offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2) % 50.0;
 
   quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
 
@@ -141,7 +141,7 @@ function RenderLoop(now: DOMHighResTimeStamp) {
   }
 
   //Grid rendering - X
-  let offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2) % 50.0;
+  const offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2) % 50.0;
 
   line.rotpos.position[0] = (cam.pxWidth * cam.zoom) / 2;
   line.rotpos.position[1] = offsetY - (cam.pxHeight * cam.zoom) / 2;
@@ -248,10 +248,10 @@ cam.onMouseDown = (e) => {
   }
 
   //Positions on the grid
-  let posX = Math.floor(
+  const posX = Math.floor(
     (-cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2 - e.pageX * cam.zoom) / 50.0,
   );
-  let posY = Math.floor(
+  const posY = Math.floor(
     (-cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2 - e.pageY * cam.zoom) / 50.0,
   );
 
@@ -279,8 +279,8 @@ cam.onMouseDown = (e) => {
 };
 
 sidebar.onMouseDown = (e) => {
-  let x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
-  let y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
+  const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
+  const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
 
   if (textureGroup[x + 4 * y] != undefined) {
     tile = x + 4 * y;

@@ -25,7 +25,8 @@ export function MoveCircle(circle: Circle2D, vector: Point2D): void {
   const magnitude = Math.sqrt(vector.x ** 2 + vector.y ** 2);
 
   // Keep moving until we go through the entire movement vector
-  while (paths.length) {
+  let loop = 0;
+  while (paths.length && loop < 3) {
     const pathSection = paths.shift();
     if (pathSection === undefined) return;
 
@@ -63,13 +64,11 @@ export function MoveCircle(circle: Circle2D, vector: Point2D): void {
 
     // Calculate slide and keep going
     // 1. Get acute angle between the collision gradient and the movVector
-    const angle =
-      Math.PI -
-      Math.acos(
-        ((collider.point1.x - collider.point2.x) * vector.x +
-          (collider.point1.y - collider.point2.y) * vector.y) /
-          (collider.length * magnitude),
-      );
+    const angle = Math.acos(
+      ((collider.point1.x - collider.point2.x) * vector.x +
+        (collider.point1.y - collider.point2.y) * vector.y) /
+        (collider.length * magnitude),
+    );
     // 2. Calculate length of the slide based using cosine
     const slideLength = Math.cos(angle) * extraMoveLength;
     // 3. Move the circle by the slide length
@@ -84,18 +83,23 @@ export function MoveCircle(circle: Circle2D, vector: Point2D): void {
         ),
       ),
     );
+    loop++;
   }
 }
 
 interface CollisionInfo {
   collider: Segment2D;
   distance: number;
-  // intersection: Point2D;
+  positionAtCollision: Point2D;
+  intersection: Point2D;
 }
 
 // Gets next collider from a segment point 1 to point 2
 // - Get the point of collision on both the movement vector and the collider?
-function GetNextColliderOnSegment(segment: Segment2D, circle: Circle2D): CollisionInfo | undefined {
+export function GetNextColliderOnSegment(
+  segment: Segment2D,
+  circle: Circle2D,
+): CollisionInfo | undefined {
   let smallestDistance = Number.MAX_VALUE;
   let nextCollider: Segment2D | undefined = undefined;
   colliders.forEach((collider) => {

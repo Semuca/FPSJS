@@ -16,7 +16,7 @@ export class PhysicsScene {
 
   ProposedMove(position: vec3, movement: vec3, pobjecID: number) {
     //Somehow this isn't working perfectly, won't slide along objects
-    let newPos = vec3.create();
+    const newPos = vec3.create();
     vec3.add(newPos, position, movement);
     //newPos[0] = position[0] + movement[0]; //Really need to create my own math library, this is not on
     //newPos[1] = position[1] + movement[1];
@@ -31,9 +31,9 @@ export class PhysicsScene {
         continue;
       }
 
-      let sizesX = this.pobjecs[pobjecID].sizeX + this.pobjecs[i].sizeX;
-      let sizesY = this.pobjecs[pobjecID].sizeY + this.pobjecs[i].sizeY;
-      let sizesZ = this.pobjecs[pobjecID].sizeZ + this.pobjecs[i].sizeZ;
+      const sizesX = this.pobjecs[pobjecID].sizeX + this.pobjecs[i].sizeX;
+      const sizesY = this.pobjecs[pobjecID].sizeY + this.pobjecs[i].sizeY;
+      const sizesZ = this.pobjecs[pobjecID].sizeZ + this.pobjecs[i].sizeZ;
 
       if (this.CheckForCollision(newPos, i, sizesX, sizesY, sizesZ) == true) {
         //The old position will have the point where the two cubes intersect, the new one won't. How do I get the point where they intersect?
