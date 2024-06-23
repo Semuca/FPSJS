@@ -54,7 +54,7 @@ describe('IntersectionArcAndLine', () => {
       );
     });
 
-    test.only('vertical line intersecting arc on the negative y axis', () => {
+    test('vertical line intersecting arc on the negative y axis', () => {
       comparePoints(
         IntersectionArcAndLine(
           new Arc2D(new Point2D(0, 0), 1, Math.PI, Math.PI),

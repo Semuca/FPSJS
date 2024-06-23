@@ -111,7 +111,7 @@ export class Segment2D extends Line2D {
   length: number;
 
   constructor(point1: Point2D, point2: Point2D) {
-    const gradient = (point1.y - point2.y) / (point1.x - point2.x);
+    const gradient = roundToPlaces((point1.y - point2.y) / (point1.x - point2.x), 6);
 
     const xIntercept = getXIntercept(gradient, point1);
     const yIntercept = getYIntercept(gradient, point1);
@@ -484,7 +484,8 @@ export class RoundedSegment2D extends Segment2D {
 export function IntersectionRoundedSegmentAndSegment(
   roundedSegment: RoundedSegment2D,
   segment: Segment2D,
-): Segment2D | [Point2D, Point2D] | [Point2D] | [] {
+): [Point2D, Point2D] | [Point2D] | [] {
+  //TODO: Add Segment2D as a possible output
   // Construct the lines and arcs from the rounded segment
   const translation = getTranslationAlongAngle(roundedSegment.normalAngle, roundedSegment.radius);
   const segment1 = new Segment2D(

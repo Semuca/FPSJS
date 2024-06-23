@@ -111,26 +111,28 @@ export async function LoadMap(
     }),
   );
 
-  jsonData.objects.forEach(async (object) => {
-    if (object.texture && !Object.keys(window.texIds).includes(object.texture)) {
-      await CreateTexture(window, object.texture);
-    }
-
-    const tags = object.tags ?? [];
-    const objec = window.shaders[modelsToShaderIndex[object.object]].InstanceObject(
-      object.object,
-      new RotPos(object.position, object.rotation, object.scale),
-      0,
-      object.texture,
-      tags,
-    );
-
-    tags.forEach((tag) => {
-      if (callbackFunctions[tag]) {
-        objec.callbackFn = callbackFunctions[tag];
+  await Promise.all(
+    jsonData.objects.map(async (object) => {
+      if (object.texture && !Object.keys(window.texIds).includes(object.texture)) {
+        await CreateTexture(window, object.texture);
       }
-    });
-  });
+
+      const tags = object.tags ?? [];
+      const objec = window.shaders[modelsToShaderIndex[object.object]].InstanceObject(
+        object.object,
+        new RotPos(object.position, object.rotation, object.scale),
+        0,
+        object.texture,
+        tags,
+      );
+
+      tags.forEach((tag) => {
+        if (callbackFunctions[tag]) {
+          objec.callbackFn = callbackFunctions[tag];
+        }
+      });
+    }),
+  );
 
   requestAnimationFrame(renderLoop);
 }

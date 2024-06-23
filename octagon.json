@@ -3,36 +3,31 @@
         {
             "vertexShader": "vertexShader.vs",
             "fragmentShader": "fragmentShader.fs"
-        },
-        {
-            "vertexShader": "2DspriteVertexShader.vs",
-            "fragmentShader": "spriteFragmentShader.fs"
         }
     ],
     "models": {
-        "plane.json": 0,
-        "verSprite.json": 1
+        "plane.json": 0
     },
     "objects": [
         {
             "object": "plane.json",
             "position": [
+                6,
                 0,
-                0,
-                6
+                1
             ],
             "rotation": {
                 "0": 0,
-                "1": 0,
+                "1": -0.7071067690849304,
                 "2": 0,
-                "3": 1
+                "3": 0.7071067690849304
             },
             "scale": [
-                2,
+                1,
                 1,
                 1
             ],
-            "texture": "texture.png",
+            "texture": "door.png",
             "tags": [
                 "wall"
             ]
@@ -40,9 +35,9 @@
         {
             "object": "plane.json",
             "position": [
-                5,
+                4,
                 0,
-                3
+                4
             ],
             "rotation": {
                 "0": 0,
@@ -51,7 +46,7 @@
                 "3": 0.9238795042037964
             },
             "scale": [
-                1.4142135623730951,
+                2.8284271247461903,
                 1,
                 1
             ],
@@ -63,7 +58,53 @@
         {
             "object": "plane.json",
             "position": [
-                6,
+                1,
+                0,
+                8
+            ],
+            "rotation": {
+                "0": 0,
+                "1": 0,
+                "2": 0,
+                "3": 1
+            },
+            "scale": [
+                3,
+                1,
+                1
+            ],
+            "texture": "door.png",
+            "tags": [
+                "wall"
+            ]
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                -5,
+                0,
+                5
+            ],
+            "rotation": {
+                "0": 0,
+                "1": -0.16018223762512207,
+                "2": 0,
+                "3": 0.9870874285697937
+            },
+            "scale": [
+                3.1622776601683795,
+                1,
+                1
+            ],
+            "texture": "texture.png",
+            "tags": [
+                "wall"
+            ]
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                -6,
                 0,
                 0
             ],
@@ -86,9 +127,32 @@
         {
             "object": "plane.json",
             "position": [
-                1,
+                -7,
                 0,
-                -2
+                -6
+            ],
+            "rotation": {
+                "0": 0,
+                "1": 0.525731086730957,
+                "2": 0,
+                "3": 0.8506507873535156
+            },
+            "scale": [
+                2.23606797749979,
+                1,
+                1
+            ],
+            "texture": "texture.png",
+            "tags": [
+                "wall"
+            ]
+        },
+        {
+            "object": "plane.json",
+            "position": [
+                0,
+                0,
+                -4
             ],
             "rotation": {
                 "0": 0,
@@ -97,82 +161,36 @@
                 "3": 1
             },
             "scale": [
+                2,
+                1,
+                1
+            ],
+            "texture": "texture.png",
+            "tags": [
+                "wall"
+            ]
+        },
+        {
+            "object": "plane.json",
+            "position": [
                 5,
+                0,
+                -6
+            ],
+            "rotation": {
+                "0": 0,
+                "1": -0.28978416323661804,
+                "2": 0,
+                "3": 0.9570920467376709
+            },
+            "scale": [
+                3.605551275463989,
                 1,
                 1
             ],
             "texture": "texture.png",
             "tags": [
                 "wall"
-            ]
-        },
-        {
-            "object": "plane.json",
-            "position": [
-                -3,
-                0,
-                2
-            ],
-            "rotation": {
-                "0": 0,
-                "1": -0.6154122352600098,
-                "2": 0,
-                "3": 0.7882054448127747
-            },
-            "scale": [
-                4.123105625617661,
-                1,
-                1
-            ],
-            "texture": "texture.png",
-            "tags": [
-                "wall"
-            ]
-        },
-        {
-            "object": "plane.json",
-            "position": [
-                3,
-                0,
-                5
-            ],
-            "rotation": {
-                "0": 0,
-                "1": 0.3826834261417389,
-                "2": 0,
-                "3": 0.9238795042037964
-            },
-            "scale": [
-                1.4142135623730951,
-                1,
-                1
-            ],
-            "texture": "door.png",
-            "tags": [
-                "wall"
-            ]
-        },
-        {
-            "object": "plane.json",
-            "position": [
-                3.5,
-                0,
-                0.5
-            ],
-            "rotation": [
-                0,
-                0,
-                0,
-                1
-            ],
-            "scale": [
-                1,
-                1,
-                1
-            ],
-            "texture": "4.png",
-            "tags": [
-                "sprite"
             ]
         }
     ]

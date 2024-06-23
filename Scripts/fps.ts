@@ -45,7 +45,7 @@ const callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void
   },
 };
 
-LoadMap(temp, 'map.json', RenderLoop, callbackFunctions).then(async () => {
+LoadMap(temp, 'octagon.json', RenderLoop, callbackFunctions).then(async () => {
   // await CreateTexture(temp, 'pistol.png');
   // temp.shaders[1].InstanceObject(
   //   'verSprite.json',
