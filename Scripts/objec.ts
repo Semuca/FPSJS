@@ -34,6 +34,7 @@ export class Model {
 
 //Instance of object
 export class Objec {
+  model: Model;
   rotpos: RotPos | RotPos2D;
   texId?: number;
   hidden = false;
@@ -42,7 +43,8 @@ export class Objec {
   matrix = mat4.create();
   callbackFn: (_screen: FScreen, _object: Objec) => void = () => {};
 
-  constructor(rotpos: RotPos | RotPos2D, worldIndex: number = 0, texId?: number) {
+  constructor(model: Model, rotpos: RotPos | RotPos2D, worldIndex: number = 0, texId?: number) {
+    this.model = model;
     this.rotpos = rotpos;
     this.worldIndex = worldIndex;
     this.texId = texId;
@@ -76,7 +78,7 @@ export class Objec {
   }
 
   Destructor() {
-    //TODO: Release hooks like resizing/ physics calculations here
+    this.model.objects.splice(this.model.objects.indexOf(this), 1);
   }
 }
 

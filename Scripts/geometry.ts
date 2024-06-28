@@ -84,8 +84,8 @@ export function getTranslationAlongAngle(angle: number, distance: number): Point
   return new Point2D(Math.cos(angle) * distance, Math.sin(angle) * distance);
 }
 
-export function translatePointAlongLine(point: Point2D, line: Line2D, distance: number): Point2D {
-  const translation = getTranslationAlongAngle(line.angle, distance);
+export function translatePointAlongAngle(point: Point2D, angle: number, distance: number): Point2D {
+  const translation = getTranslationAlongAngle(angle, distance);
   return new Point2D(point.x + translation.x, point.y + translation.y);
 }
 

@@ -1,9 +1,9 @@
 import { FScreen, toggleFullScreen } from './screen.js';
 import { LoadMap } from './loading.js';
-import { Circle2D, Point2D, Segment2D } from './geometry.js';
-import { Objec } from './objec.js';
+import { Circle2D, Point2D, Segment2D, translatePointAlongAngle } from './geometry.js';
+import { Objec, RotPos } from './objec.js';
 import { mat4, quat, vec3 } from 'gl-matrix';
-import { colliders, MoveCircle } from './collider.js';
+import { colliders, GetNextColliderOnSegment, MoveCircle } from './collider.js';
 
 // let time = 0;
 let pointerLockActivation = 0;
@@ -11,8 +11,11 @@ const isPaused = false;
 
 let rotX = 0;
 let rotY = 0;
+let rot = 0;
 
 const speed = 0.1;
+const DECALS_LENGTH = 30;
+const decals: Objec[] = [];
 
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 // let physicsScene = new PhysicsScene();
@@ -99,6 +102,8 @@ function RenderLoop() {
   vec3.normalize(_cameraRight, _cameraRight);
   vec3.cross(_cameraUp, _vec, _cameraRight);
 
+  rot = Math.atan2(_vec[0], _vec[2]);
+
   // Calculate movement
   const movX = ((temp.keysDown['KeyA'] ? 1 : 0) - (temp.keysDown['KeyD'] ? 1 : 0)) / 10;
   const movZ = ((temp.keysDown['KeyW'] ? 1 : 0) - (temp.keysDown['KeyS'] ? 1 : 0)) / 10;
@@ -139,7 +144,7 @@ function RenderLoop() {
 
 //What's the difference between window.addeventlistener and document.addeventlistener?
 temp.canvas.addEventListener('click', () => {
-  if (document.pointerLockElement === null) {
+  if (!document.pointerLockElement) {
     //Might need to add mozPointerLock, whatever that is
     const now = performance.now();
     if (now - pointerLockActivation > 2500) {
@@ -155,9 +160,38 @@ temp.keyDownCallbacks['Enter'] = () => {
 };
 
 cam.onMouseDown = () => {
+  if (!document.pointerLockElement) return;
   // Play an animation for the gun using sprite sheets
+
   // Calculate where the shot lands on a 2d plane
-  // Spawn a decal where the shot lands (Make sure no more than 100 show)
+  const camPos = new Point2D(
+    temp.cameras[0].rotpos.position[2] as number,
+    temp.cameras[0].rotpos.position[0],
+  );
+  const endPoint = translatePointAlongAngle(camPos, rot, 100);
+
+  const hit = GetNextColliderOnSegment(
+    new Segment2D(camPos, endPoint),
+    new Circle2D(camPos, 0.005),
+  );
+
+  if (!hit) return;
+
+  // Spawn a decal where the shot lands (Make sure no more than DECALS_LENGTH show)
+  const rotation = quat.create();
+  quat.setAxisAngle(rotation, [0, 1, 0], hit.collider.angle + Math.PI / 2);
+  if (decals.length > DECALS_LENGTH) {
+    decals[0].Destructor();
+    decals.shift();
+  }
+
+  decals.push(
+    temp.shaders[0].InstanceObject(
+      'plane.json',
+      new RotPos([hit.intersection.y, 0, hit.intersection.x], rotation, [0.1, 0.1, 0.1]),
+    ),
+  );
+
   // Trigger a shot landed call on whatever object the shot lands on
 };
 

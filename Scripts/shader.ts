@@ -326,6 +326,7 @@ export class Shader {
     tags: string[] = [],
   ) {
     const newObject = new Objec(
+      this.models[name],
       rotpos,
       worldIndex,
       texName ? this.screen.texIds[texName] : undefined,

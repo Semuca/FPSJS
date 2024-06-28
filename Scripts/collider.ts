@@ -3,6 +3,7 @@ import {
   Circle2D,
   distancePointToPoint,
   IntersectionRoundedSegmentAndSegment,
+  IntersectionSegmentAndSegment,
   Point2D,
   RoundedSegment2D,
   Segment2D,
@@ -101,15 +102,25 @@ interface CollisionInfo {
 // - Get the point of collision on both the movement vector and the collider?
 export function GetNextColliderOnSegment(
   segment: Segment2D,
-  circle: Circle2D,
+  circle?: Circle2D,
 ): CollisionInfo | undefined {
   let collisionInfo: CollisionInfo | undefined = undefined;
   colliders.forEach((collider) => {
     // Calculate intersection. Based on the assumption we do not start in a collider, we can assume that the intersection will never be a Segment2D
-    const intersections = IntersectionRoundedSegmentAndSegment(
-      new RoundedSegment2D(collider.point1, collider.point2, circle.radius),
-      segment,
-    );
+    let intersections: Point2D[] = [];
+    if (!circle) {
+      const _intersections = IntersectionSegmentAndSegment(segment, collider);
+      if (_intersections === undefined) return;
+      intersections =
+        _intersections instanceof Segment2D
+          ? [_intersections.point1, _intersections.point2]
+          : [_intersections];
+    } else {
+      intersections = IntersectionRoundedSegmentAndSegment(
+        new RoundedSegment2D(collider.point1, collider.point2, circle.radius),
+        segment,
+      );
+    }
 
     intersections.forEach((intersection) => {
       const distance = distancePointToPoint(segment.point1, intersection);
