@@ -21,19 +21,23 @@ const MODES = {
 
 class Sprite extends Point2D {
   texture: string;
+  tags: string[];
 
-  constructor(point1: Point2D, texture: string) {
+  constructor(point1: Point2D, texture: string, tags: string[]) {
     super(point1.x, point1.y);
     this.texture = texture;
+    this.tags = tags;
   }
 }
 
 class Wall extends Segment2D {
   texture: string;
+  tags: string[];
 
-  constructor(point1: Point2D, point2: Point2D, texture: string) {
+  constructor(point1: Point2D, point2: Point2D, texture: string, tags: string[]) {
     super(point1, point2);
     this.texture = texture;
+    this.tags = tags;
   }
 }
 
@@ -68,12 +72,9 @@ interface Sidepane {
   textures: string[];
   selector: number;
   place: string;
+  tags: string[];
 }
 let sidepanes: Sidepane[] = [];
-
-function ClearSidebar() {
-  temp.shaders[0].DeleteAllObjects(1);
-}
 
 function UpdateSidebar(sidebarIndex: number) {
   const textureGroup = sidepanes.at(sidebarIndex)?.textures;
@@ -125,6 +126,15 @@ async function Setup() {
   //Processing textures to be loaded. Shouldn't this be a part of the map?
   const sidepaneData = await LoadFileText('../sidepanes.json');
   sidepanes = JSON.parse(sidepaneData).sidepanes;
+
+  sidepanes.forEach((_sidepane, index) => {
+    temp.keyDownCallbacks[`Digit${index + 1}`] = () => {
+      if (currentSidepaneIndex === index) return;
+      temp.shaders[0].DeleteAllObjects(1);
+      UpdateSidebar(index);
+      requestAnimationFrame(RenderLoop);
+    };
+  });
 
   await Promise.allSettled([
     sidepanes
@@ -341,6 +351,7 @@ cam.onMouseDown = () => {
       new Sprite(
         new Point2D(highlighter.rotpos.position[0] / 50, highlighter.rotpos.position[1] / 50),
         sidepanes[currentSidepaneIndex].textures[tile],
+        sidepanes[currentSidepaneIndex].tags,
       ),
     );
 
@@ -463,7 +474,12 @@ cam.onMouseUp = (e) => {
       secondHighlighter.hidden = true;
       if (secondPoint)
         walls.push(
-          new Wall(currentPoint, secondPoint, sidepanes[currentSidepaneIndex].textures[tile]),
+          new Wall(
+            currentPoint,
+            secondPoint,
+            sidepanes[currentSidepaneIndex].textures[tile],
+            sidepanes[currentSidepaneIndex].tags,
+          ),
         );
       cam.onMouseMove(e);
     }
@@ -515,10 +531,14 @@ temp.keyDownCallbacks['KeyU'] = () => {
         const point1 = new Point2D(object.position[2] + yBonus, object.position[0] + xBonus);
         const point2 = new Point2D(object.position[2] - yBonus, object.position[0] - xBonus);
 
-        walls.push(new Wall(point1, point2, object.texture));
+        walls.push(new Wall(point1, point2, object.texture, sidepanes[currentSidepaneIndex].tags));
       } else if (tags.includes('sprite')) {
         sprites.push(
-          new Sprite(new Point2D(object.position[0], object.position[2]), object.texture),
+          new Sprite(
+            new Point2D(object.position[0], object.position[2]),
+            object.texture,
+            sidepanes[currentSidepaneIndex].tags,
+          ),
         );
         temp.shaders[0].InstanceObject(
           'verSprite.json',
@@ -557,7 +577,7 @@ temp.keyDownCallbacks['KeyC'] = () => {
           rotation: q,
           scale: [wall.length, 1, 1],
           texture: wall.texture,
-          tags: ['wall'],
+          tags: wall.tags,
         };
       })
       .concat(
@@ -568,7 +588,7 @@ temp.keyDownCallbacks['KeyC'] = () => {
             rotation: [0, 0, 0, 1],
             scale: [1, 1, 1],
             texture: sprite.texture,
-            tags: ['sprite'],
+            tags: sprite.tags,
           };
         }),
       ),
@@ -590,20 +610,6 @@ temp.keyDownCallbacks['Space'] = () => {
   mode = mode === MODES.MOVE ? MODES.PLACE : MODES.MOVE;
   cam.cursor = mode === MODES.MOVE ? 'grab' : 'pointer';
   highlighter.hidden = true;
-  requestAnimationFrame(RenderLoop);
-};
-
-temp.keyDownCallbacks['Digit1'] = () => {
-  if (currentSidepaneIndex === 0) return;
-  ClearSidebar();
-  UpdateSidebar(0);
-  requestAnimationFrame(RenderLoop);
-};
-
-temp.keyDownCallbacks['Digit2'] = () => {
-  if (currentSidepaneIndex === 1) return;
-  ClearSidebar();
-  UpdateSidebar(1);
   requestAnimationFrame(RenderLoop);
 };
 

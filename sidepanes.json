@@ -6,14 +6,31 @@
                 "door.png"
             ],
             "selector": 1,
-            "place": "line"
+            "place": "line",
+            "tags": [
+                "wall"
+            ]
         },
         {
             "textures": [
                 "4.png"
             ],
             "selector": 0.5,
-            "place": "point"
+            "place": "point",
+            "tags": [
+                "sprite"
+            ]
+        },
+        {
+            "textures": [
+                "enemy.png"
+            ],
+            "selector": 0.5,
+            "place": "point",
+            "tags": [
+                "enemy",
+                "sprite"
+            ]
         }
     ]
 }
