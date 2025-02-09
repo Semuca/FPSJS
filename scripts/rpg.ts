@@ -72,7 +72,7 @@ async function Setup() {
   await CreateTexture(temp, 'white.png');
 
   await CreateTexture(temp, 'def.png');
-  font = new Font('def.png', JSON.parse(await LoadFileText('Textures/def.json')));
+  font = new Font('def.png', JSON.parse(await LoadFileText('textures/def.json')));
 
   DisplayBox(cam, temp.shaders[1], [0.8, 0.4]);
   font.CreateSentence(temp.shaders[1], 400.0, -100.0, '* HELLO CONOR!');

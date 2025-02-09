@@ -178,8 +178,8 @@
 
 // //Loads a shader from url data
 // async function LoadShader(window, vsUrl, fsUrl) {
-//   const vSource = await LoadFileText("Shaders/" + vsUrl);
-//   const fSource = await LoadFileText("Shaders/" + fsUrl);
+//   const vSource = await LoadFileText("shaders/" + vsUrl);
+//   const fSource = await LoadFileText("shaders/" + fsUrl);
 
 //   //Very hacky solution, to be fixed later
 //   let type = "3D";
@@ -191,7 +191,7 @@
 
 // //Loads model from txt file
 // async function LoadModel(url) {
-//   let data = await LoadFileText("Models/" + url);
+//   let data = await LoadFileText("models/" + url);
 //   let stringAttributes = data.split("\r\n\r\n"); //Splitting based on two enters. Is this good? i dunno right now, but it is what it is
 
 //   let obj = { "ARRAY_BUFFER": {} };
@@ -206,7 +206,7 @@
 
 //     let len = 3;
 //     if (name == "TEXTURE") {
-//       obj["TEXTURE"] = await LoadImage("Textures/" + stringAttributes[i][0]);
+//       obj["TEXTURE"] = await LoadImage("textures/" + stringAttributes[i][0]);
 //       continue;
 //     } else if (name != "ELEMENT_ARRAY_BUFFER") {
 //       len = parseInt(stringAttributes[i][0]);
