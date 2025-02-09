@@ -10,13 +10,7 @@ const MODES = {
   PLACE: 1,
 };
 
-const MOUSE = {
-  PLACING: 0,
-  ADJUSTING: 1,
-};
-
 let mode = MODES.MOVE;
-let mouse = MOUSE.PLACING;
 
 let tile = 0;
 const tiles: Record<number, Record<number, Objec>> = {};
@@ -26,8 +20,11 @@ for (let index = -50; index <= 50; index++) {
 
 let line: Objec;
 let selector: Objec;
-let sprites: Objec[] = [];
+// let sprites: Objec[] = [];
 
+interface Sidepane {
+  textures: string[];
+}
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 let textureGroup: string[];
 
@@ -45,10 +42,11 @@ async function Setup() {
   temp.shaders[0].CreateModel('verSprite.json', modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
-  const textureGroupData = await LoadFileText('../textures.txt');
-  textureGroup = textureGroupData.split('\n');
+  const sidepaneData:Sidepane[] = JSON.parse(await LoadFileText('../rpg_sidepanes.json')).sidepanes;
+
+  textureGroup = sidepaneData.flatMap(sidepane => sidepane.textures);
   for (let i = 0; i < textureGroup.length; i++) {
-    await CreateTexture(temp, textureGroup[i] + '.png');
+    await CreateTexture(temp, textureGroup[i]);
   }
 
   // Load sidebar
@@ -65,10 +63,10 @@ async function Setup() {
         [sidebar.pxWidth / 8, sidebar.pxWidth / 8],
       ),
       1,
-      textureGroup[i] + '.png',
+      textureGroup[i],
     );
   }
-  sprites = temp.shaders[0].models['verSprite.json'].objects;
+  // sprites = temp.shaders[0].models['verSprite.json'].objects;
 
   await CreateTexture(temp, 'tframe.png');
   selector = temp.shaders[0].InstanceObject(
@@ -243,7 +241,8 @@ temp.keyDownCallbacks['Space'] = () => {
 
 //For placing tiles
 cam.onMouseDown = (e) => {
-  if (temp.keysDown['ShiftLeft'] == true) {
+  if (mode === MODES.MOVE) {
+    document.body.style.cursor = 'grab';
     return;
   }
 
@@ -271,11 +270,27 @@ cam.onMouseDown = (e) => {
       'verSprite.json',
       new RotPos2D([posX * 50.0 + 25.0, posY * 50.0 + 25.0], Math.PI, [25.0, 25.0]),
       0,
-      textureGroup[tile] + '.png',
+      textureGroup[tile],
     );
   }
 
   requestAnimationFrame(RenderLoop);
+};
+
+cam.onMouseMove = (e) => {
+  if (mode === MODES.MOVE) {
+    if (e.buttons === 1) {
+      document.body.style.cursor = 'grabbing';
+      cam.rotpos.position[0] -= e.movementX * cam.zoom;
+      cam.rotpos.position[1] -= e.movementY * cam.zoom;
+
+      cam.UpdatePos();
+
+      requestAnimationFrame(RenderLoop);
+    } else {
+      document.body.style.cursor = 'grab';
+    }
+  }
 };
 
 sidebar.onMouseDown = (e) => {
@@ -292,64 +307,60 @@ sidebar.onMouseDown = (e) => {
   }
 };
 
-document.addEventListener('mouseup', () => {
-  mouse = MOUSE.PLACING;
-});
+// document.addEventListener('mousemove', (e) => {
+//   if (mouse === MOUSE.ADJUSTING || (cam.pxWidth - 5 < e.pageX && e.pageX < cam.pxWidth + 5)) {
+//     //For changing lengths of windows. Not great right now, because the cursor can slip off this very easily. To work on later
+//     if (e.buttons === 1) {
+//       mouse = MOUSE.ADJUSTING;
+//       cam.pxWidth += e.movementX;
+//       cam.width = cam.pxWidth / temp.canvas.width;
 
-document.addEventListener('mousemove', (e) => {
-  if (mouse === MOUSE.ADJUSTING || (cam.pxWidth - 5 < e.pageX && e.pageX < cam.pxWidth + 5)) {
-    //For changing lengths of windows. Not great right now, because the cursor can slip off this very easily. To work on later
-    if (e.buttons === 1) {
-      mouse = MOUSE.ADJUSTING;
-      cam.pxWidth += e.movementX;
-      cam.width = cam.pxWidth / temp.canvas.width;
+//       cam.RecalculateProjMatrix();
 
-      cam.RecalculateProjMatrix();
+//       //Resize sidebar
+//       sidebar.pxWidth -= e.movementX;
+//       sidebar.width = sidebar.pxWidth / temp.canvas.width;
+//       sidebar.tlCorner[0] = sidebar.brCorner[0] - sidebar.pxWidth / temp.canvas.width; //(a*b - c) / b == a - c / b
 
-      //Resize sidebar
-      sidebar.pxWidth -= e.movementX;
-      sidebar.width = sidebar.pxWidth / temp.canvas.width;
-      sidebar.tlCorner[0] = sidebar.brCorner[0] - sidebar.pxWidth / temp.canvas.width; //(a*b - c) / b == a - c / b
+//       sidebar.RecalculateProjMatrix();
 
-      sidebar.RecalculateProjMatrix();
+//       //Resize sidebar elements
+//       let j = 0;
+//       for (let i = 0; i < sprites.length; i++) {
+//         if (sprites[i].worldIndex != 1) {
+//           return;
+//         }
 
-      //Resize sidebar elements
-      let j = 0;
-      for (let i = 0; i < sprites.length; i++) {
-        if (sprites[i].worldIndex != 1) {
-          return;
-        }
+//         sprites[i].rotpos.scale[0] = sidebar.pxWidth / 8;
+//         sprites[i].rotpos.scale[1] = sidebar.pxWidth / 8;
 
-        sprites[i].rotpos.scale[0] = sidebar.pxWidth / 8;
-        sprites[i].rotpos.scale[1] = sidebar.pxWidth / 8;
+//         sprites[i].rotpos.position[0] =
+//           sidebar.pxWidth / 2 - (((j % 4) + 1) * sidebar.pxWidth) / 4 + sidebar.pxWidth / 8;
+//         sprites[i].rotpos.position[1] =
+//           sidebar.pxHeight / 2 -
+//           (sidebar.pxWidth / 4) * (Math.floor(j / 4) + 1) +
+//           sidebar.pxWidth / 8;
+//         j += 1;
+//       }
 
-        sprites[i].rotpos.position[0] =
-          sidebar.pxWidth / 2 - (((j % 4) + 1) * sidebar.pxWidth) / 4 + sidebar.pxWidth / 8;
-        sprites[i].rotpos.position[1] =
-          sidebar.pxHeight / 2 -
-          (sidebar.pxWidth / 4) * (Math.floor(j / 4) + 1) +
-          sidebar.pxWidth / 8;
-        j += 1;
-      }
+//       requestAnimationFrame(RenderLoop);
+//     }
+//   } else if (mode === MODES.MOVE && e.pageX < cam.pxWidth - 5) {
+//     // Highlight the spot
 
-      requestAnimationFrame(RenderLoop);
-    }
-  } else if (mode === MODES.MOVE && e.pageX < cam.pxWidth - 5) {
-    // Highlight the spot
+//     if (e.buttons === 1) {
+//       document.body.style.cursor = 'grabbing';
+//       cam.rotpos.position[0] -= e.movementX * cam.zoom;
+//       cam.rotpos.position[1] -= e.movementY * cam.zoom;
 
-    if (e.buttons === 1) {
-      document.body.style.cursor = 'grabbing';
-      cam.rotpos.position[0] -= e.movementX * cam.zoom;
-      cam.rotpos.position[1] -= e.movementY * cam.zoom;
+//       cam.UpdatePos();
 
-      cam.UpdatePos();
-
-      requestAnimationFrame(RenderLoop);
-    } else {
-      document.body.style.cursor = 'grab';
-    }
-  }
-});
+//       requestAnimationFrame(RenderLoop);
+//     } else {
+//       document.body.style.cursor = 'grab';
+//     }
+//   }
+// });
 
 //Zooming
 document.addEventListener('wheel', (e) => {

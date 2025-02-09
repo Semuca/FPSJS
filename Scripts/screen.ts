@@ -1,8 +1,8 @@
 import { Shader, Camera } from './shader.js';
 
 export enum SCREENACTION {
-  IDLE = 0,
-  RESIZING = 1,
+  IDLE,
+  RESIZING,
 }
 
 // Fills up one canvas

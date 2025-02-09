@@ -1,0 +1,15 @@
+{
+    "sidepanes": [
+        {
+            "textures": [
+                "texture.png",
+                "door.png"
+            ]
+        },
+        {
+            "textures": [
+                "4.png"
+            ]
+        }
+    ]
+}

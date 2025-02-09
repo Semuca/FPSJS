@@ -129,10 +129,10 @@ function RenderLoop() {
     temp.cameras[0].rotpos.position[2] = circle.center.x;
   }
 
-  vec3.add(_vec, _vec, temp.cameras[0].rotpos.position as vec3);
+  vec3.add(_vec, _vec, temp.cameras[0].rotpos.position);
 
   temp.cameras.forEach((camera) => {
-    mat4.lookAt(camera.viewMatrix, camera.rotpos.position as vec3, _vec, _cameraUp);
+    mat4.lookAt(camera.viewMatrix, camera.rotpos.position, _vec, _cameraUp);
     camera.PreDraw();
     temp.shaders.forEach((shader) => shader.DrawScene(0));
   });
@@ -165,7 +165,7 @@ cam.onMouseDown = () => {
 
   // Calculate where the shot lands on a 2d plane
   const camPos = new Point2D(
-    temp.cameras[0].rotpos.position[2] as number,
+    temp.cameras[0].rotpos.position[2],
     temp.cameras[0].rotpos.position[0],
   );
   const endPoint = translatePointAlongAngle(camPos, rot, 100);
