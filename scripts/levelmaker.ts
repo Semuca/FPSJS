@@ -10,9 +10,6 @@ import {
 } from './geometry.js';
 import { quat, vec3 } from 'gl-matrix';
 
-let zoom = 50.0;
-// let time = 0;
-
 const MODES = {
   MOVE: 0,
   PLACE: 1,
@@ -63,6 +60,8 @@ let selector: Objec;
 
 const temp = new FScreen('canvas');
 const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
+cam.zoom = 50;
+cam.RecalculateProjMatrix();
 cam.cursor = 'pointer';
 const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
 
@@ -149,14 +148,14 @@ async function Setup() {
 
   highlighter = temp.shaders[0].InstanceObject(
     'verSprite.json',
-    new RotPos2D([0.5, 0.5], Math.PI, [10, 10]),
+    new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
     0,
     'tframe.png',
   );
   highlighter.hidden = true;
   secondHighlighter = temp.shaders[0].InstanceObject(
     'verSprite.json',
-    new RotPos2D([0.5, 0.5], Math.PI, [10, 10]),
+    new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
     0,
     'tframe.png',
   );
@@ -164,7 +163,7 @@ async function Setup() {
 
   hover = temp.shaders[0].InstanceObject(
     'verSprite.json',
-    new RotPos2D([0.5, 0.5], Math.PI, [20, 20]),
+    new RotPos2D([0.5, 0.5], Math.PI, [0.5, 0.5]),
     0,
     'texture.png',
   );
@@ -180,19 +179,24 @@ async function Setup() {
     0,
   );
 
+  await LoadShader(cam, 'grid.vs', 'grid.fs');
+  const plane = await LoadModel(temp, 'verSprite.json');
+  temp.shaders[2].CreateModel('verSprite.json', plane);
+  temp.shaders[2].InstanceObject('verSprite.json', new RotPos2D([0.0, 0.0]), 0);
+
+  cam.SetUniform('u_resolution', [cam.pxWidth, cam.pxHeight]);
+
   requestAnimationFrame(RenderLoop);
 }
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop() {
-  // now *= 0.001;  // convert to seconds
-  // const deltaTime = now - time;
-  // time = now;
-
   temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
 
   //Should do much less draws here, but for now things seem to be fine
   cam.PreDraw();
+
+  temp.shaders[2].DrawScene(0);
 
   //Sets up grid to be drawn
   if (!temp.shaders[1].shaderProgram) return;
@@ -202,81 +206,6 @@ function RenderLoop() {
     temp.shaders[1].programInfo.uniformLocations['colour'],
     new Float32Array([1.0, 0.0, 0.0, 1.0]),
   );
-
-  //Grid rendering - Y
-  const offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2) % 50.0;
-
-  quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
-
-  line.rotpos.position[0] = offsetX - (cam.pxWidth * cam.zoom) / 2;
-  line.rotpos.position[1] = (cam.pxHeight * cam.zoom) / 2;
-  line.rotpos.scale[1] = cam.pxHeight * cam.zoom;
-
-  //Draws rendering every vertical line
-  for (let i = 0; i < (cam.pxWidth * cam.zoom - offsetX) / 50.0; i++) {
-    temp.gl.uniformMatrix4fv(
-      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-      false,
-      line.GetMatrix(),
-    );
-
-    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
-
-    line.rotpos.position[0] += 50.0;
-  }
-
-  //Grid rendering - X
-  const offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2) % 50.0;
-
-  line.rotpos.position[0] = (cam.pxWidth * cam.zoom) / 2;
-  line.rotpos.position[1] = offsetY - (cam.pxHeight * cam.zoom) / 2;
-  line.rotpos.scale[1] = cam.pxWidth * cam.zoom;
-
-  quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI / 2);
-
-  //Draws rendering every horizontal line
-  for (let i = 0; i < (cam.pxHeight * cam.zoom) / 50.0; i++) {
-    temp.gl.uniformMatrix4fv(
-      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-      false,
-      line.GetMatrix(),
-    );
-
-    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
-
-    line.rotpos.position[1] += 50.0;
-  }
-
-  //Draw X axis
-  temp.gl.uniform4fv(
-    temp.shaders[1].programInfo.uniformLocations['colour'],
-    new Float32Array([1.0, 1.0, 1.0, 1.0]),
-  );
-
-  line.rotpos.position[1] = cam.rotpos.position[1];
-
-  temp.gl.uniformMatrix4fv(
-    temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-    false,
-    line.GetMatrix(),
-  );
-
-  temp.gl.drawArrays(temp.gl.LINES, 0, 2);
-
-  //Y axis
-  line.rotpos.position[0] = cam.rotpos.position[0];
-  line.rotpos.position[1] = (cam.pxHeight * cam.zoom) / 2;
-  line.rotpos.scale[1] = cam.pxHeight * cam.zoom;
-
-  quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
-
-  temp.gl.uniformMatrix4fv(
-    temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-    false,
-    line.GetMatrix(),
-  );
-
-  temp.gl.drawArrays(temp.gl.LINES, 0, 2);
 
   // Draw walls
   walls.forEach((wall, index) => {
@@ -293,12 +222,12 @@ function RenderLoop() {
     );
 
     // Draw line from point
-    line.rotpos.position[0] = cam.rotpos.position[0] - wall.point1.x * 50;
-    line.rotpos.position[1] = cam.rotpos.position[1] + wall.point1.y * 50;
+    line.rotpos.position[0] = cam.rotpos.position[0] - wall.point1.x;
+    line.rotpos.position[1] = cam.rotpos.position[1] + wall.point1.y;
 
     // Get x and y distance
-    const xDist = (wall.point1.x - wall.point2.x) * 50;
-    const yDist = (wall.point1.y - wall.point2.y) * 50;
+    const xDist = wall.point1.x - wall.point2.x;
+    const yDist = wall.point1.y - wall.point2.y;
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + (yDist < 0 ? 0 : -Math.PI);
 
@@ -317,8 +246,8 @@ function RenderLoop() {
     line.rotpos.position[1] = cam.rotpos.position[1] + highlighter.rotpos.position[1];
 
     // Get x and y distance
-    const xDist = highlighter.rotpos.position[0] + cursorWorldPosition.x * 50;
-    const yDist = cursorWorldPosition.y * 50 - highlighter.rotpos.position[1];
+    const xDist = highlighter.rotpos.position[0] + cursorWorldPosition.x;
+    const yDist = cursorWorldPosition.y - highlighter.rotpos.position[1];
     line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + (yDist < 0 ? Math.PI : 0);
 
@@ -349,7 +278,7 @@ cam.onMouseDown = () => {
   if (sidepanes[currentSidepaneIndex].place === 'point' && highlighter.hidden === false) {
     sprites.push(
       new Sprite(
-        new Point2D(highlighter.rotpos.position[0] / 50, highlighter.rotpos.position[1] / 50),
+        new Point2D(highlighter.rotpos.position[0], highlighter.rotpos.position[1]),
         sidepanes[currentSidepaneIndex].textures[tile],
         sidepanes[currentSidepaneIndex].tags,
       ),
@@ -392,13 +321,13 @@ cam.onMouseMove = (e) => {
 
     if (distancePointToPoint(cursorWorldPosition, roundedPoint) <= highlightRadiusTrigger) {
       if (
-        highlighter.rotpos.position[0] != roundedPoint.x * 50 ||
-        highlighter.rotpos.position[1] != roundedPoint.y * 50 ||
+        highlighter.rotpos.position[0] != roundedPoint.x ||
+        highlighter.rotpos.position[1] != roundedPoint.y ||
         highlighter.hidden === true
       ) {
         highlighter.hidden = false;
         currentPoint = new Point2D(roundedPoint.x, roundedPoint.y);
-        highlighter.rotpos.position = [-roundedPoint.x * 50, roundedPoint.y * 50, 1.0];
+        highlighter.rotpos.position = [-roundedPoint.x, roundedPoint.y, 1.0];
 
         drawFlag = true;
       }
@@ -418,7 +347,7 @@ cam.onMouseMove = (e) => {
       if (highlightedWall === -1) {
         hover.hidden = true;
       } else {
-        hover.rotpos.position = [-cursorWorldPosition.x * 50, cursorWorldPosition.y * 50 + 25, 1.0];
+        hover.rotpos.position = [-cursorWorldPosition.x, cursorWorldPosition.y + 0.5, 1.0];
         hover.texId = temp.texIds[walls[highlightedWall].texture];
         hover.hidden = false;
       }
@@ -430,8 +359,8 @@ cam.onMouseMove = (e) => {
   } else if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
       document.body.style.cursor = 'grabbing';
-      cam.rotpos.position[0] -= e.movementX * cam.zoom;
-      cam.rotpos.position[1] -= e.movementY * cam.zoom;
+      cam.rotpos.position[0] -= e.movementX / cam.zoom;
+      cam.rotpos.position[1] -= e.movementY / cam.zoom;
 
       cam.UpdatePos();
       requestAnimationFrame(RenderLoop);
@@ -448,13 +377,13 @@ cam.onMouseMove = (e) => {
 
     if (distancePointToPoint(cursorWorldPosition, roundedPoint) <= highlightRadiusTrigger) {
       if (
-        secondHighlighter.rotpos.position[0] != roundedPoint.x * 50 ||
-        secondHighlighter.rotpos.position[1] != roundedPoint.y * 50 ||
+        secondHighlighter.rotpos.position[0] != roundedPoint.x ||
+        secondHighlighter.rotpos.position[1] != roundedPoint.y ||
         secondHighlighter.hidden === true
       ) {
         secondHighlighter.hidden = false;
         secondPoint = new Point2D(roundedPoint.x, roundedPoint.y);
-        secondHighlighter.rotpos.position = [-roundedPoint.x * 50, roundedPoint.y * 50, 1.0];
+        secondHighlighter.rotpos.position = [-roundedPoint.x, roundedPoint.y, 1.0];
 
         requestAnimationFrame(RenderLoop);
       }
@@ -618,14 +547,12 @@ document.addEventListener('wheel', (e) => {
   if (e.pageX > cam.pxWidth) {
     return;
   }
-  zoom += e.deltaY / 50;
+  cam.zoom += e.deltaY / 5;
 
   //Zoom cap
-  if (zoom < 4) {
-    zoom = 4;
+  if (cam.zoom < 20) {
+    cam.zoom = 20;
   }
-
-  cam.zoom = 50 / zoom;
 
   cam.RecalculateProjMatrix();
 

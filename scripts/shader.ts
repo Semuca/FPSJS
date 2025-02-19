@@ -73,10 +73,10 @@ export class Camera {
   RecalculateProjMatrix() {
     mat4.ortho(
       this.orthoMatrix,
-      (this.pxWidth * this.zoom) / 2,
-      (-this.pxWidth * this.zoom) / 2,
-      (-this.pxHeight * this.zoom) / 2,
-      (this.pxHeight * this.zoom) / 2,
+      this.pxWidth / this.zoom / 2,
+      -this.pxWidth / this.zoom / 2,
+      -this.pxHeight / this.zoom / 2,
+      this.pxHeight / this.zoom / 2,
       -1.0,
       1.0,
     );
@@ -97,15 +97,13 @@ export class Camera {
   }
 
   CursorToWorldPosition(cursorPosition: [number, number]) {
-    const xOffsetFromCenter = cursorPosition[0] - this.pxWidth / 2;
-    const yOffsetFromCenter = cursorPosition[1] - this.pxHeight / 2;
+    const ndc_x = (cursorPosition[0] / this.pxWidth) * 2 - 1;
+    const ndc_y = -(cursorPosition[1] / this.pxHeight) * 2 + 1;
 
-    const squareWidth = 50 / this.zoom;
+    const world_x = (ndc_x * (this.pxWidth / this.zoom)) / 2 + 0;
+    const world_y = (ndc_y * (this.pxHeight / this.zoom)) / 2 + 0;
 
-    const posX = this.rotpos.position[0] / 50 + xOffsetFromCenter / squareWidth;
-    const posY = -this.rotpos.position[1] / 50 - yOffsetFromCenter / squareWidth;
-
-    return new Point2D(posX, posY);
+    return new Point2D(world_x, world_y);
   }
 
   SetUniform(uniform: string, property: Iterable<GLfloat>) {
@@ -114,11 +112,15 @@ export class Camera {
       if (shader.programInfo.uniformLocations[uniform] && shader.shaderProgram) {
         this.window.gl.useProgram(shader.shaderProgram);
 
-        this.window.gl.uniformMatrix4fv(
-          shader.programInfo.uniformLocations[uniform],
-          false,
-          property,
-        );
+        if (Array.from(property).length == 2) {
+          this.window.gl.uniform2fv(shader.programInfo.uniformLocations[uniform], property);
+        } else {
+          this.window.gl.uniformMatrix4fv(
+            shader.programInfo.uniformLocations[uniform],
+            false,
+            property,
+          );
+        }
       }
     });
   }
@@ -135,6 +137,9 @@ export class Camera {
 
   PreDraw() {
     this.SetUniform('uOrthoMatrix', this.orthoMatrix);
+    const inverse = mat4.create();
+    mat4.invert(inverse, this.orthoMatrix);
+    this.SetUniform('uOrthoMatrix_inverse', inverse);
     this.SetUniform('uPerspectiveMatrix', this.perspectiveMatrix);
     this.SetUniform('uViewMatrix', this.viewMatrix);
     this.SetViewport();
@@ -277,7 +282,8 @@ export class Shader {
     // Construct all buffers
     Object.entries(modelData['ARRAY_BUFFER']).forEach(([key, bufferData]) => {
       const buffer = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(bufferData[0]));
-      if (!buffer) return;
+
+      if (buffer === undefined || this.programInfo.attribLocations[key] === undefined) return;
       this.models[name].buffers[key] = buffer;
       this.gl.vertexAttribPointer(
         this.programInfo.attribLocations[key],
