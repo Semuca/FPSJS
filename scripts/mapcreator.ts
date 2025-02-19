@@ -192,8 +192,8 @@ cam.onMouseMove = (e) => {
   if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
       document.body.style.cursor = 'grabbing';
-      cam.rotpos.position[0] -= e.movementX * cam.zoom;
-      cam.rotpos.position[1] -= e.movementY * cam.zoom;
+      cam.rotpos.position[0] -= e.movementX / cam.zoom;
+      cam.rotpos.position[1] -= e.movementY / cam.zoom;
 
       cam.UpdatePos();
 
@@ -280,7 +280,7 @@ document.addEventListener('wheel', (e) => {
   cam.zoom += e.deltaY / 5;
 
   //Zoom cap
-  cam.zoom = Math.min(20, cam.zoom);
+  cam.zoom = Math.max(20, cam.zoom);
 
   cam.RecalculateProjMatrix();
 
