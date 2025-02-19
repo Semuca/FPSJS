@@ -100,8 +100,8 @@ export class Camera {
     const ndc_x = (cursorPosition[0] / this.pxWidth) * 2 - 1;
     const ndc_y = -(cursorPosition[1] / this.pxHeight) * 2 + 1;
 
-    const world_x = (ndc_x * (this.pxWidth / this.zoom)) / 2 + 0;
-    const world_y = (ndc_y * (this.pxHeight / this.zoom)) / 2 + 0;
+    const world_x = (ndc_x * (this.pxWidth / this.zoom)) / 2 + this.rotpos.position[0];
+    const world_y = (ndc_y * (this.pxHeight / this.zoom)) / 2 - this.rotpos.position[1];
 
     return new Point2D(world_x, world_y);
   }

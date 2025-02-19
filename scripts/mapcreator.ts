@@ -157,13 +157,11 @@ cam.onMouseDown = (e) => {
     return;
   }
 
+  const cursorWorldPosition = cam.CursorToWorldPosition([e.pageX, e.pageY]);
+  const posX = Math.floor(cursorWorldPosition.x);
+  const posY = Math.floor(cursorWorldPosition.y);
+
   //Positions on the grid
-  const posX = Math.floor(
-    (-cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2 - e.pageX * cam.zoom) / 50.0,
-  );
-  const posY = Math.floor(
-    (-cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2 - e.pageY * cam.zoom) / 50.0,
-  );
 
   // Delete tile on Z
   if (temp.keysDown['KeyZ'] == true && tiles[posX][posY] != undefined) {
@@ -179,7 +177,7 @@ cam.onMouseDown = (e) => {
   } else {
     tiles[posX][posY] = temp.shaders[0].InstanceObject(
       'verSprite.json',
-      new RotPos2D([posX * 50.0 + 25.0, posY * 50.0 + 25.0], Math.PI, [25.0, 25.0]),
+      new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, [0.5, 0.5]),
       0,
       textureGroup[tile],
     );
