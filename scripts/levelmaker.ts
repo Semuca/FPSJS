@@ -546,7 +546,7 @@ temp.keyDownCallbacks['Space'] = () => {
 document.addEventListener('wheel', (e) => {
   if (e.pageX > cam.pxWidth) return;
 
-  cam.zoom += e.deltaY / 5;
+  cam.zoom -= e.deltaY / 5;
 
   //Zoom cap
   cam.zoom = Math.max(20, cam.zoom);
