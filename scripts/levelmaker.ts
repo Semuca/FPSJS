@@ -289,7 +289,7 @@ cam.onMouseDown = () => {
       new RotPos2D(
         [highlighter.rotpos.position[0], highlighter.rotpos.position[1]],
         Math.PI,
-        [25, 25],
+        [0.5, 0.5],
       ),
       0,
       sidepanes[currentSidepaneIndex].textures[tile],
@@ -471,7 +471,7 @@ temp.keyDownCallbacks['KeyU'] = () => {
         );
         temp.shaders[0].InstanceObject(
           'verSprite.json',
-          new RotPos2D([object.position[0] * 50, object.position[2] * 50], Math.PI, [25, 25]),
+          new RotPos2D([object.position[0], object.position[2]], Math.PI, [1, 1]),
           0,
           object.texture,
         );
@@ -544,9 +544,8 @@ temp.keyDownCallbacks['Space'] = () => {
 
 //Zooming
 document.addEventListener('wheel', (e) => {
-  if (e.pageX > cam.pxWidth) {
-    return;
-  }
+  if (e.pageX > cam.pxWidth) return;
+
   cam.zoom += e.deltaY / 5;
 
   //Zoom cap
