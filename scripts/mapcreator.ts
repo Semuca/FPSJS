@@ -1,9 +1,6 @@
 import { FScreen, toggleFullScreen } from './screen.js';
 import { LoadFileText, CreateTexture, LoadModel, LoadShader } from './loading.js';
 import { Objec, RotPos2D } from './objec.js';
-import { quat } from 'gl-matrix';
-
-let zoom = 50.0;
 
 const MODES = {
   MOVE: 0,
@@ -18,7 +15,6 @@ for (let index = -50; index <= 50; index++) {
   tiles[index] = {};
 }
 
-let line: Objec;
 let selector: Objec;
 // let sprites: Objec[] = [];
 
@@ -30,6 +26,8 @@ let textureGroup: string[];
 
 const temp = new FScreen('canvas');
 const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
+cam.zoom = 50;
+cam.RecalculateProjMatrix();
 const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
 cam.PreDraw();
 
@@ -38,13 +36,15 @@ Setup();
 async function Setup() {
   //Load 2d shader, plus the model
   await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
-  let modelData = await LoadModel(temp, 'verSprite.json');
+  const modelData = await LoadModel(temp, 'verSprite.json');
   temp.shaders[0].CreateModel('verSprite.json', modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
-  const sidepaneData:Sidepane[] = JSON.parse(await LoadFileText('../rpg_sidepanes.json')).sidepanes;
+  const sidepaneData: Sidepane[] = JSON.parse(
+    await LoadFileText('../rpg_sidepanes.json'),
+  ).sidepanes;
 
-  textureGroup = sidepaneData.flatMap(sidepane => sidepane.textures);
+  textureGroup = sidepaneData.flatMap((sidepane) => sidepane.textures);
   for (let i = 0; i < textureGroup.length; i++) {
     await CreateTexture(temp, textureGroup[i]);
   }
@@ -83,113 +83,24 @@ async function Setup() {
     'tframe.png',
   );
 
-  //Load line models
-  await LoadShader(cam, '2DflatlineVertexShader.vs', 'lineFragmentShader.fs');
-  modelData = await LoadModel(temp, 'flatline.json');
-  temp.shaders[1].CreateModel('flatline.json', modelData);
-  line = temp.shaders[1].InstanceObject(
-    'flatline.json',
-    new RotPos2D([0.0, 0.0], undefined, [0.0, 0.0]),
-    0,
-  );
+  await LoadShader(cam, 'grid.vs', 'grid.fs');
+  const plane = await LoadModel(temp, 'verSprite.json');
+  temp.shaders[1].CreateModel('verSprite.json', plane);
+  temp.shaders[1].InstanceObject('verSprite.json', new RotPos2D([0.0, 0.0]), 0);
+
+  cam.SetUniform('u_resolution', [cam.pxWidth, cam.pxHeight]);
 
   requestAnimationFrame(RenderLoop);
 }
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop() {
-  // now *= 0.001; // convert to seconds
-  // const deltaTime = now - time;
-  // time = now;
-  if (!temp.shaders[1].shaderProgram) return;
-
   temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
 
   //Should do much less draws here, but for now things seem to be fine
   cam.PreDraw();
 
-  //Sets up grid to be drawn
-  temp.gl.useProgram(temp.shaders[1].shaderProgram);
-  temp.gl.bindVertexArray(temp.shaders[1].models['flatline.json'].vao);
-  temp.gl.uniform4fv(
-    temp.shaders[1].programInfo.uniformLocations['colour'],
-    new Float32Array([1.0, 0.0, 0.0, 1.0]),
-  );
-
-  //Grid rendering - Y
-  const offsetX = (cam.rotpos.position[0] + (cam.pxWidth * cam.zoom) / 2) % 50.0;
-
-  quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
-
-  line.rotpos.position[0] = offsetX - (cam.pxWidth * cam.zoom) / 2;
-  line.rotpos.position[1] = (cam.pxHeight * cam.zoom) / 2;
-  line.rotpos.scale[1] = cam.pxHeight * cam.zoom;
-
-  //Draws rendering every vertical line
-  for (let i = 0; i < (cam.pxWidth * cam.zoom - offsetX) / 50.0; i++) {
-    temp.gl.uniformMatrix4fv(
-      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-      false,
-      line.GetMatrix(),
-    );
-
-    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
-
-    line.rotpos.position[0] += 50.0;
-  }
-
-  //Grid rendering - X
-  const offsetY = (cam.rotpos.position[1] + (cam.pxHeight * cam.zoom) / 2) % 50.0;
-
-  line.rotpos.position[0] = (cam.pxWidth * cam.zoom) / 2;
-  line.rotpos.position[1] = offsetY - (cam.pxHeight * cam.zoom) / 2;
-  line.rotpos.scale[1] = cam.pxWidth * cam.zoom;
-
-  quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI / 2);
-
-  //Draws rendering every horizontal line
-  for (let i = 0; i < (cam.pxHeight * cam.zoom) / 50.0; i++) {
-    temp.gl.uniformMatrix4fv(
-      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-      false,
-      line.GetMatrix(),
-    );
-
-    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
-
-    line.rotpos.position[1] += 50.0;
-  }
-
-  //Draw X axis
-  temp.gl.uniform4fv(
-    temp.shaders[1].programInfo.uniformLocations['colour'],
-    new Float32Array([1.0, 1.0, 1.0, 1.0]),
-  );
-
-  line.rotpos.position[1] = cam.rotpos.position[1];
-
-  temp.gl.uniformMatrix4fv(
-    temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-    false,
-    line.GetMatrix(),
-  );
-
-  temp.gl.drawArrays(temp.gl.LINES, 0, 2);
-
-  //Y axis
-  line.rotpos.position[0] = cam.rotpos.position[0];
-  line.rotpos.position[1] = (cam.pxHeight * cam.zoom) / 2;
-  line.rotpos.scale[1] = cam.pxHeight * cam.zoom;
-
-  quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], Math.PI);
-
-  temp.gl.uniformMatrix4fv(
-    temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
-    false,
-    line.GetMatrix(),
-  );
-
-  temp.gl.drawArrays(temp.gl.LINES, 0, 2);
+  temp.shaders[1].DrawScene(0);
 
   //Draws sprites
   temp.shaders[0].DrawScene(0);
@@ -364,17 +275,12 @@ sidebar.onMouseDown = (e) => {
 
 //Zooming
 document.addEventListener('wheel', (e) => {
-  if (e.pageX > cam.pxWidth) {
-    return;
-  }
-  zoom += e.deltaY / 50;
+  if (e.pageX > cam.pxWidth) return;
+
+  cam.zoom += e.deltaY / 5;
 
   //Zoom cap
-  if (zoom < 4) {
-    zoom = 4;
-  }
-
-  cam.zoom = 50 / zoom;
+  cam.zoom = Math.min(20, cam.zoom);
 
   cam.RecalculateProjMatrix();
 

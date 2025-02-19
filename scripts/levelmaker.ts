@@ -549,9 +549,7 @@ document.addEventListener('wheel', (e) => {
   cam.zoom += e.deltaY / 5;
 
   //Zoom cap
-  if (cam.zoom < 20) {
-    cam.zoom = 20;
-  }
+  cam.zoom = Math.min(20, cam.zoom);
 
   cam.RecalculateProjMatrix();
 
