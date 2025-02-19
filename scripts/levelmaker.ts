@@ -48,7 +48,7 @@ let cursorWorldPosition: Point2D;
 
 const sprites: Sprite[] = [];
 const walls: Wall[] = [];
-let highlightedWall = -1;
+let highlightedWall: number | undefined = undefined;
 
 let line: Objec;
 let hover: Objec;
@@ -212,7 +212,7 @@ function RenderLoop() {
     let colour = [1.0, 1.0, 1.0, 1.0];
     if (index === highlightedWall) {
       colour = [0.0, 1.0, 1.0, 1.0];
-    } else if (highlightedWall != -1 && wall.texture === walls[highlightedWall].texture) {
+    } else if (highlightedWall != undefined && wall.texture === walls[highlightedWall].texture) {
       colour = [1.0, 0.0, 1.0, 1.0];
     }
 
@@ -343,8 +343,8 @@ cam.onMouseMove = (e) => {
       (wall) =>
         ShortestDistanceFromPointToSegment(cursorWorldPosition, wall) <= highlightRadiusTrigger,
     );
-    if (oldHighlightedWall != -1 || highlightedWall != -1) {
-      if (highlightedWall === -1) {
+    if (oldHighlightedWall != undefined || highlightedWall != undefined) {
+      if (highlightedWall === undefined) {
         hover.hidden = true;
       } else {
         hover.rotpos.position = [-cursorWorldPosition.x, cursorWorldPosition.y + 0.5, 1.0];
