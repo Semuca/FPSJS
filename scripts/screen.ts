@@ -148,6 +148,7 @@ export class FScreen {
     const shader = new Shader(this, this.gl, cam);
     shader.CompileProgram(vsSource, fsSource);
     this.shaders.push(shader);
+    return shader;
   }
 
   //tlCorner and brCorner are in percentage of screenspace taken up. Might be good to also have an option for pixels

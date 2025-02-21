@@ -36,11 +36,11 @@ export async function CreateTexture(window: FScreen, url: string): Promise<numbe
 }
 
 //Loads a shader from url data
-export async function LoadShader(camera: Camera, vsUrl: string, fsUrl: string): Promise<void> {
+export async function LoadShader(camera: Camera, vsUrl: string, fsUrl: string) {
   const vSource = await LoadFileText(`shaders/${vsUrl}`);
   const fSource = await LoadFileText(`shaders/${fsUrl}`);
 
-  camera.window.AddShader(camera, vSource, fSource);
+  return camera.window.AddShader(camera, vSource, fSource);
 }
 
 export interface ModelData {

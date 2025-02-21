@@ -16,11 +16,11 @@ for (let index = -50; index <= 50; index++) {
 }
 
 let selector: Objec;
-// let sprites: Objec[] = [];
 
 interface Sidepane {
   textures: string[];
 }
+
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 let textureGroup: string[];
 
@@ -31,13 +31,11 @@ cam.RecalculateProjMatrix();
 const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
 cam.PreDraw();
 
-Setup();
-
 async function Setup() {
   //Load 2d shader, plus the model
-  await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
+  const sprite_shader = await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
   const modelData = await LoadModel(temp, 'verSprite.json');
-  temp.shaders[0].CreateModel('verSprite.json', modelData);
+  sprite_shader.CreateModel('verSprite.json', modelData);
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
   const sidepaneData: Sidepane[] = JSON.parse(
@@ -52,7 +50,7 @@ async function Setup() {
   // Load sidebar
   const width = sidebar.pxWidth / 4;
   for (let i = 0; i < textureGroup.length; i++) {
-    temp.shaders[0].InstanceObject(
+    sprite_shader.InstanceObject(
       'verSprite.json',
       new RotPos2D(
         [
@@ -66,10 +64,9 @@ async function Setup() {
       textureGroup[i],
     );
   }
-  // sprites = temp.shaders[0].models['verSprite.json'].objects;
 
   await CreateTexture(temp, 'tframe.png');
-  selector = temp.shaders[0].InstanceObject(
+  selector = sprite_shader.InstanceObject(
     'verSprite.json',
     new RotPos2D(
       [
@@ -83,15 +80,18 @@ async function Setup() {
     'tframe.png',
   );
 
-  await LoadShader(cam, 'grid.vs', 'grid.fs');
+  const grid_shader = await LoadShader(cam, 'grid.vs', 'grid.fs');
   const plane = await LoadModel(temp, 'verSprite.json');
-  temp.shaders[1].CreateModel('verSprite.json', plane);
-  temp.shaders[1].InstanceObject('verSprite.json', new RotPos2D([0.0, 0.0]), 0);
+  grid_shader.CreateModel('verSprite.json', plane);
+  grid_shader.InstanceObject('verSprite.json', new RotPos2D([0.0, 0.0]), 0);
 
   cam.SetUniform('u_resolution', [cam.pxWidth, cam.pxHeight]);
 
-  requestAnimationFrame(RenderLoop);
+  return [sprite_shader, grid_shader];
 }
+
+const [sprite_shader, grid_shader] = await Setup();
+requestAnimationFrame(RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop() {
@@ -100,10 +100,8 @@ function RenderLoop() {
   //Should do much less draws here, but for now things seem to be fine
   cam.PreDraw();
 
-  temp.shaders[1].DrawScene(0);
-
-  //Draws sprites
-  temp.shaders[0].DrawScene(0);
+  grid_shader.DrawScene(0);
+  sprite_shader.DrawScene(0);
 
   DrawSidebar();
 }
@@ -112,7 +110,7 @@ function DrawSidebar() {
   sidebar.PreDraw();
 
   //Draw sidebar
-  temp.shaders[0].DrawScene(1);
+  sprite_shader.DrawScene(1);
 }
 
 // Downloads the map
@@ -175,7 +173,7 @@ cam.onMouseDown = (e) => {
   if (tiles[posX][posY] != undefined) {
     tiles[posX][posY].texId = (tile + 1) % textureGroup.length; //This basically forces the first few textures to be part of the texturegroup
   } else {
-    tiles[posX][posY] = temp.shaders[0].InstanceObject(
+    tiles[posX][posY] = sprite_shader.InstanceObject(
       'verSprite.json',
       new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, [0.5, 0.5]),
       0,
@@ -216,61 +214,6 @@ sidebar.onMouseDown = (e) => {
   }
 };
 
-// document.addEventListener('mousemove', (e) => {
-//   if (mouse === MOUSE.ADJUSTING || (cam.pxWidth - 5 < e.pageX && e.pageX < cam.pxWidth + 5)) {
-//     //For changing lengths of windows. Not great right now, because the cursor can slip off this very easily. To work on later
-//     if (e.buttons === 1) {
-//       mouse = MOUSE.ADJUSTING;
-//       cam.pxWidth += e.movementX;
-//       cam.width = cam.pxWidth / temp.canvas.width;
-
-//       cam.RecalculateProjMatrix();
-
-//       //Resize sidebar
-//       sidebar.pxWidth -= e.movementX;
-//       sidebar.width = sidebar.pxWidth / temp.canvas.width;
-//       sidebar.tlCorner[0] = sidebar.brCorner[0] - sidebar.pxWidth / temp.canvas.width; //(a*b - c) / b == a - c / b
-
-//       sidebar.RecalculateProjMatrix();
-
-//       //Resize sidebar elements
-//       let j = 0;
-//       for (let i = 0; i < sprites.length; i++) {
-//         if (sprites[i].worldIndex != 1) {
-//           return;
-//         }
-
-//         sprites[i].rotpos.scale[0] = sidebar.pxWidth / 8;
-//         sprites[i].rotpos.scale[1] = sidebar.pxWidth / 8;
-
-//         sprites[i].rotpos.position[0] =
-//           sidebar.pxWidth / 2 - (((j % 4) + 1) * sidebar.pxWidth) / 4 + sidebar.pxWidth / 8;
-//         sprites[i].rotpos.position[1] =
-//           sidebar.pxHeight / 2 -
-//           (sidebar.pxWidth / 4) * (Math.floor(j / 4) + 1) +
-//           sidebar.pxWidth / 8;
-//         j += 1;
-//       }
-
-//       requestAnimationFrame(RenderLoop);
-//     }
-//   } else if (mode === MODES.MOVE && e.pageX < cam.pxWidth - 5) {
-//     // Highlight the spot
-
-//     if (e.buttons === 1) {
-//       document.body.style.cursor = 'grabbing';
-//       cam.rotpos.position[0] -= e.movementX * cam.zoom;
-//       cam.rotpos.position[1] -= e.movementY * cam.zoom;
-
-//       cam.UpdatePos();
-
-//       requestAnimationFrame(RenderLoop);
-//     } else {
-//       document.body.style.cursor = 'grab';
-//     }
-//   }
-// });
-
 //Zooming
 document.addEventListener('wheel', (e) => {
   if (e.pageX > cam.pxWidth) return;
@@ -290,12 +233,12 @@ window.addEventListener('resize', () => {
   temp.canvas.width = temp.canvas.clientWidth;
   temp.canvas.height = temp.canvas.clientHeight;
 
-  for (let i = 0; i < temp.cameras.length; i++) {
-    temp.cameras[i].pxWidth = temp.canvas.width * temp.cameras[i].width;
-    temp.cameras[i].pxHeight = temp.canvas.height * temp.cameras[i].height;
-    temp.cameras[i].aspectRatio = temp.cameras[i].pxWidth / temp.cameras[i].pxHeight;
-    temp.cameras[i].RecalculateProjMatrix();
-  }
+  temp.cameras.forEach((camera) => {
+    camera.pxWidth = temp.canvas.width * camera.width;
+    camera.pxHeight = temp.canvas.height * camera.height;
+    camera.aspectRatio = camera.pxWidth / camera.pxHeight;
+    camera.RecalculateProjMatrix();
+  });
 
   requestAnimationFrame(RenderLoop);
 });
