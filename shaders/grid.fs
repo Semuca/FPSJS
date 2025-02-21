@@ -16,9 +16,7 @@ void main() {
 
     vec4 world_pos = uViewMatrix * uOrthoMatrix_inverse * vec4(normalized, 0., 1.);
 
-    vec3 colour = (abs(world_pos.x) < 0.025 || abs(world_pos.y) < 0.025) ? vec3(1., 1., 1.) : vec3(1., 0., 0.);
+    vec4 colour = (abs(world_pos.x) < 0.025 || abs(world_pos.y) < 0.025) ? vec4(1., 1., 1., 1.) : vec4(1., 0., 0., 1.);
 
-    colour *= grid(world_pos, 0.05);
-
-    gl_FragColor = vec4(colour, 1.);
+    gl_FragColor = colour * grid(world_pos, 0.05);
 }

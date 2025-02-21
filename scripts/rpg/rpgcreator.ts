@@ -1,5 +1,5 @@
 import { FScreen, toggleFullScreen } from '../screen.js';
-import { LoadFileText, CreateTexture, LoadModel, LoadShader } from '../loading.js';
+import { LoadFileText, LoadTexture, LoadModel, LoadShader } from '../loading.js';
 import { Objec, RotPos2D } from '../objec.js';
 import { run_rpg } from './rpg.js';
 
@@ -32,6 +32,12 @@ cam.RecalculateProjMatrix();
 const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
 
 async function Setup() {
+  const grid_shader = await LoadShader(cam, 'grid.vs', 'grid.fs');
+  const plane = await LoadModel(temp, 'verSprite.json');
+  grid_shader.CreateModel('verSprite.json', plane);
+  grid_shader.InstanceObject('verSprite.json', new RotPos2D([0.0, 0.0]), 0);
+
+  cam.SetUniform('u_resolution', [cam.pxWidth, cam.pxHeight]);
   //Load 2d shader, plus the model
   const sprite_shader = await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
   const modelData = await LoadModel(temp, 'verSprite.json');
@@ -44,7 +50,7 @@ async function Setup() {
 
   textureGroup = sidepaneData.flatMap((sidepane) => sidepane.textures);
   for (let i = 0; i < textureGroup.length; i++) {
-    await CreateTexture(temp, textureGroup[i]);
+    await LoadTexture(temp, textureGroup[i]);
   }
 
   // Load sidebar
@@ -65,7 +71,7 @@ async function Setup() {
     );
   }
 
-  await CreateTexture(temp, 'tframe.png');
+  await LoadTexture(temp, 'tframe.png');
   selector = sprite_shader.InstanceObject(
     'verSprite.json',
     new RotPos2D(
@@ -79,13 +85,6 @@ async function Setup() {
     1,
     'tframe.png',
   );
-
-  const grid_shader = await LoadShader(cam, 'grid.vs', 'grid.fs');
-  const plane = await LoadModel(temp, 'verSprite.json');
-  grid_shader.CreateModel('verSprite.json', plane);
-  grid_shader.InstanceObject('verSprite.json', new RotPos2D([0.0, 0.0]), 0);
-
-  cam.SetUniform('u_resolution', [cam.pxWidth, cam.pxHeight]);
 
   return [sprite_shader];
 }

@@ -168,23 +168,16 @@ export class FScreen {
     return this.cameras[this.cameras.length - 1];
   }
 
-  //Set up a texture to be rendered by opengl
-  SetupTexture(name: string, tex: TexImageSource): number | undefined {
-    const texId = this.GetNewTextureId();
+  //Sets up a texture in the webgl context
+  CreateTexture(name: string, tex: TexImageSource) {
+    //This could be fixed to allow deletion of textures to reclaim ids, but i don't really care
+    this.textures.push(this.textures.length);
+    const texId = this.textures.length - 1;
     this.texIds[name] = texId;
 
-    const texture = this.CreateTexture(tex, texId);
-    if (!texture) return;
-    this.texObjects[texId] = texture;
-
-    return texId;
-  }
-
-  //Sets up a texture in the webgl context
-  CreateTexture(tex: TexImageSource, texId: number): WebGLTexture | undefined {
     //Creates texture and binds it to WebGL
     const texture = this.gl.createTexture();
-    if (!texture) return;
+    this.texObjects[texId] = texture;
     this.gl.activeTexture(this.gl.TEXTURE0 + texId);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
@@ -206,25 +199,9 @@ export class FScreen {
 
     this.gl.generateMipmap(this.gl.TEXTURE_2D);
 
-    return texture;
-  }
-
-  //Why can't we just join the GetNewTextureId function with CreateTexture function? I can't think of a scenario where one is used without the other
-  //Gets new texture ID
-  GetNewTextureId() {
-    for (let i = 0; i < this.textures.length; i++) {
-      //O(n) time. I think this theoretically could be O(logN), but i don't think it's that important
-      if (this.textures[i] != i) {
-        this.textures.splice(i, 0);
-
-        return i;
-      }
-    }
-    this.textures.push(this.textures.length);
-    return this.textures.length - 1;
+    return texId;
   }
 }
-
 //Toggles fullscreen
 export function toggleFullScreen(): void {
   if (!document.fullscreenElement) {

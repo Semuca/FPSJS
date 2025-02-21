@@ -1,5 +1,5 @@
 import { FScreen } from '../screen.js';
-import { LoadFileText, CreateTexture, LoadModel, LoadShader } from '../loading.js';
+import { LoadFileText, LoadTexture, LoadModel, LoadShader } from '../loading.js';
 import { RotPos2D } from '../objec.js';
 import { Font, DisplayBox } from '../ui.js';
 
@@ -31,7 +31,7 @@ export function run_rpg(map: string[]) {
     const textures = await LoadFileText('../textures.txt');
     Promise.allSettled(
       textures.split('\n').map((texture, index) => async () => {
-        await CreateTexture(temp, texture + '.png');
+        await LoadTexture(temp, texture + '.png');
         const rawMetadata = await LoadFileText('textures/' + texture + '.json');
         const jsonMetadata = JSON.parse(rawMetadata) as TextureData;
 
@@ -68,10 +68,10 @@ export function run_rpg(map: string[]) {
     await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
     temp.shaders[1].CreateModel('verSprite.json', modelData);
 
-    await CreateTexture(temp, 'black.png');
-    await CreateTexture(temp, 'white.png');
+    await LoadTexture(temp, 'black.png');
+    await LoadTexture(temp, 'white.png');
 
-    await CreateTexture(temp, 'def.png');
+    await LoadTexture(temp, 'def.png');
     font = new Font('def.png', JSON.parse(await LoadFileText('textures/def.json')));
 
     DisplayBox(cam, temp.shaders[1], [0.8, 0.4]);

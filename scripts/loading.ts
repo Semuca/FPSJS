@@ -25,14 +25,14 @@ async function LoadImage(url: string): Promise<TexImageSource> {
 //  - Got loading texture as variable from url
 //  - This is loading texture into shader from url
 //  - Might be worth making loading texture into shader from variable
-export async function CreateTexture(window: FScreen, url: string): Promise<number | undefined> {
+export async function LoadTexture(window: FScreen, url: string) {
   // Check if texture already exists
   const foundTexture = Object.keys(window.texIds).find((key) => key === url);
   if (foundTexture) return window.texIds[foundTexture];
 
   // Load texture
   const tex = await LoadImage(`textures/${url}`);
-  return window.SetupTexture(url, tex);
+  return window.CreateTexture(url, tex);
 }
 
 //Loads a shader from url data
@@ -65,7 +65,7 @@ export async function LoadModel(window: FScreen, url: string): Promise<ModelData
   }
 
   if (jsonData.TEXTURE) {
-    jsonData.TEXTURE = ((await CreateTexture(window, jsonData.TEXTURE)) ?? 0).toString();
+    jsonData.TEXTURE = ((await LoadTexture(window, jsonData.TEXTURE)) ?? 0).toString();
   }
 
   return jsonData;
@@ -114,7 +114,7 @@ export async function LoadMap(
   await Promise.all(
     jsonData.objects.map(async (object) => {
       if (object.texture && !Object.keys(window.texIds).includes(object.texture)) {
-        await CreateTexture(window, object.texture);
+        await LoadTexture(window, object.texture);
       }
 
       const tags = object.tags ?? [];

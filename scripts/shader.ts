@@ -311,9 +311,7 @@ export class Shader {
     }
 
     //Could you just have a global model name hashtable?
-    if (this.models[name].modelData.TEXTURE != undefined) {
-      // this.models[name].textureId = this.window.GetNewTextureId();
-      //this.models[name].texture = this.window.CreateTexture(this.models[name].modelData["TEXTURE"], this.models[name].textureId);
+    if (this.models[name].modelData.TEXTURE !== undefined) {
       this.models[name].textureId = parseInt(this.models[name].modelData.TEXTURE);
     }
   }

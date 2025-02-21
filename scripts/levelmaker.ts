@@ -1,5 +1,5 @@
 import { FScreen, toggleFullScreen } from './screen.js';
-import { LoadFileText, CreateTexture, LoadModel, LoadShader, MapFile } from './loading.js';
+import { LoadFileText, LoadTexture, LoadModel, LoadShader, MapFile } from './loading.js';
 import { Objec, RotPos2D } from './objec.js';
 import {
   roundToNearest,
@@ -110,10 +110,9 @@ function UpdateSidebar(sidebarIndex: number) {
     'tframe.png',
   );
 
-  DrawSidebar();
+  sidebar.Draw();
 }
 
-cam.PreDraw();
 Setup();
 
 async function Setup() {
@@ -139,8 +138,8 @@ async function Setup() {
     sidepanes
       .map((sidepane) => sidepane.textures)
       .flat()
-      .map((texture) => CreateTexture(temp, texture)),
-    CreateTexture(temp, 'tframe.png'),
+      .map((texture) => LoadTexture(temp, texture)),
+    LoadTexture(temp, 'tframe.png'),
   ]);
 
   // Load sidebar
@@ -194,7 +193,7 @@ function RenderLoop() {
   temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
 
   //Should do much less draws here, but for now things seem to be fine
-  cam.PreDraw();
+  // cam.PreDraw();
 
   temp.shaders[2].DrawScene(0);
 
@@ -263,14 +262,7 @@ function RenderLoop() {
   // Draws sprites
   temp.shaders[0].DrawScene(0);
 
-  DrawSidebar();
-}
-
-function DrawSidebar() {
-  sidebar.PreDraw();
-
-  //Draw sidebar
-  temp.shaders[0].DrawScene(1);
+  sidebar.Draw();
 }
 
 // Start drawing when the mouse is pressed down
