@@ -171,7 +171,7 @@ cam.onMouseDown = (e) => {
   }
 
   if (tiles[posX][posY] != undefined) {
-    tiles[posX][posY].texId = (tile + 1) % textureGroup.length; //This basically forces the first few textures to be part of the texturegroup
+    tiles[posX][posY].texId = temp.texIds[textureGroup[tile]];
   } else {
     tiles[posX][posY] = sprite_shader.InstanceObject(
       'verSprite.json',
