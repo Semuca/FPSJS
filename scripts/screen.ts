@@ -16,11 +16,7 @@ export class FScreen {
   screenAction = SCREENACTION.IDLE;
   resizingCameras: Camera[] = [];
 
-  textures: WebGLTexture[] = []; //For the context of webgl, we need to track what objects use what texture
-
-  //A lot of this texture stuff needs to be sorted out. Redundancies induce discrepencies, especially when deleting textures
-  //Is there a better way to store these?
-  texObjects: Record<number, WebGLTexture> = {}; //TextureID to Texture Objects hashmap (Maybe include texture names later too)
+  textures: Record<number, WebGLTexture> = {}; //For the context of webgl, we need to track what objects use what texture
   texIds: Record<string, number> = {}; //Texture name to TextureID hashmap
 
   // Manage what keys are being held down
@@ -171,13 +167,12 @@ export class FScreen {
   //Sets up a texture in the webgl context
   CreateTexture(name: string, tex: TexImageSource) {
     //This could be fixed to allow deletion of textures to reclaim ids, but i don't really care
-    this.textures.push(this.textures.length);
-    const texId = this.textures.length - 1;
+    const texId = Object.entries(this.textures).length;
     this.texIds[name] = texId;
 
     //Creates texture and binds it to WebGL
     const texture = this.gl.createTexture();
-    this.texObjects[texId] = texture;
+    this.textures[texId] = texture;
     this.gl.activeTexture(this.gl.TEXTURE0 + texId);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
