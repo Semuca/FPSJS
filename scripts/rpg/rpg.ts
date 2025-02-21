@@ -1,7 +1,7 @@
-import { FScreen } from './screen.js';
-import { LoadFileText, CreateTexture, LoadModel, LoadShader } from './loading.js';
-import { RotPos2D } from './objec.js';
-import { Font, DisplayBox } from './ui.js';
+import { FScreen } from '../screen.js';
+import { LoadFileText, CreateTexture, LoadModel, LoadShader } from '../loading.js';
+import { RotPos2D } from '../objec.js';
+import { Font, DisplayBox } from '../ui.js';
 
 const tiles: Record<number, Record<number, string>> = {};
 for (let index = -50; index <= 50; index++) {

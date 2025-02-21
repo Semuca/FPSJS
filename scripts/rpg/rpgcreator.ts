@@ -1,6 +1,6 @@
-import { FScreen, toggleFullScreen } from './screen.js';
-import { LoadFileText, CreateTexture, LoadModel, LoadShader } from './loading.js';
-import { Objec, RotPos2D } from './objec.js';
+import { FScreen, toggleFullScreen } from '../screen.js';
+import { LoadFileText, CreateTexture, LoadModel, LoadShader } from '../loading.js';
+import { Objec, RotPos2D } from '../objec.js';
 
 const MODES = {
   MOVE: 0,
