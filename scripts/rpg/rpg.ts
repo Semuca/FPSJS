@@ -20,7 +20,6 @@ export function run_rpg(map: string[]) {
   //Set up new screen that takes up the entire space
   const temp = new FScreen('canvas');
   const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], 0);
-  cam.PreDraw();
 
   Setup();
 
@@ -175,7 +174,6 @@ export function run_rpg(map: string[]) {
     temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
 
     //Draws sprites
-    temp.shaders[0].DrawScene(0);
-    temp.shaders[1].DrawScene(0);
+    cam.Draw();
   }
 }

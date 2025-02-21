@@ -136,7 +136,7 @@ export class Camera {
     );
   }
 
-  PreDraw() {
+  Draw() {
     this.SetUniform('uOrthoMatrix', this.orthoMatrix);
     const inverse = mat4.create();
     mat4.invert(inverse, this.orthoMatrix);
@@ -144,6 +144,10 @@ export class Camera {
     this.SetUniform('uPerspectiveMatrix', this.perspectiveMatrix);
     this.SetUniform('uViewMatrix', this.viewMatrix);
     this.SetViewport();
+
+    this.window.shaders.forEach((shader) => {
+      shader.DrawScene(this.worldIndex);
+    });
   }
 }
 

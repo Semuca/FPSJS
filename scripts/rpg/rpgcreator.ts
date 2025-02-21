@@ -30,7 +30,6 @@ const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
 cam.zoom = 50;
 cam.RecalculateProjMatrix();
 const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
-cam.PreDraw();
 
 async function Setup() {
   //Load 2d shader, plus the model
@@ -88,10 +87,10 @@ async function Setup() {
 
   cam.SetUniform('u_resolution', [cam.pxWidth, cam.pxHeight]);
 
-  return [sprite_shader, grid_shader];
+  return [sprite_shader];
 }
 
-const [sprite_shader, grid_shader] = await Setup();
+const [sprite_shader] = await Setup();
 requestAnimationFrame(RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
@@ -99,19 +98,8 @@ function RenderLoop() {
   temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
 
   //Should do much less draws here, but for now things seem to be fine
-  cam.PreDraw();
-
-  grid_shader.DrawScene(0);
-  sprite_shader.DrawScene(0);
-
-  DrawSidebar();
-}
-
-function DrawSidebar() {
-  sidebar.PreDraw();
-
-  //Draw sidebar
-  sprite_shader.DrawScene(1);
+  cam.Draw();
+  sidebar.Draw();
 }
 
 function get_map() {
