@@ -421,6 +421,17 @@ cam.onMouseUp = (e) => {
   }
 };
 
+cam.onWheel = (e) => {
+  cam.zoom -= e.deltaY / 5;
+
+  //Zoom cap
+  cam.zoom = Math.max(20, cam.zoom);
+
+  cam.RecalculateProjMatrix();
+
+  requestAnimationFrame(RenderLoop);
+};
+
 // Select tile
 sidebar.onMouseDown = (e) => {
   const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
@@ -541,32 +552,3 @@ temp.keyDownCallbacks['Space'] = () => {
   highlighter.hidden = true;
   requestAnimationFrame(RenderLoop);
 };
-
-//Zooming
-document.addEventListener('wheel', (e) => {
-  if (e.pageX > cam.pxWidth) return;
-
-  cam.zoom -= e.deltaY / 5;
-
-  //Zoom cap
-  cam.zoom = Math.max(20, cam.zoom);
-
-  cam.RecalculateProjMatrix();
-
-  requestAnimationFrame(RenderLoop);
-});
-
-//Resizing for the window. What's the difference between "resize" and "onresize"?
-window.addEventListener('resize', () => {
-  temp.canvas.width = temp.canvas.clientWidth;
-  temp.canvas.height = temp.canvas.clientHeight;
-
-  for (let i = 0; i < temp.cameras.length; i++) {
-    temp.cameras[i].pxWidth = temp.canvas.width * temp.cameras[i].width;
-    temp.cameras[i].pxHeight = temp.canvas.height * temp.cameras[i].height;
-    temp.cameras[i].aspectRatio = temp.cameras[i].pxWidth / temp.cameras[i].pxHeight;
-    temp.cameras[i].RecalculateProjMatrix();
-  }
-
-  requestAnimationFrame(RenderLoop);
-});

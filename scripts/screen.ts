@@ -118,6 +118,17 @@ export class FScreen {
       }
     });
 
+    document.addEventListener('wheel', (e) => {
+      // If just done resizing, end here
+      if (this.screenAction === SCREENACTION.RESIZING) return;
+
+      const focussedCameras = this.getCamerasFromCursor(e);
+
+      if (focussedCameras.length == 1) {
+        focussedCameras.at(0)?.onWheel(e);
+      }
+    });
+
     window.addEventListener('keydown', (e) => {
       this.keysDown[e.code] = true;
       if (this.keyDownCallbacks[e.code]) {

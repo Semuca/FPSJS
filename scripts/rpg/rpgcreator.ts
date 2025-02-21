@@ -1,6 +1,7 @@
 import { FScreen, toggleFullScreen } from '../screen.js';
 import { LoadFileText, CreateTexture, LoadModel, LoadShader } from '../loading.js';
 import { Objec, RotPos2D } from '../objec.js';
+import { run_rpg } from './rpg.js';
 
 const MODES = {
   MOVE: 0,
@@ -113,22 +114,29 @@ function DrawSidebar() {
   sprite_shader.DrawScene(1);
 }
 
+function get_map() {
+  const map = [];
+  for (let i = -50; i <= 50; i++) {
+    let row = '';
+    for (let j = -50; j <= 50; j++) {
+      if (tiles[i][j] != undefined) {
+        row += tiles[i][j].texId;
+      } else {
+        row += ' ';
+      }
+    }
+    map.push(row);
+  }
+
+  return map;
+}
+
 // Downloads the map
 temp.keyDownCallbacks['KeyC'] = () => {
   const element = document.createElement('a');
 
-  let text = '';
-  for (let i = -50; i <= 50; i++) {
-    for (let j = -50; j <= 50; j++) {
-      if (tiles[i][j] != undefined) {
-        text += tiles[i][j].texId;
-      } else {
-        text += ' ';
-      }
-    }
-    text += '\r\n';
-  }
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  const map = get_map().join('\r\n');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(map));
   element.setAttribute('download', 'map');
 
   element.style.display = 'none';
@@ -137,6 +145,11 @@ temp.keyDownCallbacks['KeyC'] = () => {
   element.click();
 
   document.body.removeChild(element);
+};
+
+temp.keyDownCallbacks['KeyU'] = () => {
+  const map = get_map();
+  run_rpg(map);
 };
 
 temp.keyDownCallbacks['Enter'] = () => {
@@ -200,6 +213,17 @@ cam.onMouseMove = (e) => {
   }
 };
 
+cam.onWheel = (e) => {
+  cam.zoom -= e.deltaY / 5;
+
+  //Zoom cap
+  cam.zoom = Math.max(20, cam.zoom);
+
+  cam.RecalculateProjMatrix();
+
+  requestAnimationFrame(RenderLoop);
+};
+
 sidebar.onMouseDown = (e) => {
   const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
   const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
@@ -213,32 +237,3 @@ sidebar.onMouseDown = (e) => {
     requestAnimationFrame(RenderLoop);
   }
 };
-
-//Zooming
-document.addEventListener('wheel', (e) => {
-  if (e.pageX > cam.pxWidth) return;
-
-  cam.zoom -= e.deltaY / 5;
-
-  //Zoom cap
-  cam.zoom = Math.max(20, cam.zoom);
-
-  cam.RecalculateProjMatrix();
-
-  requestAnimationFrame(RenderLoop);
-});
-
-//Resizing for the window. What's the difference between "resize" and "onresize"?
-window.addEventListener('resize', () => {
-  temp.canvas.width = temp.canvas.clientWidth;
-  temp.canvas.height = temp.canvas.clientHeight;
-
-  temp.cameras.forEach((camera) => {
-    camera.pxWidth = temp.canvas.width * camera.width;
-    camera.pxHeight = temp.canvas.height * camera.height;
-    camera.aspectRatio = camera.pxWidth / camera.pxHeight;
-    camera.RecalculateProjMatrix();
-  });
-
-  requestAnimationFrame(RenderLoop);
-});

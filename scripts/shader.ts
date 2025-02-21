@@ -39,6 +39,7 @@ export class Camera {
   onMouseDown: (e: MouseEvent) => void = () => {};
   onMouseMove: (e: MouseEvent) => void = () => {};
   onMouseUp: (e: MouseEvent) => void = () => {};
+  onWheel: (e: WheelEvent) => void = () => {};
 
   constructor(
     window: FScreen,
