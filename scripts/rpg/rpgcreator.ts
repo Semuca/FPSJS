@@ -29,7 +29,7 @@ let textureGroup: string[];
 
 const scene = new Scene();
 const cam = new CameraData({ scene, width: 0.8, zoom: 50, worldIndex: 0 });
-new CameraData({ scene, tlCorner: [0.8, 0.0], width: 0.2, worldIndex: 1 });
+const sidebar = new CameraData({ scene, tlCorner: [0.8, 0.0], width: 0.2, worldIndex: 1 });
 
 async function Setup() {
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
@@ -209,16 +209,16 @@ cam.onWheel = (e) => {
   requestAnimationFrame(RenderLoop);
 };
 
-// sidebar.onMouseDown = (e) => {
-//   const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
-//   const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
-
-//   if (textureGroup[x + 4 * y] != undefined) {
-//     tile = x + 4 * y;
-//     selector.rotpos.position[0] =
-//       sidebar.pxWidth / 2 - ((x % 4) * sidebar.pxWidth) / 4 - sidebar.pxWidth / 8;
-//     //TODO: Implement y-selector for this
-
-//     requestAnimationFrame(RenderLoop);
-//   }
-// };
+sidebar.onMouseDown = (e) => {
+  const cursorWorldPosition = screen.cameras[1].CursorToWorldPosition([e.pageX, e.pageY]);
+  console.log(cursorWorldPosition);
+  // const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
+  // const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
+  // if (textureGroup[x + 4 * y] != undefined) {
+  //   tile = x + 4 * y;
+  //   selector.rotpos.position[0] =
+  //     sidebar.pxWidth / 2 - ((x % 4) * sidebar.pxWidth) / 4 - sidebar.pxWidth / 8;
+  //   //TODO: Implement y-selector for this
+  //   requestAnimationFrame(RenderLoop);
+  // }
+};

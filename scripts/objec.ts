@@ -175,7 +175,12 @@ export class Scale2D {
   }
 
   static of_px(width: number, height: number) {
-    return new Scale2D({ type: ScaleType.Px, value: width }, { type: ScaleType.Px, value: height });
+    const result = new Scale2D(
+      { type: ScaleType.Px, value: width },
+      { type: ScaleType.Px, value: height },
+    );
+    result.calculate_dim(0, 0); // Doesn't matter
+    return result;
   }
 
   static of_width_percent(width_percent: number, height?: Scale) {
