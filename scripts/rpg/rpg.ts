@@ -1,9 +1,10 @@
 import { FScreen } from '../screen.js';
 import { LoadFileText, LoadTexture, LoadModel, LoadShader } from '../loading.js';
-import { RotPos2D } from '../objec.js';
-import { Font, DisplayBox } from '../ui.js';
+import { Objec, RotPos2D } from '../objec.js';
+import { Scene } from '../scene.js';
+import { CameraData } from '../shader.js';
 
-export function run_rpg(map: string[]) {
+export async function run_rpg(screen: FScreen, map: string[]) {
   const tiles: Record<number, Record<number, string>> = {};
   for (let index = -50; index <= 50; index++) {
     tiles[index] = {};
@@ -15,23 +16,32 @@ export function run_rpg(map: string[]) {
   }
   const textureData: Record<string, TextureData> = {};
 
-  let font: Font; //Think of a faster way to look up fonts later
+  // let font: Font; //Think of a faster way to look up fonts later
 
   //Set up new screen that takes up the entire space
-  const temp = new FScreen('canvas');
-  const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], 0);
+  const scene = new Scene();
+  // const screen = new FScreen('canvas', scene);
+  const cam = new CameraData({ scene });
+  scene.AddCamera(cam);
 
-  Setup();
+  const [modelData] = await Setup();
+  screen.set_scene(scene);
+  requestAnimationFrame(Render);
+  Tick();
 
   async function Setup() {
     //Load shaders for the 2d camera
-    await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
+    const sprite_shader = await LoadShader(
+      scene,
+      '2DspriteVertexShader.vs',
+      'spriteFragmentShader.fs',
+    );
 
     //This texture stuff should be cleaned up
     const textures = await LoadFileText('../textures.txt');
     Promise.allSettled(
       textures.split('\n').map((texture, index) => async () => {
-        await LoadTexture(temp, texture + '.png');
+        await LoadTexture(scene, texture + '.png');
         const rawMetadata = await LoadFileText('textures/' + texture + '.json');
         const jsonMetadata = JSON.parse(rawMetadata) as TextureData;
 
@@ -39,12 +49,9 @@ export function run_rpg(map: string[]) {
       }),
     );
 
-    const modelData = await LoadModel(temp, 'verSprite.json');
-    temp.shaders[0].CreateModel('verSprite.json', modelData);
-    temp.shaders[0].InstanceObject(
-      'verSprite.json',
-      new RotPos2D([0.0, 0.0], Math.PI, [25.0, 25.0]),
-      0,
+    const modelData = await LoadModel(sprite_shader, 'verSprite.json');
+    modelData.create_objec(
+      new Objec({ model: modelData, rotpos: new RotPos2D([0.0, 0.0], Math.PI, [25.0, 25.0]) }),
     );
 
     //Map loading
@@ -54,50 +61,50 @@ export function run_rpg(map: string[]) {
       map[i].split('').forEach((char, index) => {
         if (char != ' ') {
           // TODO: Reimplement layers
-          temp.shaders[0].InstanceObject(
-            'verSprite.json',
-            new RotPos2D([i * 50.0 - 2500.0, index * 50.0 - 2500.0], Math.PI, [25.0, 25.0]),
-            0,
-            Object.keys(textureData)[parseInt(char)] + '.png',
+          modelData.create_objec(
+            new Objec({
+              model: modelData,
+              rotpos: new RotPos2D(
+                [i * 50.0 - 2500.0, index * 50.0 - 2500.0],
+                Math.PI,
+                [25.0, 25.0],
+              ),
+              texId: scene.texIds[Object.keys(textureData)[parseInt(char)] + '.png'],
+            }),
           );
           tiles[i - 50][index - 50] = char;
         }
       });
     }
 
-    await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
-    temp.shaders[1].CreateModel('verSprite.json', modelData);
+    await LoadTexture(scene, 'black.png');
+    await LoadTexture(scene, 'white.png');
 
-    await LoadTexture(temp, 'black.png');
-    await LoadTexture(temp, 'white.png');
+    await LoadTexture(scene, 'def.png');
+    // font = new Font('def.png', JSON.parse(await LoadFileText('textures/def.json')));
 
-    await LoadTexture(temp, 'def.png');
-    font = new Font('def.png', JSON.parse(await LoadFileText('textures/def.json')));
-
-    DisplayBox(cam, temp.shaders[1], [0.8, 0.4]);
-    font.CreateSentence(temp.shaders[1], 400.0, -100.0, '* HELLO CONOR!');
-
-    requestAnimationFrame(Render);
-    Tick();
+    // DisplayBox(cam, screen.shaders[1], [0.8, 0.4]);
+    // font.CreateSentence(screen.shaders[1], 400.0, -100.0, '* HELLO CONOR!');
+    return [modelData];
   }
 
   function Tick() {
     //Change movement based on keys currently pressed down
     let movX = 0.0;
     let movY = 0.0;
-    if (temp.keysDown['KeyW'] === true) {
+    if (screen.keysDown['KeyW'] === true) {
       movY += 10.0;
     }
-    if (temp.keysDown['KeyA'] === true) {
+    if (screen.keysDown['KeyA'] === true) {
       movX += 10.0;
     }
-    if (temp.keysDown['KeyS'] === true) {
+    if (screen.keysDown['KeyS'] === true) {
       movY -= 10.0;
     }
-    if (temp.keysDown['KeyD'] === true) {
+    if (screen.keysDown['KeyD'] === true) {
       movX -= 10.0;
     }
-    const playerPos = temp.shaders[0].models['verSprite.json'].objects[0].rotpos;
+    const playerPos = modelData.objects[0].rotpos;
 
     // Rules of collisions for now:
     // The lines of the grid (50 apart) do not count as any collision territory.
@@ -157,7 +164,6 @@ export function run_rpg(map: string[]) {
       playerPos.position[0] += movX; //Why subtraction??
       playerPos.position[1] += movY;
 
-      cam.UpdatePos();
       requestAnimationFrame(Render);
     }
 
@@ -171,9 +177,9 @@ export function run_rpg(map: string[]) {
     //time = now;
 
     //Clear before drawing
-    temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
+    screen.gl.clear(screen.gl.COLOR_BUFFER_BIT | screen.gl.DEPTH_BUFFER_BIT);
 
     //Draws sprites
-    cam.Draw();
+    screen.cameras.forEach((camera) => camera.Draw());
   }
 }

@@ -1,4 +1,5 @@
-import { Shader, Camera } from './shader.js';
+import { Camera, Shader } from './shader.js';
+import { Scene } from './scene.js';
 
 export enum SCREENACTION {
   IDLE,
@@ -10,34 +11,36 @@ export class FScreen {
   canvas: HTMLCanvasElement;
   gl: WebGL2RenderingContext;
 
+  scene: Scene;
   shaders: Shader[] = [];
   cameras: Camera[] = [];
+
   margin: number = 5;
   screenAction = SCREENACTION.IDLE;
   resizingCameras: Camera[] = [];
 
   textures: Record<number, WebGLTexture> = {}; //For the context of webgl, we need to track what objects use what texture
-  texIds: Record<string, number> = {}; //Texture name to TextureID hashmap
 
   // Manage what keys are being held down
   // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code
   keysDown: Record<string, boolean> = {};
-  keyDownCallbacks: Record<string, () => void> = {};
-  keyUpCallbacks: Record<string, () => void> = {};
 
   //Constructor requires an identifier for a canvas
-  constructor(canvasID: string) {
+  constructor(canvasID: string, scene: Scene) {
     this.canvas = document.getElementById(canvasID) as HTMLCanvasElement;
     this.canvas.width = this.canvas.clientWidth;
     this.canvas.height = this.canvas.clientHeight;
 
     this.gl = this.canvas.getContext('webgl2') as WebGL2RenderingContext;
+    this.scene = scene;
 
     //Ensure webgl is properly set up
     if (!this.gl) {
       alert('Unable to initialize WebGL. Your browser or machine may not support it.');
       return;
     }
+
+    this.set_scene(this.scene);
 
     document.addEventListener('mousedown', (e) => {
       const focussedCameras = this.getCamerasFromCursor(e);
@@ -47,7 +50,7 @@ export class FScreen {
         this.screenAction = SCREENACTION.RESIZING;
         this.resizingCameras = focussedCameras;
       } else if (focussedCameras.length == 1) {
-        focussedCameras.at(0)?.onMouseDown(e);
+        focussedCameras.at(0)?.camera_data.onMouseDown(e);
       }
     });
 
@@ -91,11 +94,11 @@ export class FScreen {
       if (focussedCameras.length >= 2) {
         document.body.style.cursor = 'ew-resize';
       } else if (focussedCameras.length == 1) {
-        document.body.style.cursor = focussedCameras.at(0)?.cursor ?? 'default';
+        document.body.style.cursor = focussedCameras.at(0)?.camera_data.cursor ?? 'default';
       }
 
       if (focussedCameras.length == 1) {
-        focussedCameras.at(0)?.onMouseMove(e);
+        focussedCameras.at(0)?.camera_data.onMouseMove(e);
       }
     });
 
@@ -110,7 +113,7 @@ export class FScreen {
       const focussedCameras = this.getCamerasFromCursor(e);
 
       if (focussedCameras.length == 1) {
-        focussedCameras.at(0)?.onMouseUp(e);
+        focussedCameras.at(0)?.camera_data.onMouseUp(e);
       }
     });
 
@@ -121,80 +124,71 @@ export class FScreen {
       const focussedCameras = this.getCamerasFromCursor(e);
 
       if (focussedCameras.length == 1) {
-        focussedCameras.at(0)?.onWheel(e);
+        focussedCameras.at(0)?.camera_data.onWheel(e);
       }
     });
 
     window.addEventListener('keydown', (e) => {
       this.keysDown[e.code] = true;
-      if (this.keyDownCallbacks[e.code]) {
-        this.keyDownCallbacks[e.code]();
+      if (this.scene.keyDownCallbacks[e.code]) {
+        this.scene.keyDownCallbacks[e.code]();
       }
     });
 
     window.addEventListener('keyup', (e) => {
       this.keysDown[e.code] = false;
-      if (this.keyUpCallbacks[e.code]) {
-        this.keyUpCallbacks[e.code]();
+      if (this.scene.keyUpCallbacks[e.code]) {
+        this.scene.keyUpCallbacks[e.code]();
       }
+    });
+  }
+
+  set_scene(scene: Scene) {
+    this.shaders.forEach((shader) => {
+      shader.Destructor();
+    });
+
+    this.scene = scene;
+    this.shaders = this.scene.shader_data.map((shader_data) => new Shader(this, shader_data));
+    this.cameras = this.scene.camera_data.map((camera_data) => new Camera(this, camera_data));
+
+    Object.entries(this.scene.textures).forEach(([id, texture_source]) => {
+      //Creates texture and binds it to WebGL
+      const texture = this.gl.createTexture();
+      this.textures[parseInt(id)] = texture;
+      this.gl.activeTexture(this.gl.TEXTURE0 + parseInt(id));
+      this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+      //Puts image into texture
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        texture_source,
+      );
+
+      //Adjusts texture parameters
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST); //This removes blurring
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+
+      this.gl.generateMipmap(this.gl.TEXTURE_2D);
     });
   }
 
   getCamerasFromCursor(e: MouseEvent) {
     return this.cameras.filter(
       (camera) =>
-        camera.tlCorner[0] * this.canvas.width - this.margin <= e.pageX &&
-        e.pageX <= camera.brCorner[0] * this.canvas.width + this.margin &&
-        camera.tlCorner[1] * this.canvas.height - this.margin <= e.pageY &&
-        e.pageY <= camera.brCorner[1] * this.canvas.height + this.margin,
+        camera.camera_data.tlCorner[0] * this.canvas.width - this.margin <= e.pageX &&
+        e.pageX <=
+          camera.camera_data.tlCorner[0] * this.canvas.width + camera.pxWidth + this.margin &&
+        camera.camera_data.tlCorner[1] * this.canvas.height - this.margin <= e.pageY &&
+        e.pageY <=
+          camera.camera_data.tlCorner[1] * this.canvas.height + camera.pxHeight + this.margin,
     );
-  }
-
-  //Not entirely set on the structure here, maybe think about it later
-  AddShader(cam: Camera, vsSource: string, fsSource: string) {
-    const shader = new Shader(this, this.gl, cam);
-    shader.CompileProgram(vsSource, fsSource);
-    this.shaders.push(shader);
-    return shader;
-  }
-
-  //tlCorner and brCorner are in percentage of screenspace taken up. Might be good to also have an option for pixels
-  AddCamera(tlCorner: [number, number], brCorner: [number, number], worldIndex: number) {
-    this.cameras.push(new Camera(this, tlCorner, brCorner, worldIndex));
-    return this.cameras[this.cameras.length - 1];
-  }
-
-  //Sets up a texture in the webgl context
-  CreateTexture(name: string, tex: TexImageSource) {
-    //This could be fixed to allow deletion of textures to reclaim ids, but i don't really care
-    const texId = Object.entries(this.textures).length;
-    this.texIds[name] = texId;
-
-    //Creates texture and binds it to WebGL
-    const texture = this.gl.createTexture();
-    this.textures[texId] = texture;
-    this.gl.activeTexture(this.gl.TEXTURE0 + texId);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-    //Puts image into texture
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
-      0,
-      this.gl.RGBA,
-      this.gl.RGBA,
-      this.gl.UNSIGNED_BYTE,
-      tex,
-    );
-
-    //Adjusts texture parameters
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST); //This removes blurring
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-
-    this.gl.generateMipmap(this.gl.TEXTURE_2D);
-
-    return texId;
   }
 }
 //Toggles fullscreen

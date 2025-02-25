@@ -1,35 +1,36 @@
 import { mat4, quat, vec2, vec3 } from 'gl-matrix';
 // import { PhysicsObjec, PhysicsScene } from "./physics.js";
-import { Shader } from './shader.js';
 import { FScreen } from './screen.js';
-import { ModelData } from './loading.js';
+
+export interface ModelData {
+  ARRAY_BUFFER: Record<string, [number[], number, number, number]>;
+  ELEMENT_ARRAY_BUFFER?: number[];
+  TEXTURE?: string;
+}
 
 //Stores data about an unloaded, uninstantiated object that is generic. I.e what shaders does this object work with?
 export class Model {
-  //Should store the information that is generic to all objects of a certain type (i.e attribute information, texture) so we don't need to re-load them
+  name: string;
   modelData: ModelData;
-  //List of all objects referenced by model
+
+  // List of all objects referenced by model
   objects: Objec[] = [];
 
-  vao: WebGLVertexArrayObject;
+  vao: WebGLVertexArrayObject | undefined;
   buffers: Record<string, WebGLBuffer> = {};
-  shader: Shader;
 
   textureId: number | undefined;
 
-  constructor(modelData: ModelData, shader: Shader, vao: WebGLVertexArrayObject) {
+  constructor(name: string, modelData: ModelData, vao?: WebGLVertexArrayObject) {
+    this.name = name;
     this.modelData = modelData;
     this.textureId = undefined;
-    this.shader = shader;
     this.vao = vao;
   }
 
-  //Don't know if this is a good function to keep, but good for debug purposes
-  // ModifyAttribute(attrib, updatedAttrib) {
-  //   this.modelData["ARRAY_BUFFER"][attrib][0] = updatedAttrib;
-  //   this.shader.gl.bindBuffer(this.shader.gl.ARRAY_BUFFER, this.buffers[attrib]);
-  //   this.shader.gl.bufferData(this.shader.gl.ARRAY_BUFFER, new Float32Array(updatedAttrib), this.shader.gl.STATIC_DRAW);
-  // }
+  create_objec(objec: Objec) {
+    this.objects.push(objec);
+  }
 }
 
 //Instance of object
@@ -43,14 +44,23 @@ export class Objec {
   matrix = mat4.create();
   callbackFn: (_screen: FScreen, _object: Objec) => void = () => {};
 
-  constructor(model: Model, rotpos: RotPos | RotPos2D, worldIndex: number = 0, texId?: number) {
+  constructor({
+    model,
+    rotpos,
+    texId,
+    worldIndex = 0,
+    tags = [],
+  }: {
+    model: Model;
+    rotpos: RotPos | RotPos2D;
+    texId?: number;
+    worldIndex?: number;
+    tags?: string[];
+  }) {
     this.model = model;
     this.rotpos = rotpos;
     this.worldIndex = worldIndex;
     this.texId = texId;
-  }
-
-  AddTags(tags: string[]): void {
     tags.forEach((tag) => this.tags.add(tag));
   }
 

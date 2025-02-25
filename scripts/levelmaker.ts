@@ -9,6 +9,8 @@ import {
   ShortestDistanceFromPointToSegment,
 } from './geometry.js';
 import { quat, vec3 } from 'gl-matrix';
+import { Scene } from './scene.js';
+import { CameraData } from './shader.js';
 
 const MODES = {
   MOVE: 0,
@@ -40,7 +42,7 @@ class Wall extends Segment2D {
 
 let mode = MODES.PLACE;
 
-let tile = 0;
+const tile = 0;
 let currentPoint: Point2D | undefined = undefined;
 let secondPoint: Point2D | undefined = undefined;
 
@@ -56,14 +58,12 @@ let hover: Objec;
 let highlighter: Objec;
 let secondHighlighter: Objec;
 
-let selector: Objec;
+// let selector: Objec;
 
-const temp = new FScreen('canvas');
-const cam = temp.AddCamera([0.0, 0.0], [0.8, 1.0], 0);
-cam.zoom = 50;
-cam.RecalculateProjMatrix();
-cam.cursor = 'pointer';
-const sidebar = temp.AddCamera([0.8, 0.0], [1.0, 1.0], 1);
+const scene = new Scene();
+const screen = new FScreen('canvas', scene);
+const cam = new CameraData({ scene, width: 0.8, zoom: 50 });
+new CameraData({ scene, tlCorner: [0.8, 0.0], width: 0.2, worldIndex: 1 });
 
 let currentSidepaneIndex = 0;
 
@@ -81,54 +81,56 @@ function UpdateSidebar(sidebarIndex: number) {
 
   currentSidepaneIndex = sidebarIndex;
 
-  const width = sidebar.pxWidth / 4;
+  // const width = sidebar.pxWidth / 4;
 
-  textureGroup.forEach((texture, i) => {
-    temp.shaders[0].InstanceObject(
-      'verSprite.json',
-      new RotPos2D(
-        [
-          width * 2 - ((i % 4) + 1) * width + width / 2,
-          sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + width / 2,
-        ],
-        Math.PI,
-        [width / 2, width / 2],
-      ),
-      1,
-      texture,
-    );
-  });
+  // textureGroup.forEach((texture, i) => {
+  //   screen.shaders[0].InstanceObject(
+  //     'verSprite.json',
+  //     new RotPos2D(
+  //       [
+  //         width * 2 - ((i % 4) + 1) * width + width / 2,
+  //         sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + width / 2,
+  //       ],
+  //       Math.PI,
+  //       [width / 2, width / 2],
+  //     ),
+  //     1,
+  //     texture,
+  //   );
+  // });
 
-  selector = temp.shaders[0].InstanceObject(
-    'verSprite.json',
-    new RotPos2D(
-      [width * 2 - width + width / 2, sidebar.pxHeight / 2 - width + width / 2],
-      Math.PI,
-      [width / 2, width / 2],
-    ),
-    1,
-    'tframe.png',
-  );
-
-  sidebar.Draw();
+  // selector = screen.shaders[0].InstanceObject(
+  //   'verSprite.json',
+  //   new RotPos2D(
+  //     [width * 2 - width + width / 2, sidebar.pxHeight / 2 - width + width / 2],
+  //     Math.PI,
+  //     [width / 2, width / 2],
+  //   ),
+  //   1,
+  //   'tframe.png',
+  // );
 }
 
-Setup();
+const [modelData, plane] = await Setup();
+requestAnimationFrame(RenderLoop);
 
 async function Setup() {
   //Load 2d shader, plus the model
-  await LoadShader(cam, '2DspriteVertexShader.vs', 'spriteFragmentShader.fs');
-  let modelData = await LoadModel(temp, 'verSprite.json');
-  temp.shaders[0].CreateModel('verSprite.json', modelData);
+  const sprite_shader = await LoadShader(
+    scene,
+    '2DspriteVertexShader.vs',
+    'spriteFragmentShader.fs',
+  );
+  let modelData = await LoadModel(sprite_shader, 'verSprite.json');
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
   const sidepaneData = await LoadFileText('../sidepanes.json');
   sidepanes = JSON.parse(sidepaneData).sidepanes;
 
   sidepanes.forEach((_sidepane, index) => {
-    temp.keyDownCallbacks[`Digit${index + 1}`] = () => {
+    scene.keyDownCallbacks[`Digit${index + 1}`] = () => {
       if (currentSidepaneIndex === index) return;
-      temp.shaders[0].DeleteAllObjects(1);
+      screen.shaders[0].DeleteAllObjects(1);
       UpdateSidebar(index);
       requestAnimationFrame(RenderLoop);
     };
@@ -138,71 +140,65 @@ async function Setup() {
     sidepanes
       .map((sidepane) => sidepane.textures)
       .flat()
-      .map((texture) => LoadTexture(temp, texture)),
-    LoadTexture(temp, 'tframe.png'),
+      .map((texture) => LoadTexture(scene, texture)),
+    LoadTexture(scene, 'tframe.png'),
   ]);
 
   // Load sidebar
   UpdateSidebar(currentSidepaneIndex);
 
-  highlighter = temp.shaders[0].InstanceObject(
-    'verSprite.json',
-    new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
-    0,
-    'tframe.png',
-  );
+  highlighter = new Objec({
+    model: modelData,
+    rotpos: new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
+    texId: scene.texIds['tframe.png'],
+  });
   highlighter.hidden = true;
-  secondHighlighter = temp.shaders[0].InstanceObject(
-    'verSprite.json',
-    new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
-    0,
-    'tframe.png',
-  );
-  secondHighlighter.hidden = true;
+  modelData.create_objec(highlighter);
 
-  hover = temp.shaders[0].InstanceObject(
-    'verSprite.json',
-    new RotPos2D([0.5, 0.5], Math.PI, [0.5, 0.5]),
-    0,
-    'texture.png',
-  );
+  secondHighlighter = new Objec({
+    model: modelData,
+    rotpos: new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
+    texId: scene.texIds['tframe.png'],
+  });
+  secondHighlighter.hidden = true;
+  modelData.create_objec(secondHighlighter);
+
+  hover = new Objec({
+    model: modelData,
+    rotpos: new RotPos2D([0.5, 0.5], Math.PI, [0.5, 0.5]),
+    texId: scene.texIds['texture.png'],
+  });
   hover.hidden = true;
+  modelData.create_objec(hover);
 
   //Load line models
-  await LoadShader(cam, '2DflatlineVertexShader.vs', 'lineFragmentShader.fs');
-  modelData = await LoadModel(temp, 'flatline.json');
-  temp.shaders[1].CreateModel('flatline.json', modelData);
-  line = temp.shaders[1].InstanceObject(
-    'flatline.json',
-    new RotPos2D([0.0, 0.0], undefined, [0.0, 0.0]),
-    0,
-  );
+  const line_shader = await LoadShader(scene, '2DflatlineVertexShader.vs', 'lineFragmentShader.fs');
+  modelData = await LoadModel(line_shader, 'flatline.json');
+  line = new Objec({ model: modelData, rotpos: new RotPos2D([0.0, 0.0], undefined, [0.0, 0.0]) });
+  modelData.create_objec(line);
 
-  await LoadShader(cam, 'grid.vs', 'grid.fs');
-  const plane = await LoadModel(temp, 'verSprite.json');
-  temp.shaders[2].CreateModel('verSprite.json', plane);
-  temp.shaders[2].InstanceObject('verSprite.json', new RotPos2D([0.0, 0.0]), 0);
+  const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
+  const plane = await LoadModel(grid_shader, 'verSprite.json');
+  plane.create_objec(new Objec({ model: plane, rotpos: new RotPos2D([0.0, 0.0]) }));
 
-  cam.SetUniform('u_resolution', [cam.pxWidth, cam.pxHeight]);
-
-  requestAnimationFrame(RenderLoop);
+  return [modelData, plane];
 }
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop() {
-  temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
+  screen.gl.clear(screen.gl.COLOR_BUFFER_BIT | screen.gl.DEPTH_BUFFER_BIT);
 
   //Should do much less draws here, but for now things seem to be fine
   // cam.PreDraw();
 
-  temp.shaders[2].DrawScene(0);
+  screen.shaders[2].DrawScene(0);
 
   //Sets up grid to be drawn
-  if (!temp.shaders[1].shaderProgram) return;
-  temp.gl.useProgram(temp.shaders[1].shaderProgram);
-  temp.gl.bindVertexArray(temp.shaders[1].models['flatline.json'].vao);
-  temp.gl.uniform4fv(
-    temp.shaders[1].programInfo.uniformLocations['colour'],
+  if (!screen.shaders[1].shaderProgram) return;
+  screen.gl.useProgram(screen.shaders[1].shaderProgram);
+  screen.gl.bindVertexArray(modelData.vao!);
+  screen.gl.uniform4fv(
+    screen.shaders[1].programInfo.uniformLocations['colour'],
     new Float32Array([1.0, 0.0, 0.0, 1.0]),
   );
 
@@ -215,8 +211,8 @@ function RenderLoop() {
       colour = [1.0, 0.0, 1.0, 1.0];
     }
 
-    temp.gl.uniform4fv(
-      temp.shaders[1].programInfo.uniformLocations['colour'],
+    screen.gl.uniform4fv(
+      screen.shaders[1].programInfo.uniformLocations['colour'],
       new Float32Array(colour),
     );
 
@@ -231,12 +227,12 @@ function RenderLoop() {
     const angle = Math.atan(xDist / yDist) + (yDist < 0 ? 0 : -Math.PI);
 
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
-    temp.gl.uniformMatrix4fv(
-      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
+    screen.gl.uniformMatrix4fv(
+      screen.shaders[1].programInfo.uniformLocations.uModelMatrix,
       false,
       line.GetMatrix(),
     );
-    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
+    screen.gl.drawArrays(screen.gl.LINES, 0, 2);
   });
 
   // Draw line from selected point to cursor
@@ -251,18 +247,18 @@ function RenderLoop() {
     const angle = Math.atan(xDist / yDist) + (yDist < 0 ? Math.PI : 0);
 
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
-    temp.gl.uniformMatrix4fv(
-      temp.shaders[1].programInfo.uniformLocations.uModelMatrix,
+    screen.gl.uniformMatrix4fv(
+      screen.shaders[1].programInfo.uniformLocations.uModelMatrix,
       false,
       line.GetMatrix(),
     );
-    temp.gl.drawArrays(temp.gl.LINES, 0, 2);
+    screen.gl.drawArrays(screen.gl.LINES, 0, 2);
   }
 
   // Draws sprites
-  temp.shaders[0].DrawScene(0);
+  screen.shaders[0].DrawScene(0);
 
-  sidebar.Draw();
+  screen.cameras.forEach((camera) => camera.Draw());
 }
 
 // Start drawing when the mouse is pressed down
@@ -276,15 +272,16 @@ cam.onMouseDown = () => {
       ),
     );
 
-    temp.shaders[0].InstanceObject(
-      'verSprite.json',
-      new RotPos2D(
-        [highlighter.rotpos.position[0], highlighter.rotpos.position[1]],
-        Math.PI,
-        [0.5, 0.5],
-      ),
-      0,
-      sidepanes[currentSidepaneIndex].textures[tile],
+    plane.create_objec(
+      new Objec({
+        model: plane,
+        rotpos: new RotPos2D(
+          [highlighter.rotpos.position[0], highlighter.rotpos.position[1]],
+          Math.PI,
+          [0.5, 0.5],
+        ),
+        texId: scene.texIds[sidepanes[currentSidepaneIndex].textures[tile]],
+      }),
     );
 
     requestAnimationFrame(RenderLoop);
@@ -300,7 +297,7 @@ cam.onMouseDown = () => {
 
 cam.onMouseMove = (e) => {
   const highlightRadiusTrigger = 0.3;
-  cursorWorldPosition = cam.CursorToWorldPosition([e.pageX, e.pageY]);
+  cursorWorldPosition = screen.cameras[0].CursorToWorldPosition([e.pageX, e.pageY]);
   if (mode === MODES.PLACE) {
     let drawFlag = false;
 
@@ -340,7 +337,7 @@ cam.onMouseMove = (e) => {
         hover.hidden = true;
       } else {
         hover.rotpos.position = [-cursorWorldPosition.x, cursorWorldPosition.y + 0.5, 1.0];
-        hover.texId = temp.texIds[walls[highlightedWall].texture];
+        hover.texId = scene.texIds[walls[highlightedWall].texture];
         hover.hidden = false;
       }
 
@@ -354,7 +351,6 @@ cam.onMouseMove = (e) => {
       cam.rotpos.position[0] -= e.movementX / cam.zoom;
       cam.rotpos.position[1] -= e.movementY / cam.zoom;
 
-      cam.UpdatePos();
       requestAnimationFrame(RenderLoop);
     } else {
       document.body.style.cursor = 'grab';
@@ -405,7 +401,7 @@ cam.onMouseUp = (e) => {
       cam.onMouseMove(e);
     }
   } else if (mode === MODES.PLACE) {
-    if (temp.keysDown['ShiftLeft'] && highlightedWall != undefined) {
+    if (screen.keysDown['ShiftLeft'] && highlightedWall != undefined) {
       // Delete wall
       walls.splice(highlightedWall, 1);
       requestAnimationFrame(RenderLoop);
@@ -419,28 +415,26 @@ cam.onWheel = (e) => {
   //Zoom cap
   cam.zoom = Math.max(20, cam.zoom);
 
-  cam.RecalculateProjMatrix();
-
   requestAnimationFrame(RenderLoop);
 };
 
 // Select tile
-sidebar.onMouseDown = (e) => {
-  const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
-  const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
+// sidebar.onMouseDown = (e) => {
+//   const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
+//   const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
 
-  if (sidepanes[currentSidepaneIndex].textures[x + 4 * y] != undefined) {
-    tile = x + 4 * y;
-    selector.rotpos.position[0] =
-      sidebar.pxWidth / 2 - ((x % 4) * sidebar.pxWidth) / 4 - sidebar.pxWidth / 8;
-    // TODO: Implement y-selector for this
+//   if (sidepanes[currentSidepaneIndex].textures[x + 4 * y] != undefined) {
+//     tile = x + 4 * y;
+//     selector.rotpos.position[0] =
+//       sidebar.pxWidth / 2 - ((x % 4) * sidebar.pxWidth) / 4 - sidebar.pxWidth / 8;
+//     // TODO: Implement y-selector for this
 
-    requestAnimationFrame(RenderLoop);
-  }
-};
+//     requestAnimationFrame(RenderLoop);
+//   }
+// };
 
 // Loads a map on U
-temp.keyDownCallbacks['KeyU'] = () => {
+scene.keyDownCallbacks['KeyU'] = () => {
   const input = document.createElement('input');
   input.type = 'file';
 
@@ -472,11 +466,12 @@ temp.keyDownCallbacks['KeyU'] = () => {
             sidepanes[currentSidepaneIndex].tags,
           ),
         );
-        temp.shaders[0].InstanceObject(
-          'verSprite.json',
-          new RotPos2D([object.position[0], object.position[2]], Math.PI, [1, 1]),
-          0,
-          object.texture,
+        plane.create_objec(
+          new Objec({
+            model: plane,
+            rotpos: new RotPos2D([object.position[0], object.position[2]], Math.PI, [1, 1]),
+            texId: scene.texIds[object.texture],
+          }),
         );
       }
     });
@@ -486,7 +481,7 @@ temp.keyDownCallbacks['KeyU'] = () => {
 };
 
 // Downloads the map on C
-temp.keyDownCallbacks['KeyC'] = () => {
+scene.keyDownCallbacks['KeyC'] = () => {
   const element = document.createElement('a');
 
   const text = JSON.stringify({
@@ -536,9 +531,9 @@ temp.keyDownCallbacks['KeyC'] = () => {
   document.body.removeChild(element);
 };
 
-temp.keyDownCallbacks['Enter'] = toggleFullScreen;
+scene.keyDownCallbacks['Enter'] = toggleFullScreen;
 
-temp.keyDownCallbacks['Space'] = () => {
+scene.keyDownCallbacks['Space'] = () => {
   mode = mode === MODES.MOVE ? MODES.PLACE : MODES.MOVE;
   cam.cursor = mode === MODES.MOVE ? 'grab' : 'pointer';
   highlighter.hidden = true;

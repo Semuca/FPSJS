@@ -4,6 +4,8 @@ import { Circle2D, Point2D, Segment2D, translatePointAlongAngle } from './geomet
 import { Objec, RotPos } from './objec.js';
 import { mat4, quat, vec3 } from 'gl-matrix';
 import { colliders, GetNextColliderOnSegment, MoveCircle } from './collider.js';
+import { Scene } from './scene.js';
+import { CameraData } from './shader.js';
 
 // let time = 0;
 let pointerLockActivation = 0;
@@ -20,13 +22,14 @@ const decals: Objec[] = [];
 //Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
 // let physicsScene = new PhysicsScene();
 
-const temp = new FScreen('canvas');
-const cam = temp.AddCamera([0.0, 0.0], [1.0, 1.0], 0);
+const scene = new Scene();
+const screen = new FScreen('canvas', scene);
+const cam = new CameraData({ scene });
 
 const callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void> = {
-  sprite: (window, object) => {
+  sprite: (_window, object) => {
     const vec = vec3.create();
-    vec3.subtract(vec, object.rotpos.position as vec3, window.cameras[0].rotpos.position);
+    vec3.subtract(vec, object.rotpos.position as vec3, cam.rotpos.position);
     vec3.normalize(vec, vec);
 
     const up = vec3.fromValues(0.0, 1.0, 0.0);
@@ -37,18 +40,13 @@ const callbackFunctions: Record<string, (screen: FScreen, object: Objec) => void
     vec3.normalize(up, up);
 
     const lookAtMatrix = mat4.create();
-    mat4.targetTo(
-      lookAtMatrix,
-      object.rotpos.position as vec3,
-      window.cameras[0].rotpos.position,
-      up,
-    );
+    mat4.targetTo(lookAtMatrix, object.rotpos.position as vec3, cam.rotpos.position, up);
 
     mat4.getRotation(object.rotpos.rotation, lookAtMatrix);
   },
 };
 
-LoadMap(temp, 'octagon.json', RenderLoop, callbackFunctions).then(async () => {
+LoadMap(scene, 'octagon.json', RenderLoop, callbackFunctions).then(async () => {
   // await CreateTexture(temp, 'pistol.png');
   // temp.shaders[1].InstanceObject(
   //   'verSprite.json',
@@ -58,7 +56,7 @@ LoadMap(temp, 'octagon.json', RenderLoop, callbackFunctions).then(async () => {
   // );
 
   // Set up colliders
-  temp.shaders[0].models['plane.json'].objects.forEach((object) => {
+  screen.shaders[0].models['plane.json'].objects.forEach((object) => {
     const rotationVec = vec3.create();
     const angle = quat.getAxisAngle(rotationVec, object.rotpos.rotation);
 
@@ -89,7 +87,7 @@ function RenderLoop() {
   // const deltaTime = now - time;
   // time = now;
 
-  temp.gl.clear(temp.gl.COLOR_BUFFER_BIT | temp.gl.DEPTH_BUFFER_BIT);
+  screen.gl.clear(screen.gl.COLOR_BUFFER_BIT | screen.gl.DEPTH_BUFFER_BIT);
 
   const _vec = vec3.fromValues(
     Math.cos(rotX / 180),
@@ -105,8 +103,8 @@ function RenderLoop() {
   rot = Math.atan2(_vec[0], _vec[2]);
 
   // Calculate movement
-  const movX = ((temp.keysDown['KeyA'] ? 1 : 0) - (temp.keysDown['KeyD'] ? 1 : 0)) / 10;
-  const movZ = ((temp.keysDown['KeyW'] ? 1 : 0) - (temp.keysDown['KeyS'] ? 1 : 0)) / 10;
+  const movX = ((screen.keysDown['KeyA'] ? 1 : 0) - (screen.keysDown['KeyD'] ? 1 : 0)) / 10;
+  const movZ = ((screen.keysDown['KeyW'] ? 1 : 0) - (screen.keysDown['KeyS'] ? 1 : 0)) / 10;
   const movVec = [
     movX * _cameraRight[0] + movZ * _vec[0],
     0.0,
@@ -119,22 +117,21 @@ function RenderLoop() {
   // TLDR calculate segment from 3d past position to 3d future position
   if (!vec3.equals(movVec, [0, 0, 0])) {
     const circle = new Circle2D(
-      new Point2D(temp.cameras[0].rotpos.position[2] as number, temp.cameras[0].rotpos.position[0]),
+      new Point2D(cam.rotpos.position[2] as number, cam.rotpos.position[0]),
       0.05,
     );
 
     MoveCircle(circle, new Point2D(movVec[2], movVec[0]));
 
-    temp.cameras[0].rotpos.position[0] = circle.center.y;
-    temp.cameras[0].rotpos.position[2] = circle.center.x;
+    cam.rotpos.position[0] = circle.center.y;
+    cam.rotpos.position[2] = circle.center.x;
   }
 
-  vec3.add(_vec, _vec, temp.cameras[0].rotpos.position);
+  vec3.add(_vec, _vec, cam.rotpos.position);
 
-  temp.cameras.forEach((camera) => {
-    mat4.lookAt(camera.viewMatrix, camera.rotpos.position, _vec, _cameraUp);
-    camera.PreDraw();
-    temp.shaders.forEach((shader) => shader.DrawScene(0));
+  screen.cameras.forEach((camera) => {
+    mat4.lookAt(camera.viewMatrix, camera.camera_data.rotpos.position, _vec, _cameraUp);
+    camera.Draw();
   });
 
   if (!isPaused) {
@@ -143,19 +140,19 @@ function RenderLoop() {
 }
 
 //What's the difference between window.addeventlistener and document.addeventlistener?
-temp.canvas.addEventListener('click', () => {
+screen.canvas.addEventListener('click', () => {
   if (!document.pointerLockElement) {
     //Might need to add mozPointerLock, whatever that is
     const now = performance.now();
     if (now - pointerLockActivation > 2500) {
       //I wouldn't consider this a good solution, but it seems to be the only one that removes a DOMerror
-      temp.canvas.requestPointerLock();
+      screen.canvas.requestPointerLock();
       pointerLockActivation = now;
     }
   }
 });
 
-temp.keyDownCallbacks['Enter'] = () => {
+scene.keyDownCallbacks['Enter'] = () => {
   toggleFullScreen();
 };
 
@@ -164,10 +161,7 @@ cam.onMouseDown = () => {
   // Play an animation for the gun using sprite sheets
 
   // Calculate where the shot lands on a 2d plane
-  const camPos = new Point2D(
-    temp.cameras[0].rotpos.position[2],
-    temp.cameras[0].rotpos.position[0],
-  );
+  const camPos = new Point2D(cam.rotpos.position[2], cam.rotpos.position[0]);
   const endPoint = translatePointAlongAngle(camPos, rot, 100);
 
   const hit = GetNextColliderOnSegment(
@@ -186,7 +180,7 @@ cam.onMouseDown = () => {
   }
 
   decals.push(
-    temp.shaders[0].InstanceObject(
+    screen.shaders[0].InstanceObject(
       'plane.json',
       new RotPos([hit.intersection.y, 0, hit.intersection.x], rotation, [0.1, 0.1, 0.1]),
     ),

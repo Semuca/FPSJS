@@ -1,25 +1,63 @@
 import { mat4 } from 'gl-matrix';
 import { Point2D } from './geometry.js';
-import { Model, Objec, RotPos, RotPos2D } from './objec.js';
+import { Model, RotPos } from './objec.js';
 import { FScreen } from './screen.js';
+import { Scene } from './scene.js';
 // import { PhysicsScene } from "./physics.js";
-import { ModelData } from './loading.js';
+
+export class CameraData {
+  scene: Scene;
+
+  tlCorner: [number, number];
+  // width and height in percent
+  width: number;
+  height: number;
+  worldIndex: number;
+
+  zoom: number;
+  zNear = 0.1;
+  zFar = 100.0;
+
+  rotpos: RotPos = new RotPos([0.0, 0.0, 0.0], undefined, [1.0, 1.0, 1.0]);
+
+  onMouseDown: (e: MouseEvent) => void = () => {};
+  onMouseMove: (e: MouseEvent) => void = () => {};
+  onMouseUp: (e: MouseEvent) => void = () => {};
+  onWheel: (e: WheelEvent) => void = () => {};
+
+  cursor: string = 'default';
+
+  constructor({
+    scene,
+    tlCorner = [0, 0],
+    width = 1,
+    height = 1,
+    zoom = 1,
+    worldIndex = 0,
+  }: {
+    scene: Scene;
+    tlCorner?: [number, number];
+    width?: number;
+    height?: number;
+    zoom?: number;
+    worldIndex?: number;
+  }) {
+    this.scene = scene;
+    this.scene.AddCamera(this);
+    this.tlCorner = tlCorner;
+    this.width = width;
+    this.height = height;
+    this.zoom = zoom;
+    this.worldIndex = worldIndex;
+  }
+}
 
 //A viewpoint into the world. Main features is having a shader and a rotpos. Should probably implement this later
 export class Camera {
   window: FScreen;
-  tlCorner: [number, number];
-  brCorner: [number, number];
-  worldIndex: number;
-
-  width: number;
-  height: number;
+  camera_data: CameraData;
 
   aspectRatio: number;
-
-  zoom: number = 1.0;
-  zNear = 0.1;
-  zFar = 100.0;
 
   pxWidth: number;
   pxHeight: number;
@@ -27,42 +65,21 @@ export class Camera {
   // I would like the field of view to be directly proportional to the screen size, but can't figure it out right now
   fieldOfView: number = (45 * Math.PI) / 180;
 
-  rotpos: RotPos = new RotPos([0.0, 0.0, 0.0], undefined, [1.0, 1.0, 1.0]);
-
   orthoMatrix: mat4 = mat4.create();
   perspectiveMatrix: mat4 = mat4.create();
   viewMatrix: mat4 = mat4.create();
 
-  // Set up events
-  cursor: string = 'default';
-
-  onMouseDown: (e: MouseEvent) => void = () => {};
-  onMouseMove: (e: MouseEvent) => void = () => {};
-  onMouseUp: (e: MouseEvent) => void = () => {};
-  onWheel: (e: WheelEvent) => void = () => {};
-
-  constructor(
-    window: FScreen,
-    tlCorner: [number, number],
-    brCorner: [number, number],
-    worldIndex: number,
-  ) {
+  constructor(window: FScreen, camera_data: CameraData) {
     //Set window and viewport
     this.window = window;
-    this.tlCorner = tlCorner;
-    this.brCorner = brCorner;
-    this.worldIndex = worldIndex;
-
-    //Get width and height (Theoretical, in percentages)
-    this.width = this.brCorner[0] - this.tlCorner[0];
-    this.height = this.brCorner[1] - this.tlCorner[1];
+    this.camera_data = camera_data;
 
     //Other default camera values
     this.aspectRatio = this.window.canvas.width / this.window.canvas.height;
 
     //Pixel values of camera. ?Does floor matter?
-    this.pxWidth = Math.floor(this.window.canvas.width * this.width);
-    this.pxHeight = Math.floor(this.window.canvas.height * this.height);
+    this.pxWidth = Math.floor(this.window.canvas.width * this.camera_data.width);
+    this.pxHeight = Math.floor(this.window.canvas.height * this.camera_data.height);
     this.SetViewport();
 
     //Set up projection and view matrix
@@ -74,10 +91,10 @@ export class Camera {
   RecalculateProjMatrix() {
     mat4.ortho(
       this.orthoMatrix,
-      this.pxWidth / this.zoom / 2,
-      -this.pxWidth / this.zoom / 2,
-      -this.pxHeight / this.zoom / 2,
-      this.pxHeight / this.zoom / 2,
+      this.pxWidth / this.camera_data.zoom / 2,
+      -this.pxWidth / this.camera_data.zoom / 2,
+      -this.pxHeight / this.camera_data.zoom / 2,
+      this.pxHeight / this.camera_data.zoom / 2,
       -1.0,
       1.0,
     );
@@ -86,14 +103,18 @@ export class Camera {
       this.perspectiveMatrix,
       this.fieldOfView,
       this.aspectRatio,
-      this.zNear,
-      this.zFar,
+      this.camera_data.zNear,
+      this.camera_data.zFar,
     );
   }
 
   //Change view matrix when camera moves
   UpdatePos() {
-    mat4.fromRotationTranslation(this.viewMatrix, this.rotpos.rotation, this.rotpos.position);
+    mat4.fromRotationTranslation(
+      this.viewMatrix,
+      this.camera_data.rotpos.rotation,
+      this.camera_data.rotpos.position,
+    );
     this.SetUniform('uViewMatrix', this.viewMatrix);
   }
 
@@ -101,8 +122,10 @@ export class Camera {
     const ndc_x = (cursorPosition[0] / this.pxWidth) * 2 - 1;
     const ndc_y = -(cursorPosition[1] / this.pxHeight) * 2 + 1;
 
-    const world_x = (ndc_x * (this.pxWidth / this.zoom)) / 2 + this.rotpos.position[0];
-    const world_y = (ndc_y * (this.pxHeight / this.zoom)) / 2 - this.rotpos.position[1];
+    const world_x =
+      (ndc_x * (this.pxWidth / this.camera_data.zoom)) / 2 + this.camera_data.rotpos.position[0];
+    const world_y =
+      (ndc_y * (this.pxHeight / this.camera_data.zoom)) / 2 - this.camera_data.rotpos.position[1];
 
     return new Point2D(world_x, world_y);
   }
@@ -129,34 +152,53 @@ export class Camera {
   //Sets camera viewport in opengl - Important for cameras that change the amount of screen space they take up
   SetViewport() {
     this.window.gl.viewport(
-      this.window.canvas.width * this.tlCorner[0],
-      this.window.canvas.height * this.tlCorner[1],
+      this.window.canvas.width * this.camera_data.tlCorner[0],
+      this.window.canvas.height * this.camera_data.tlCorner[1],
       this.pxWidth,
       this.pxHeight,
     );
   }
 
   Draw() {
+    this.RecalculateProjMatrix();
+    this.SetUniform('u_resolution', [this.pxWidth, this.pxHeight]);
     this.SetUniform('uOrthoMatrix', this.orthoMatrix);
     const inverse = mat4.create();
     mat4.invert(inverse, this.orthoMatrix);
     this.SetUniform('uOrthoMatrix_inverse', inverse);
     this.SetUniform('uPerspectiveMatrix', this.perspectiveMatrix);
-    this.SetUniform('uViewMatrix', this.viewMatrix);
+    this.UpdatePos();
     this.SetViewport();
 
     this.window.shaders.forEach((shader) => {
-      shader.DrawScene(this.worldIndex);
+      shader.DrawScene(this.camera_data.worldIndex);
     });
+  }
+}
+
+export class ShaderData {
+  scene: Scene;
+
+  vertexSource: string;
+  fragmentSource: string;
+
+  models: Model[] = [];
+
+  constructor(scene: Scene, vertexSource: string, fragmentSource: string) {
+    this.scene = scene;
+    this.scene.AddShader(this);
+    this.vertexSource = vertexSource;
+    this.fragmentSource = fragmentSource;
+  }
+
+  add_model(model: Model) {
+    this.models.push(model);
   }
 }
 
 export class Shader {
   screen: FScreen;
-  gl: WebGL2RenderingContext;
-  camera: Camera;
-
-  models: Record<string, Model> = {};
+  shader_data: ShaderData;
 
   vertexShader?: WebGLShader;
   fragmentShader?: WebGLShader;
@@ -170,23 +212,25 @@ export class Shader {
     uniformLocations: {},
   };
 
-  // Constructor requires webgl context
-  constructor(screen: FScreen, gl: WebGL2RenderingContext, camera: Camera) {
-    this.screen = screen;
-    this.gl = gl;
-    this.camera = camera;
+  get gl() {
+    return this.screen.gl;
   }
 
-  // Compiles a shader program from source code
-  // vertexSource should be the source code for the vertex shader, fragmentSource should be the source code for the fragment shader
-  CompileProgram(vertexSource: string, fragmentSource: string): void {
+  // Constructor requires webgl context
+  constructor(screen: FScreen, shader_data: ShaderData) {
+    this.screen = screen;
+    this.shader_data = shader_data;
+
     // Automatically cull backfaces for now, change later if needed
     // this.gl.enable(this.gl.CULL_FACE);
 
     // Creates shaders
-    this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, vertexSource);
+    this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, this.shader_data.vertexSource);
     if (!this.vertexShader) return;
-    this.fragmentShader = this.CreateShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+    this.fragmentShader = this.CreateShader(
+      this.gl.FRAGMENT_SHADER,
+      this.shader_data.fragmentSource,
+    );
     if (!this.fragmentShader) return;
 
     // Attaches shaders, links the program
@@ -195,6 +239,8 @@ export class Shader {
     this.gl.attachShader(this.shaderProgram, this.vertexShader);
     this.gl.attachShader(this.shaderProgram, this.fragmentShader);
     this.gl.linkProgram(this.shaderProgram);
+    this.gl.deleteShader(this.vertexShader);
+    this.gl.deleteShader(this.fragmentShader);
 
     // Ensures OpenGL has loaded correctly
     if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
@@ -206,6 +252,7 @@ export class Shader {
 
     this.AssembleProgramInfo();
     this.AdditionalSetup();
+    this.CreateModels();
   }
 
   // Replaces vertex shader. Debug feature that should probably be removed at some point
@@ -275,84 +322,62 @@ export class Shader {
 
   //Brings a model from data into opengl. This model can then be instantiated
   //TIDYING STATUS: ORANGE
-  CreateModel(name: string, modelData: ModelData) {
-    //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
-    const vao = this.gl.createVertexArray();
-    this.gl.bindVertexArray(vao);
-    if (!vao) return;
+  CreateModels() {
+    this.shader_data.models.forEach((model) => {
+      //The vertex array object is what can basically keep track of all our buffers and object data. Really handy
+      const vao = this.gl.createVertexArray();
+      if (!vao) return;
+      this.gl.bindVertexArray(vao);
 
-    this.models[name] = new Model(modelData, this, vao);
-    //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
+      model.vao = vao;
 
-    // Construct all buffers
-    Object.entries(modelData['ARRAY_BUFFER']).forEach(([key, bufferData]) => {
-      const buffer = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(bufferData[0]));
+      //I should set the buffers of object to be the size of all the buffers that need keeping track of, but i can't be bothered. push works fine for now
 
-      if (buffer === undefined || this.programInfo.attribLocations[key] === undefined) return;
-      this.models[name].buffers[key] = buffer;
-      this.gl.vertexAttribPointer(
-        this.programInfo.attribLocations[key],
-        bufferData[1],
-        this.gl.FLOAT,
-        false,
-        bufferData[2],
-        bufferData[3],
-      );
-      this.gl.enableVertexAttribArray(this.programInfo.attribLocations[key]);
+      // Construct all buffers
+      Object.entries(model.modelData['ARRAY_BUFFER']).forEach(([key, bufferData]) => {
+        const buffer = this.InitBuffer(this.gl.ARRAY_BUFFER, new Float32Array(bufferData[0]));
+
+        if (buffer === undefined || this.programInfo.attribLocations[key] === undefined) return;
+        model.buffers[key] = buffer;
+        this.gl.vertexAttribPointer(
+          this.programInfo.attribLocations[key],
+          bufferData[1],
+          this.gl.FLOAT,
+          false,
+          bufferData[2],
+          bufferData[3],
+        );
+        this.gl.enableVertexAttribArray(this.programInfo.attribLocations[key]);
+      });
+
+      // Construct element array buffer
+      if (model.modelData.ELEMENT_ARRAY_BUFFER != undefined) {
+        const buffer = this.InitBuffer(
+          this.gl.ELEMENT_ARRAY_BUFFER,
+          new Uint16Array(model.modelData.ELEMENT_ARRAY_BUFFER),
+        );
+        if (buffer) model.buffers.ELEMENT_ARRAY_BUFFER = buffer;
+      }
+
+      //Could you just have a global model name hashtable?
+      if (model.modelData.TEXTURE !== undefined) {
+        model.textureId = parseInt(model.modelData.TEXTURE);
+      }
     });
-
-    // Construct element array buffer
-    if (this.models[name].modelData.ELEMENT_ARRAY_BUFFER != undefined) {
-      const buffer = this.InitBuffer(
-        this.gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(this.models[name].modelData.ELEMENT_ARRAY_BUFFER),
-      );
-      if (buffer) this.models[name].buffers.ELEMENT_ARRAY_BUFFER = buffer;
-    }
-
-    //Could you just have a global model name hashtable?
-    if (this.models[name].modelData.TEXTURE !== undefined) {
-      this.models[name].textureId = parseInt(this.models[name].modelData.TEXTURE);
-    }
   }
 
-  DeleteModel(name: string) {
-    // Need to undo vao
-    // Delete buffers
-    Object.values(this.models[name].modelData).forEach((buffer) => {
-      this.gl.deleteBuffer(buffer);
-    });
+  // DeleteModel(name: string) {
+  //   // Need to undo vao
+  //   // Delete buffers
+  //   Object.values(this.models[name].modelData).forEach((buffer) => {
+  //     this.gl.deleteBuffer(buffer);
+  //   });
 
-    delete this.models[name];
-  }
-
-  //Creates an instance of a model in the world
-  InstanceObject(
-    name: string,
-    rotpos: RotPos | RotPos2D,
-    worldIndex: number = 0,
-    texName?: string,
-    tags: string[] = [],
-  ) {
-    const newObject = new Objec(
-      this.models[name],
-      rotpos,
-      worldIndex,
-      texName ? this.screen.texIds[texName] : undefined,
-    );
-
-    // if (this.camera.type == "3D") {
-    //   newObject.TiePhysicsObjec(physicsScene);
-    // }
-
-    newObject.AddTags(tags);
-
-    this.models[name].objects.push(newObject);
-    return newObject; //Return object
-  }
+  //   delete this.models[name];
+  // }
 
   DeleteAllObjects(worldIndex: number): void {
-    Object.values(this.models).forEach((model) => {
+    this.shader_data.models.forEach((model) => {
       model.objects = model.objects.filter((object) => {
         if (object.worldIndex != worldIndex) return true;
 
@@ -362,9 +387,9 @@ export class Shader {
     });
   }
 
-  // Deletes object instance - will not automatically remove models
+  // Deletes object instance
   DeleteObject(name: string, index: number): void {
-    this.models[name].objects.splice(index, 1);
+    this.shader_data.models.find((model) => model.name === name)?.objects.splice(index, 1);
   }
 
   //Inserts data into an attribute. DATA SHOULD BE IN A NEW FLOAT32ARRAY FORM OR Uint16Array OR SOMETHING SIMILAR <- to fix
@@ -397,30 +422,6 @@ export class Shader {
     this.gl.enable(this.gl.BLEND);
 
     this.gl.useProgram(this.shaderProgram);
-
-    if (this.programInfo.uniformLocations.uOrthoMatrix) {
-      this.screen.gl.uniformMatrix4fv(
-        this.programInfo.uniformLocations.uOrthoMatrix,
-        false,
-        this.camera.orthoMatrix,
-      );
-    }
-
-    if (this.programInfo.uniformLocations.uPerspectiveMatrix) {
-      this.screen.gl.uniformMatrix4fv(
-        this.programInfo.uniformLocations.uPerspectiveMatrix,
-        false,
-        this.camera.perspectiveMatrix,
-      );
-    }
-
-    if (this.programInfo.uniformLocations.uViewMatrix) {
-      this.gl.uniformMatrix4fv(
-        this.programInfo.uniformLocations.uViewMatrix,
-        false,
-        this.camera.viewMatrix,
-      );
-    }
   }
 
   DrawScene(worldIndex: number): void {
@@ -430,9 +431,12 @@ export class Shader {
     this.gl.useProgram(this.shaderProgram);
 
     //For each model...
-    Object.values(this.models).forEach((model) => {
+    this.shader_data.models.forEach((model) => {
+      const vao = model.vao;
+      if (vao === undefined) return;
+
       //Bind their vertex data
-      this.gl.bindVertexArray(model.vao);
+      this.gl.bindVertexArray(vao);
 
       //Get the number of points
       const vertexCount = model.modelData.ELEMENT_ARRAY_BUFFER?.length;
@@ -491,5 +495,10 @@ export class Shader {
         }
       });
     });
+  }
+
+  Destructor() {
+    if (!this.shaderProgram) return;
+    this.gl.deleteProgram(this.shaderProgram);
   }
 }
