@@ -62,9 +62,9 @@ async function Setup() {
     new Objec({
       model: sprite,
       rotpos: new RotPos2D(
-        [50, 50],
+        [0, 0],
         Math.PI,
-        Scale2D.of_width_percent(1, { type: ScaleType.Ratio, value: 1 }),
+        Scale2D.of_width_percent(0.5, { type: ScaleType.Ratio, value: 1 }),
       ),
       texId: tileset,
       worldIndex: 1,

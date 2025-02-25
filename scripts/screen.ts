@@ -57,35 +57,20 @@ export class FScreen {
 
     document.addEventListener('mousemove', (e) => {
       if (this.screenAction === SCREENACTION.RESIZING) {
-        // TODO: Resize the two cameras
-        // cam.pxWidth += e.movementX;
-        // cam.width = cam.pxWidth / temp.canvas.width;
+        this.resizingCameras[0].pxWidth += e.movementX;
+        this.resizingCameras[0].camera_data.width =
+          this.resizingCameras[0].pxWidth / this.canvas.width;
 
-        // cam.RecalculateProjMatrix();
+        this.resizingCameras[1].camera_data.tlCorner[0] = this.resizingCameras[0].camera_data.width;
+        this.resizingCameras[1].pxWidth -= e.movementX;
+        this.resizingCameras[1].camera_data.width =
+          this.resizingCameras[1].pxWidth / this.canvas.width;
 
-        // Resize sidebar
-        // sidebar.pxWidth -= e.movementX;
-        // sidebar.width = sidebar.pxWidth / temp.canvas.width;
-        // sidebar.tlCorner[0] = sidebar.brCorner[0] - sidebar.pxWidth / temp.canvas.width; //(a*b - c) / b == a - c / b
+        this.on_resize();
 
-        // sidebar.RecalculateProjMatrix();
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+        this.cameras.forEach((camera) => camera.Draw());
 
-        // Resize sidebar elements
-        // let j = 0;
-        // for (let i = 0; i < sprites.length; i++) {
-        //  if (sprites[i].worldIndex != 1) {
-        //    return;
-        //  }
-
-        //  sprites[i].rotpos.scale[0] = sidebar.pxWidth / 8;
-        //  sprites[i].rotpos.scale[1] = sidebar.pxWidth / 8;
-
-        //  sprites[i].rotpos.position[0] = sidebar.pxWidth / 2 - ((j % 4) + 1) * sidebar.pxWidth / 4 + sidebar.pxWidth / 8;
-        //  sprites[i].rotpos.position[1] = sidebar.pxHeight / 2 - sidebar.pxWidth / 4 * (Math.floor(j / 4) + 1) + sidebar.pxWidth / 8;
-        //  j += 1;
-        // }
-
-        //requestAnimationFrame(RenderLoop);
         return;
       }
 
@@ -179,18 +164,21 @@ export class FScreen {
       this.gl.generateMipmap(this.gl.TEXTURE_2D);
     });
 
-    this.shaders.forEach((shader) => {
-      shader.shader_data.models.forEach((model) => {
-        model.objects.forEach((object) => {
-          // Need to find a better way to do this
-          const camera = this.cameras.find(
-            (camera) => camera.camera_data.worldIndex === object.worldIndex,
-          ) as Camera;
-          if (object.rotpos.scale instanceof Scale2D)
-            object.rotpos.scale.calculate_dim(camera.pxWidth, camera.pxHeight);
-        });
+    this.on_resize();
+  }
+
+  on_resize() {
+    this.shaders
+      .flatMap((shader) => shader.shader_data.models)
+      .flatMap((model) => model.objects)
+      .forEach((object) => {
+        // Need to find a better way to do this
+        const camera = this.cameras.find(
+          (camera) => camera.camera_data.worldIndex === object.worldIndex,
+        ) as Camera;
+        if (object.rotpos.scale instanceof Scale2D)
+          object.rotpos.scale.calculate_dim(camera.pxWidth, camera.pxHeight);
       });
-    });
   }
 
   getCamerasFromCursor(e: MouseEvent) {
