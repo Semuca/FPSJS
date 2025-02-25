@@ -1,6 +1,6 @@
 import { FScreen } from '../screen.js';
 import { LoadFileText, LoadTexture, LoadModel, LoadShader } from '../loading.js';
-import { Objec, RotPos2D } from '../objec.js';
+import { Objec, RotPos2D, Scale2D } from '../objec.js';
 import { Scene } from '../scene.js';
 import { CameraData } from '../shader.js';
 
@@ -51,7 +51,10 @@ export async function run_rpg(screen: FScreen, map: string[]) {
 
     const modelData = await LoadModel(sprite_shader, 'verSprite.json');
     modelData.create_objec(
-      new Objec({ model: modelData, rotpos: new RotPos2D([0.0, 0.0], Math.PI, [25.0, 25.0]) }),
+      new Objec({
+        model: modelData,
+        rotpos: new RotPos2D([0.0, 0.0], Math.PI, Scale2D.of_px(25.0, 25.0)),
+      }),
     );
 
     //Map loading
@@ -67,7 +70,7 @@ export async function run_rpg(screen: FScreen, map: string[]) {
               rotpos: new RotPos2D(
                 [i * 50.0 - 2500.0, index * 50.0 - 2500.0],
                 Math.PI,
-                [25.0, 25.0],
+                Scale2D.of_px(25.0, 25.0),
               ),
               texId: scene.texIds[Object.keys(textureData)[parseInt(char)] + '.png'],
             }),

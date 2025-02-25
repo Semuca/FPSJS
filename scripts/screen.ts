@@ -1,5 +1,6 @@
 import { Camera, Shader } from './shader.js';
 import { Scene } from './scene.js';
+import { Scale2D } from './objec.js';
 
 export enum SCREENACTION {
   IDLE,
@@ -176,6 +177,19 @@ export class FScreen {
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
 
       this.gl.generateMipmap(this.gl.TEXTURE_2D);
+    });
+
+    this.shaders.forEach((shader) => {
+      shader.shader_data.models.forEach((model) => {
+        model.objects.forEach((object) => {
+          // Need to find a better way to do this
+          const camera = this.cameras.find(
+            (camera) => camera.camera_data.worldIndex === object.worldIndex,
+          ) as Camera;
+          if (object.rotpos.scale instanceof Scale2D)
+            object.rotpos.scale.calculate_dim(camera.pxWidth, camera.pxHeight);
+        });
+      });
     });
   }
 

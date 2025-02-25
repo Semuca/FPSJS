@@ -16,10 +16,10 @@ export class Model {
   // List of all objects referenced by model
   objects: Objec[] = [];
 
-  vao: WebGLVertexArrayObject | undefined;
+  vao?: WebGLVertexArrayObject;
   buffers: Record<string, WebGLBuffer> = {};
 
-  textureId: number | undefined;
+  textureId?: number;
 
   constructor(name: string, modelData: ModelData, vao?: WebGLVertexArrayObject) {
     this.name = name;
@@ -74,7 +74,7 @@ export class Objec {
         this.matrix,
         this.rotpos.rotation,
         [this.rotpos.position[0], this.rotpos.position[1], 0],
-        [this.rotpos.scale[0], this.rotpos.scale[1], 1],
+        [this.rotpos.scale.dim[0], this.rotpos.scale.dim[1], 1],
       );
     } else {
       mat4.fromRotationTranslationScale(
@@ -134,16 +134,86 @@ export class RotPos {
 export class RotPos2D {
   position: vec2;
   rotation: quat;
-  scale: vec2;
+  scale: Scale2D;
 
   //Constructor passing in position and rotation
-  constructor(position: vec2, rotation?: number, scale?: vec2) {
-    this.position = position ?? vec2.create();
+  constructor(
+    position: vec2 = vec2.create(),
+    rotation?: number,
+    scale: Scale2D = Scale2D.of_px(1, 1),
+  ) {
+    this.position = position;
 
     this.rotation = quat.create();
     if (rotation != undefined) {
       quat.setAxisAngle(this.rotation, [0.0, 0.0, 1.0], rotation);
     }
-    this.scale = scale ?? vec2.fromValues(1, 1);
+    this.scale = scale;
+  }
+}
+
+export enum ScaleType {
+  Px, // Misnomer?
+  Percent,
+  Ratio,
+}
+
+type Scale =
+  | { type: ScaleType.Px; value: number }
+  | { type: ScaleType.Percent; value: number }
+  | { type: ScaleType.Ratio; value: number };
+
+export class Scale2D {
+  width: Scale;
+  height: Scale;
+
+  dim: vec2 = [1, 1];
+
+  private constructor(width: Scale, height: Scale) {
+    this.width = width;
+    this.height = height;
+  }
+
+  static of_px(width: number, height: number) {
+    return new Scale2D({ type: ScaleType.Px, value: width }, { type: ScaleType.Px, value: height });
+  }
+
+  static of_width_percent(width_percent: number, height?: Scale) {
+    return new Scale2D(
+      { type: ScaleType.Percent, value: width_percent },
+      height ?? { type: ScaleType.Ratio, value: 1 },
+    );
+  }
+
+  static of_height_percent(height_percent: number, width?: Scale) {
+    return new Scale2D(width ?? { type: ScaleType.Ratio, value: 1 }, {
+      type: ScaleType.Percent,
+      value: height_percent,
+    });
+  }
+
+  calculate_dim(camera_width: number, camera_height: number) {
+    switch (this.width.type) {
+      case ScaleType.Px:
+        this.dim[0] = this.width.value;
+        break;
+      case ScaleType.Percent:
+        this.dim[0] = this.width.value * camera_width;
+        break;
+    }
+
+    switch (this.height.type) {
+      case ScaleType.Px:
+        this.dim[1] = this.height.value;
+        break;
+      case ScaleType.Percent:
+        this.dim[1] = this.height.value * camera_height;
+        break;
+      case ScaleType.Ratio:
+        this.dim[1] = this.height.value * this.dim[0];
+        break;
+    }
+
+    if (this.width.type === ScaleType.Ratio) this.dim[0] = this.width.value * this.dim[1];
   }
 }

@@ -1,6 +1,6 @@
 import { FScreen, toggleFullScreen } from '../screen.js';
 import { LoadFileText, LoadTexture, LoadModel, LoadShader } from '../loading.js';
-import { Model, Objec, RotPos2D } from '../objec.js';
+import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec.js';
 import { run_rpg } from './rpg.js';
 import { Scene } from '../scene.js';
 import { CameraData } from '../shader.js';
@@ -44,7 +44,7 @@ async function Setup() {
     '2DspriteVertexShader.vs',
     'spriteFragmentShader.fs',
   );
-  await LoadModel(sprite_shader, 'verSprite.json');
+  const sprite = await LoadModel(sprite_shader, 'verSprite.json');
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?
   const sidepaneData: Sidepane[] = JSON.parse(
@@ -57,22 +57,19 @@ async function Setup() {
   }
 
   // Load sidebar
-  // const width = sidebar.pxWidth / 4;
-  // for (let i = 0; i < textureGroup.length; i++) {
-  //   sprite_shader.InstanceObject(
-  //     'verSprite.json',
-  //     new RotPos2D(
-  //       [
-  //         sidebar.pxWidth / 2 - ((i % 4) + 1) * width + sidebar.pxWidth / 8,
-  //         sidebar.pxHeight / 2 - width * (Math.floor(i / 4) + 1) + sidebar.pxWidth / 8,
-  //       ],
-  //       Math.PI,
-  //       [sidebar.pxWidth / 8, sidebar.pxWidth / 8],
-  //     ),
-  //     1,
-  //     textureGroup[i],
-  //   );
-  // }
+  const tileset = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Outside_A2.png');
+  sprite.create_objec(
+    new Objec({
+      model: sprite,
+      rotpos: new RotPos2D(
+        [50, 50],
+        Math.PI,
+        Scale2D.of_width_percent(1, { type: ScaleType.Ratio, value: 1 }),
+      ),
+      texId: tileset,
+      worldIndex: 1,
+    }),
+  );
 
   // await LoadTexture(scene, 'tframe.png');
   // selector = sprite_shader.InstanceObject(
@@ -179,7 +176,7 @@ cam.onMouseDown = (e) => {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
     tiles[posX][posY] = new Objec({
       model,
-      rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, [0.5, 0.5]),
+      rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
       texId: scene.texIds[textureGroup[tile]],
     });
 
