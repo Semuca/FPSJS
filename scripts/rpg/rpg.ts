@@ -27,6 +27,17 @@ export async function run_rpg(screen: FScreen, map: string[]) {
   const [modelData] = await Setup();
   screen.set_scene(scene);
   requestAnimationFrame(Render);
+
+  let promise_resolver: (value: void) => void;
+  let is_resolved = false;
+  const promise = new Promise<void>((resolve) => {
+    promise_resolver = resolve;
+  }).then(() => (is_resolved = true));
+
+  scene.keyDownCallbacks['Escape'] = () => {
+    promise_resolver();
+  };
+
   Tick();
 
   async function Setup() {
@@ -92,6 +103,8 @@ export async function run_rpg(screen: FScreen, map: string[]) {
   }
 
   function Tick() {
+    if (is_resolved) return;
+
     //Change movement based on keys currently pressed down
     let movX = 0.0;
     let movY = 0.0;
@@ -185,4 +198,6 @@ export async function run_rpg(screen: FScreen, map: string[]) {
     //Draws sprites
     screen.cameras.forEach((camera) => camera.Draw());
   }
+
+  return promise;
 }
