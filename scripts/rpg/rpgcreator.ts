@@ -1,5 +1,5 @@
 import { FScreen, toggleFullScreen } from '../screen.js';
-import { LoadTexture, LoadModel, LoadShader, LoadFileText } from '../loading.js';
+import { LoadTexture, LoadModel, LoadShader } from '../loading.js';
 import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec.js';
 import { run_rpg } from './rpg.js';
 import { Scene } from '../scene.js';
@@ -12,24 +12,17 @@ const MODES = {
 
 let mode = MODES.MOVE;
 
-const tile = 0;
+let tile = 0;
 const tiles: Record<number, Record<number, Objec>> = {};
 for (let index = -50; index <= 50; index++) {
   tiles[index] = {};
 }
 
-// let selector: Objec;
-
-interface Sidepane {
-  textures: string[];
-}
-
-//Gets the shader that the model belongs to from name. Assumes models have a one-to-one relation with shaders
-let textureGroup: string[];
+let selector: Objec;
 
 const scene = new Scene();
 const cam = new CameraData({ scene, width: 0.8, zoom: 50, worldIndex: 0 });
-new CameraData({ scene, tlCorner: [0.8, 0.0], width: 0.2, worldIndex: 1 });
+const sidebar = new CameraData({ scene, tlCorner: [0.8, 0.0], width: 0.2, worldIndex: 1 });
 
 async function Setup() {
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
@@ -46,18 +39,8 @@ async function Setup() {
   );
   const sprite = await LoadModel(sprite_shader, 'verSprite.json');
 
-  //Processing textures to be loaded. Shouldn't this be a part of the map?
-  const sidepaneData: Sidepane[] = JSON.parse(
-    await LoadFileText('../rpg_sidepanes.json'),
-  ).sidepanes;
-
-  textureGroup = sidepaneData.flatMap((sidepane) => sidepane.textures);
-  for (let i = 0; i < textureGroup.length; i++) {
-    await LoadTexture(scene, textureGroup[i]);
-  }
-
   // Load sidebar
-  const tileset = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Outside_A2.png');
+  const tileset = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
   sprite.create_objec(
     new Objec({
       model: sprite,
@@ -71,26 +54,25 @@ async function Setup() {
     }),
   );
 
-  // await LoadTexture(scene, 'tframe.png');
-  // selector = sprite_shader.InstanceObject(
-  //   'verSprite.json',
-  //   new RotPos2D(
-  //     [
-  //       sidebar.pxWidth / 2 - width + sidebar.pxWidth / 8,
-  //       sidebar.pxHeight / 2 - width + sidebar.pxWidth / 8,
-  //     ],
-  //     Math.PI,
-  //     [sidebar.pxWidth / 8, sidebar.pxWidth / 8],
-  //   ),
-  //   1,
-  //   'tframe.png',
-  // );
+  await LoadTexture(scene, 'tframe.png');
+  selector = new Objec({
+    model: sprite,
+    rotpos: new RotPos2D(
+      [0, 0],
+      Math.PI,
+      Scale2D.of_width_percent(1 / 32, { type: ScaleType.Ratio, value: 1 }),
+    ),
+    texId: scene.texIds['tframe.png'],
+    worldIndex: 1,
+  });
+  sprite.create_objec(selector);
 
   return [sprite_shader];
 }
 
 const [sprite_shader] = await Setup();
 const screen = new FScreen('canvas', scene);
+select_tile(0, 0);
 requestAnimationFrame(RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
@@ -172,15 +154,36 @@ cam.onMouseDown = (e) => {
     return;
   }
 
+  const tex_x = (tile % 16) / 16;
+  const tex_y = Math.floor(tile / 16) / 16;
+  const size = 1 / 16;
+
+  const texture_attribute = new Float32Array([
+    tex_x,
+    tex_y + size,
+    tex_x + size,
+    tex_y,
+    tex_x,
+    tex_y,
+    tex_x + size,
+    tex_y + size,
+  ]);
+
   if (tiles[posX][posY] != undefined) {
-    tiles[posX][posY].texId = scene.texIds[textureGroup[tile]];
+    tiles[posX][posY].overridden_attribs = {
+      aTextureCoord: texture_attribute,
+    };
   } else {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
     tiles[posX][posY] = new Objec({
       model,
       rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
-      texId: scene.texIds[textureGroup[tile]],
+      texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
     });
+
+    tiles[posX][posY].overridden_attribs = {
+      aTextureCoord: texture_attribute,
+    };
 
     model.create_objec(tiles[posX][posY]);
   }
@@ -211,16 +214,28 @@ cam.onWheel = (e) => {
   requestAnimationFrame(RenderLoop);
 };
 
-// sidebar.onMouseDown = (e) => {
-//   const cursorWorldPosition = screen.cameras[1].CursorToWorldPosition([e.pageX, e.pageY]);
-//   console.log(cursorWorldPosition);
-//   const x = Math.floor((e.pageX - cam.pxWidth) / (sidebar.pxWidth / 4));
-//   const y = Math.floor(e.pageY / (sidebar.pxWidth / 4));
-//   if (textureGroup[x + 4 * y] != undefined) {
-//     tile = x + 4 * y;
-//     selector.rotpos.position[0] =
-//       sidebar.pxWidth / 2 - ((x % 4) * sidebar.pxWidth) / 4 - sidebar.pxWidth / 8;
-//     //TODO: Implement y-selector for this
-//     requestAnimationFrame(RenderLoop);
-//   }
-// };
+sidebar.onMouseDown = (e) => {
+  // TODO: I reckon this code would be much simpler if the square was aligned on the top-left corner
+  const num_squares_wide = 16;
+  const square_size = screen.cameras[1].pxWidth / num_squares_wide;
+  const cursorWorldPosition = screen.cameras[1].CursorToWorldPosition([e.pageX, e.pageY]);
+
+  const x = Math.floor((cursorWorldPosition.x + screen.cameras[1].pxWidth / 2) / square_size);
+  const y = -1 - Math.floor((cursorWorldPosition.y - screen.cameras[1].pxWidth / 2) / square_size);
+
+  select_tile(x, y);
+};
+
+function select_tile(x: number, y: number) {
+  const num_squares_wide = 16;
+  const square_size = screen.cameras[1].pxWidth / num_squares_wide;
+
+  selector.rotpos.position[0] =
+    (num_squares_wide * square_size) / 2 - x * square_size - square_size / 2;
+  selector.rotpos.position[1] =
+    (num_squares_wide * square_size) / 2 - y * square_size - square_size / 2;
+
+  tile = y * num_squares_wide + x;
+
+  requestAnimationFrame(RenderLoop);
+}

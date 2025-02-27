@@ -118,9 +118,18 @@ export class Camera {
     this.SetUniform('uViewMatrix', this.viewMatrix);
   }
 
-  CursorToWorldPosition(cursorPosition: [number, number]) {
-    const ndc_x = (cursorPosition[0] / this.pxWidth) * 2 - 1;
-    const ndc_y = -(cursorPosition[1] / this.pxHeight) * 2 + 1;
+  CursorToWorldPosition(cursor_pos: [number, number]) {
+    const ndc_x =
+      ((cursor_pos[0] - this.camera_data.tlCorner[0] * this.window.canvas.width) / this.pxWidth) *
+        2 -
+      1;
+    const ndc_y =
+      -(
+        (cursor_pos[1] - this.camera_data.tlCorner[1] * this.window.canvas.height) /
+        this.pxHeight
+      ) *
+        2 +
+      1;
 
     const world_x =
       (ndc_x * (this.pxWidth / this.camera_data.zoom)) / 2 + this.camera_data.rotpos.position[0];
@@ -397,7 +406,6 @@ export class Shader {
   InitBuffer(bufferType: GLenum, data: AllowSharedBufferSource): WebGLBuffer | undefined {
     //Create buffer, bind it to a type, fill the target with data
     const buffer = this.gl.createBuffer();
-    if (!buffer) return undefined;
     this.gl.bindBuffer(bufferType, buffer);
     this.gl.bufferData(bufferType, data, this.gl.STATIC_DRAW); //Static_draw is hardcoded?
     return buffer;
@@ -444,7 +452,6 @@ export class Shader {
       //Set texture and mode
       const mode = model.modelData.TEXTURE != undefined ? this.gl.TRIANGLES : this.gl.LINES;
       if (mode === this.gl.TRIANGLES && model.textureId != undefined) {
-        this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
         this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
       }
 
@@ -458,18 +465,19 @@ export class Shader {
         // Don't render hidden objects
         if (object.hidden) return;
 
-        //Should be universalised - Need to set this back after (Shouldn't this be a uniform?)
-        // if (object.texAttributes) {
-        //   model.ModifyAttribute("aTextureCoord", object.texAttributes);
-        // }
+        // If the object has custom texture attributes, use them
+        Object.entries(object.overridden_attribs).forEach(([name, data]) => {
+          const buffer = model.buffers[name];
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+          this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.DYNAMIC_DRAW);
+        });
 
-        //If the object has a custom defined texture id, use it
+        // If the object has a custom defined texture id, use it
         if (object.texId != undefined) {
-          this.gl.activeTexture(this.gl.TEXTURE0 + object.texId);
           this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, object.texId);
         }
 
-        //Get matrix of this objects rotpos
+        // Get matrix of this objects rotpos
         this.gl.uniformMatrix4fv(
           this.programInfo.uniformLocations.uModelMatrix,
           false,
@@ -477,7 +485,7 @@ export class Shader {
         );
 
         if (model.modelData.ELEMENT_ARRAY_BUFFER && vertexCount) {
-          //Tell opengl which texture we're currently using, then tell our shader which texture we're using
+          // Tell opengl which texture we're currently using, then tell our shader which texture we're using
           this.gl.drawElements(mode, vertexCount, this.gl.UNSIGNED_SHORT, offset);
         } else {
           this.gl.drawArrays(
@@ -485,12 +493,22 @@ export class Shader {
             offset,
             model.modelData.ARRAY_BUFFER.aVertexPosition[0].length /
               model.modelData.ARRAY_BUFFER.aVertexPosition[1],
-          ); //bad hardcoding, oh well
+          ); // bad hardcoding, oh well
         }
 
-        //If the object we just rendered has a custom texture id, swap back to the old one
+        // If the object has custom texture attributes, swap back to the old ones
+        Object.keys(object.overridden_attribs).forEach((name) => {
+          const buffer = model.buffers[name];
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+          this.gl.bufferData(
+            this.gl.ARRAY_BUFFER,
+            new Float32Array(model.modelData['ARRAY_BUFFER'][name][0]),
+            this.gl.DYNAMIC_DRAW,
+          );
+        });
+
+        // If the object we just rendered has a custom texture id, swap back to the old one
         if (object.texId != undefined && model.textureId != undefined) {
-          this.gl.activeTexture(this.gl.TEXTURE0 + model.textureId);
           this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, model.textureId);
         }
       });

@@ -37,11 +37,16 @@ export class Model {
 export class Objec {
   model: Model;
   rotpos: RotPos | RotPos2D;
+
   texId?: number;
+  overridden_attribs: Record<string, AllowSharedBufferSource> = {};
+
   hidden = false;
   worldIndex = 0;
+
   tags = new Set<string>();
   matrix = mat4.create();
+
   callbackFn: (_screen: FScreen, _object: Objec) => void = () => {};
 
   constructor({
