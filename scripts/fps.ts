@@ -56,11 +56,12 @@ LoadMap(scene, 'octagon.json', RenderLoop, callbackFunctions).then(async () => {
   // );
 
   // Set up colliders
-  screen.shaders[0].models['plane.json'].objects.forEach((object) => {
+  screen.set_scene(scene);
+  screen.shaders[0].shader_data.models[0].objects.forEach((object) => {
     const rotationVec = vec3.create();
     const angle = quat.getAxisAngle(rotationVec, object.rotpos.rotation);
 
-    const scale = object.rotpos.scale[0];
+    const scale = (object.rotpos.scale as vec3)[0];
     const xBonus = Math.cos(angle) * scale;
     const yBonus = Math.sin(angle) * scale * (rotationVec[1] < 0 ? 1 : -1);
 
@@ -179,12 +180,12 @@ cam.onMouseDown = () => {
     decals.shift();
   }
 
-  decals.push(
-    screen.shaders[0].InstanceObject(
-      'plane.json',
-      new RotPos([hit.intersection.y, 0, hit.intersection.x], rotation, [0.1, 0.1, 0.1]),
-    ),
-  );
+  const model = screen.shaders[0].shader_data.models[scene.texIds['plane.json']];
+
+  const objec = new Objec({model, rotpos: new RotPos([hit.intersection.y, 0, hit.intersection.x], rotation, [0.1, 0.1, 0.1])});
+
+  model.create_objec(objec);
+  decals.push(objec);
 
   // Trigger a shot landed call on whatever object the shot lands on
 };
