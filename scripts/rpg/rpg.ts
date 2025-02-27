@@ -1,11 +1,11 @@
 import { FScreen } from '../screen.js';
-import { LoadFileText, LoadTexture, LoadModel, LoadShader } from '../loading.js';
+import { LoadTexture, LoadModel, LoadShader } from '../loading.js';
 import { Objec, RotPos2D, Scale2D } from '../objec.js';
 import { Scene } from '../scene.js';
 import { CameraData } from '../shader.js';
 
-export async function run_rpg(screen: FScreen, map: string[]) {
-  const tiles: Record<number, Record<number, string>> = {};
+export async function run_rpg(screen: FScreen, map: number[][]) {
+  const tiles: Record<number, Record<number, number>> = {};
   for (let index = -50; index <= 50; index++) {
     tiles[index] = {};
   }
@@ -49,16 +49,16 @@ export async function run_rpg(screen: FScreen, map: string[]) {
     );
 
     //This texture stuff should be cleaned up
-    const textures = await LoadFileText('../textures.txt');
-    Promise.allSettled(
-      textures.split('\n').map((texture, index) => async () => {
-        await LoadTexture(scene, texture + '.png');
-        const rawMetadata = await LoadFileText('textures/' + texture + '.json');
-        const jsonMetadata = JSON.parse(rawMetadata) as TextureData;
+    // const textures = await LoadFileText('../textures.txt');
+    // Promise.allSettled(
+    //   textures.split('\n').map((texture, index) => async () => {
+    //     await LoadTexture(scene, texture + '.png');
+    //     const rawMetadata = await LoadFileText('textures/' + texture + '.json');
+    //     const jsonMetadata = JSON.parse(rawMetadata) as TextureData;
 
-        textureData[index] = jsonMetadata;
-      }),
-    );
+    //     textureData[index] = jsonMetadata;
+    //   }),
+    // );
 
     const modelData = await LoadModel(sprite_shader, 'verSprite.json');
     modelData.create_objec(
@@ -68,25 +68,44 @@ export async function run_rpg(screen: FScreen, map: string[]) {
       }),
     );
 
+    await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
+
     //Map loading
     // const rawMap = await LoadFileText('map.txt');
     // const map = rawMap.split('\n');
     for (let i = 0; i < map.length; i++) {
-      map[i].split('').forEach((char, index) => {
-        if (char != ' ') {
+      map[i].forEach((tile, index) => {
+        if (tile != -1) {
+          const tex_x = (tile % 16) / 16;
+          const tex_y = Math.floor(tile / 16) / 16;
+          const size = 1 / 16;
+
+          const texture_attribute = new Float32Array([
+            tex_x,
+            tex_y + size,
+            tex_x + size,
+            tex_y,
+            tex_x,
+            tex_y,
+            tex_x + size,
+            tex_y + size,
+          ]);
           // TODO: Reimplement layers
           modelData.create_objec(
             new Objec({
               model: modelData,
               rotpos: new RotPos2D(
-                [i * 50.0 - 2500.0, index * 50.0 - 2500.0],
+                [i * -50.0 + 2500.0, index * 50.0 - 2500.0],
                 Math.PI,
                 Scale2D.of_px(25.0, 25.0),
               ),
-              texId: scene.texIds[Object.keys(textureData)[parseInt(char)] + '.png'],
+              texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
+              overridden_attribs: {
+                aTextureCoord: texture_attribute,
+              },
             }),
           );
-          tiles[i - 50][index - 50] = char;
+          tiles[i - 50][index - 50] = tile;
         }
       });
     }

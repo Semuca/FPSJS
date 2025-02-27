@@ -12,8 +12,13 @@ const MODES = {
 
 let mode = MODES.MOVE;
 
+interface Tile {
+  objec: Objec;
+  tile: number;
+}
+
 let tile = 0;
-const tiles: Record<number, Record<number, Objec>> = {};
+const tiles: Record<number, Record<number, Tile>> = {};
 for (let index = -50; index <= 50; index++) {
   tiles[index] = {};
 }
@@ -86,12 +91,12 @@ function RenderLoop() {
 function get_map() {
   const map = [];
   for (let i = -50; i <= 50; i++) {
-    let row = '';
+    const row = [];
     for (let j = -50; j <= 50; j++) {
       if (tiles[i][j] != undefined) {
-        row += tiles[i][j].texId;
+        row.push(tiles[i][j].tile);
       } else {
-        row += ' ';
+        row.push(-1);
       }
     }
     map.push(row);
@@ -170,22 +175,24 @@ cam.onMouseDown = (e) => {
   ]);
 
   if (tiles[posX][posY] != undefined) {
-    tiles[posX][posY].overridden_attribs = {
+    tiles[posX][posY].objec.overridden_attribs = {
       aTextureCoord: texture_attribute,
     };
   } else {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
-    tiles[posX][posY] = new Objec({
-      model,
-      rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
-      texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
-    });
-
-    tiles[posX][posY].overridden_attribs = {
-      aTextureCoord: texture_attribute,
+    tiles[posX][posY] = {
+      objec: new Objec({
+        model,
+        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
+        overridden_attribs: {
+          aTextureCoord: texture_attribute,
+        },
+      }),
+      tile,
     };
 
-    model.create_objec(tiles[posX][posY]);
+    model.create_objec(tiles[posX][posY].objec);
   }
 
   requestAnimationFrame(RenderLoop);

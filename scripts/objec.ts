@@ -53,19 +53,22 @@ export class Objec {
     model,
     rotpos,
     texId,
+    overridden_attribs = {},
     worldIndex = 0,
     tags = [],
   }: {
     model: Model;
     rotpos: RotPos | RotPos2D;
     texId?: number;
+    overridden_attribs?: Record<string, AllowSharedBufferSource>;
     worldIndex?: number;
     tags?: string[];
   }) {
     this.model = model;
     this.rotpos = rotpos;
-    this.worldIndex = worldIndex;
     this.texId = texId;
+    this.overridden_attribs = overridden_attribs;
+    this.worldIndex = worldIndex;
     tags.forEach((tag) => this.tags.add(tag));
   }
 
