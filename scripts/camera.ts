@@ -85,7 +85,6 @@ export class Camera {
 
   recalculate_px_dim() {
     //Pixel values of camera. ?Does floor matter?
-    console.log(this.pxWidth, Math.floor(this.window.canvas.clientWidth * this.camera_data.width));
     this.pxWidth = Math.floor(this.window.canvas.clientWidth * this.camera_data.width);
     this.pxHeight = Math.floor(this.window.canvas.clientHeight * this.camera_data.height);
   }
