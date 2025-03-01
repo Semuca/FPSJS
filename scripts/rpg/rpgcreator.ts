@@ -149,7 +149,7 @@ cam.onMouseDown = (e) => {
 
   // Delete tile on Z
   if (screen.keysDown['KeyZ'] == true && tiles[posX][posY] != undefined) {
-    // temp.shaders[0].DeleteObject("verSprite.json", tiles[posX][posY]);
+    tiles[posX][posY].objec.Destructor();
     delete tiles[posX][posY];
 
     requestAnimationFrame(RenderLoop);
