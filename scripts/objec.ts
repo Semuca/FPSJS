@@ -1,6 +1,6 @@
 import { mat4, quat, vec2, vec3 } from 'gl-matrix';
 // import { PhysicsObjec, PhysicsScene } from "./physics.js";
-import { FScreen } from './screen.js';
+import { FScreen } from './screen';
 
 export interface ModelData {
   ARRAY_BUFFER: Record<string, [number[], number, number, number]>;

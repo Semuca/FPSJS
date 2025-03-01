@@ -1,11 +1,11 @@
-import { FScreen, toggleFullScreen } from './screen.js';
-import { LoadMap } from './loading.js';
-import { Circle2D, Point2D, Segment2D, translatePointAlongAngle } from './geometry.js';
-import { Objec, RotPos } from './objec.js';
+import { FScreen, toggleFullScreen } from './screen';
+import { LoadMap } from './loading';
+import { Circle2D, Point2D, Segment2D, translatePointAlongAngle } from './geometry';
+import { Objec, RotPos } from './objec';
 import { mat4, quat, vec3 } from 'gl-matrix';
-import { colliders, GetNextColliderOnSegment, MoveCircle } from './collider.js';
-import { Scene } from './scene.js';
-import { CameraData } from './shader.js';
+import { colliders, GetNextColliderOnSegment, MoveCircle } from './collider';
+import { Scene } from './scene';
+import { CameraData } from './camera';
 
 // let time = 0;
 let pointerLockActivation = 0;
@@ -182,7 +182,10 @@ cam.onMouseDown = () => {
 
   const model = screen.shaders[0].shader_data.models[scene.texIds['plane.json']];
 
-  const objec = new Objec({model, rotpos: new RotPos([hit.intersection.y, 0, hit.intersection.x], rotation, [0.1, 0.1, 0.1])});
+  const objec = new Objec({
+    model,
+    rotpos: new RotPos([hit.intersection.y, 0, hit.intersection.x], rotation, [0.1, 0.1, 0.1]),
+  });
 
   model.create_objec(objec);
   decals.push(objec);
@@ -198,15 +201,3 @@ cam.onMouseMove = (e) => {
   rotX += e.movementX;
   rotY += e.movementY;
 };
-
-//Resizing for the window. What's the difference between "resize" and "onresize"?
-// window.addEventListener("resize", e => {
-//   temp.canvas.width = temp.canvas.clientWidth;
-//   temp.canvas.height = temp.canvas.clientHeight;
-
-//   temp.cameras.forEach((camera) => {
-//     camera.SetViewport();
-//     camera.aspectRatio = temp.canvas.width / temp.canvas.height;
-//     camera.RecalculateProjMatrix();
-//   });
-// });

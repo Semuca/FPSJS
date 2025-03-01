@@ -1,16 +1,16 @@
-import { FScreen, toggleFullScreen } from './screen.js';
-import { LoadFileText, LoadTexture, LoadModel, LoadShader, MapFile } from './loading.js';
-import { Objec, RotPos2D } from './objec.js';
+import { FScreen, toggleFullScreen } from './screen';
+import { LoadFileText, LoadTexture, LoadModel, LoadShader, MapFile } from './loading';
+import { Objec, RotPos2D, Scale2D } from './objec';
 import {
   roundToNearest,
   distancePointToPoint,
   Point2D,
   Segment2D,
   ShortestDistanceFromPointToSegment,
-} from './geometry.js';
+} from './geometry';
 import { quat, vec3 } from 'gl-matrix';
-import { Scene } from './scene.js';
-import { CameraData } from './shader.js';
+import { Scene } from './scene';
+import { CameraData } from './camera';
 
 const MODES = {
   MOVE: 0,
@@ -149,7 +149,7 @@ async function Setup() {
 
   highlighter = new Objec({
     model: modelData,
-    rotpos: new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
+    rotpos: new RotPos2D([0.5, 0.5], Math.PI, Scale2D.of_px(0.2, 0.2)),
     texId: scene.texIds['tframe.png'],
   });
   highlighter.hidden = true;
@@ -157,7 +157,7 @@ async function Setup() {
 
   secondHighlighter = new Objec({
     model: modelData,
-    rotpos: new RotPos2D([0.5, 0.5], Math.PI, [0.2, 0.2]),
+    rotpos: new RotPos2D([0.5, 0.5], Math.PI, Scale2D.of_px(0.2, 0.2)),
     texId: scene.texIds['tframe.png'],
   });
   secondHighlighter.hidden = true;
@@ -165,7 +165,7 @@ async function Setup() {
 
   hover = new Objec({
     model: modelData,
-    rotpos: new RotPos2D([0.5, 0.5], Math.PI, [0.5, 0.5]),
+    rotpos: new RotPos2D([0.5, 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
     texId: scene.texIds['texture.png'],
   });
   hover.hidden = true;
@@ -174,7 +174,10 @@ async function Setup() {
   //Load line models
   const line_shader = await LoadShader(scene, '2DflatlineVertexShader.vs', 'lineFragmentShader.fs');
   modelData = await LoadModel(line_shader, 'flatline.json');
-  line = new Objec({ model: modelData, rotpos: new RotPos2D([0.0, 0.0], undefined, [0.0, 0.0]) });
+  line = new Objec({
+    model: modelData,
+    rotpos: new RotPos2D([0.0, 0.0], undefined, Scale2D.of_px(0.0, 0.0)),
+  });
   modelData.create_objec(line);
 
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
@@ -223,7 +226,7 @@ function RenderLoop() {
     // Get x and y distance
     const xDist = wall.point1.x - wall.point2.x;
     const yDist = wall.point1.y - wall.point2.y;
-    line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
+    (line.rotpos.scale as vec3)[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + (yDist < 0 ? 0 : -Math.PI);
 
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
@@ -243,7 +246,7 @@ function RenderLoop() {
     // Get x and y distance
     const xDist = highlighter.rotpos.position[0] + cursorWorldPosition.x;
     const yDist = cursorWorldPosition.y - highlighter.rotpos.position[1];
-    line.rotpos.scale[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
+    (line.rotpos.scale as vec3)[1] = Math.sqrt(xDist ** 2 + yDist ** 2);
     const angle = Math.atan(xDist / yDist) + (yDist < 0 ? Math.PI : 0);
 
     quat.setAxisAngle(line.rotpos.rotation, [0.0, 0.0, 1.0], angle);
@@ -278,7 +281,7 @@ cam.onMouseDown = () => {
         rotpos: new RotPos2D(
           [highlighter.rotpos.position[0], highlighter.rotpos.position[1]],
           Math.PI,
-          [0.5, 0.5],
+          Scale2D.of_px(0.5, 0.5),
         ),
         texId: scene.texIds[sidepanes[currentSidepaneIndex].textures[tile]],
       }),
@@ -469,7 +472,11 @@ scene.keyDownCallbacks['KeyU'] = () => {
         plane.create_objec(
           new Objec({
             model: plane,
-            rotpos: new RotPos2D([object.position[0], object.position[2]], Math.PI, [1, 1]),
+            rotpos: new RotPos2D(
+              [object.position[0], object.position[2]],
+              Math.PI,
+              Scale2D.of_px(1, 1),
+            ),
             texId: scene.texIds[object.texture],
           }),
         );

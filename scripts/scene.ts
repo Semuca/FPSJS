@@ -1,4 +1,5 @@
-import { ShaderData, CameraData } from './shader.js';
+import { CameraData } from './camera';
+import { ShaderData } from './shader';
 
 export class Scene {
   shader_data: ShaderData[] = [];

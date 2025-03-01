@@ -1,9 +1,9 @@
-import { FScreen, toggleFullScreen } from '../screen.js';
-import { LoadTexture, LoadModel, LoadShader } from '../loading.js';
-import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec.js';
-import { run_rpg } from './rpg.js';
-import { Scene } from '../scene.js';
-import { CameraData } from '../shader.js';
+import { FScreen, toggleFullScreen } from '../screen';
+import { LoadTexture, LoadModel, LoadShader } from '../loading';
+import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec';
+import { run_rpg } from './rpg';
+import { Scene } from '../scene';
+import { CameraData } from '../camera';
 
 const MODES = {
   MOVE: 0,

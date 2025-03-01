@@ -1,6 +1,7 @@
-import { Camera, Shader } from './shader.js';
-import { Scene } from './scene.js';
-import { Scale2D } from './objec.js';
+import { Shader } from './shader';
+import { Scene } from './scene';
+import { Scale2D } from './objec';
+import { Camera } from './camera';
 
 export enum SCREENACTION {
   IDLE,
@@ -59,12 +60,12 @@ export class FScreen {
       if (this.screenAction === SCREENACTION.RESIZING) {
         this.resizingCameras[0].pxWidth += e.movementX;
         this.resizingCameras[0].camera_data.width =
-          this.resizingCameras[0].pxWidth / this.canvas.width;
+          this.resizingCameras[0].pxWidth / this.canvas.clientWidth;
 
         this.resizingCameras[1].camera_data.tlCorner[0] = this.resizingCameras[0].camera_data.width;
         this.resizingCameras[1].pxWidth -= e.movementX;
         this.resizingCameras[1].camera_data.width =
-          this.resizingCameras[1].pxWidth / this.canvas.width;
+          this.resizingCameras[1].pxWidth / this.canvas.clientWidth;
 
         this.on_resize();
 
@@ -127,6 +128,13 @@ export class FScreen {
         this.scene.keyUpCallbacks[e.code]();
       }
     });
+
+    window.addEventListener('resize', () => {
+      this.cameras.forEach((camera) => {
+        camera.recalculate_px_dim();
+      });
+      this.on_resize();
+    });
   }
 
   set_scene(scene: Scene) {
@@ -184,12 +192,12 @@ export class FScreen {
   getCamerasFromCursor(e: MouseEvent) {
     return this.cameras.filter(
       (camera) =>
-        camera.camera_data.tlCorner[0] * this.canvas.width - this.margin <= e.pageX &&
+        camera.camera_data.tlCorner[0] * this.canvas.clientWidth - this.margin <= e.pageX &&
         e.pageX <=
-          camera.camera_data.tlCorner[0] * this.canvas.width + camera.pxWidth + this.margin &&
-        camera.camera_data.tlCorner[1] * this.canvas.height - this.margin <= e.pageY &&
+          camera.camera_data.tlCorner[0] * this.canvas.clientWidth + camera.pxWidth + this.margin &&
+        camera.camera_data.tlCorner[1] * this.canvas.clientHeight - this.margin <= e.pageY &&
         e.pageY <=
-          camera.camera_data.tlCorner[1] * this.canvas.height + camera.pxHeight + this.margin,
+          camera.camera_data.tlCorner[1] * this.canvas.clientHeight + camera.pxHeight + this.margin,
     );
   }
 }

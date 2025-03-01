@@ -1,5 +1,5 @@
-import { Model, Objec, RotPos2D, Scale2D } from './objec.js';
-import { Camera } from './shader.js';
+import { Model, Objec, RotPos2D, Scale2D } from './objec';
+import { Camera } from './camera';
 
 // For making fonts. This can probably be an extension of a spritesheet if i ever make them
 export class Font {

@@ -1,8 +1,8 @@
 import { quat, vec3 } from 'gl-matrix';
-import { Model, ModelData, Objec, RotPos } from './objec.js';
-import { FScreen } from './screen.js';
-import { ShaderData } from './shader.js';
-import { Scene } from './scene.js';
+import { Model, ModelData, Objec, RotPos } from './objec';
+import { FScreen } from './screen';
+import { ShaderData } from './shader';
+import { Scene } from './scene';
 
 //Loads values from text files given by the url
 export async function LoadFileText(url: string): Promise<string> {

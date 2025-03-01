@@ -1,8 +1,8 @@
-import { FScreen } from '../screen.js';
-import { LoadTexture, LoadModel, LoadShader } from '../loading.js';
-import { Objec, RotPos2D, Scale2D } from '../objec.js';
-import { Scene } from '../scene.js';
-import { CameraData } from '../shader.js';
+import { FScreen } from '../screen';
+import { LoadTexture, LoadModel, LoadShader } from '../loading';
+import { Objec, RotPos2D, Scale2D } from '../objec';
+import { Scene } from '../scene';
+import { CameraData } from '../camera';
 
 export async function run_rpg(screen: FScreen, map: number[][]) {
   const tiles: Record<number, Record<number, number>> = {};
