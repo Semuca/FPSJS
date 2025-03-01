@@ -82,10 +82,7 @@ requestAnimationFrame(RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop() {
-  screen.gl.clear(screen.gl.COLOR_BUFFER_BIT | screen.gl.DEPTH_BUFFER_BIT);
-
-  //Should do much less draws here, but for now things seem to be fine
-  screen.cameras.forEach((camera) => camera.Draw());
+  screen.draw();
 }
 
 function get_map() {

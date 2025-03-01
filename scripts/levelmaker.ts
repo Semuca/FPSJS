@@ -261,7 +261,7 @@ function RenderLoop() {
   // Draws sprites
   screen.shaders[0].DrawScene(0);
 
-  screen.cameras.forEach((camera) => camera.Draw());
+  screen.draw();
 }
 
 // Start drawing when the mouse is pressed down

@@ -211,11 +211,7 @@ export async function run_rpg(screen: FScreen, map: number[][]) {
     //const deltaTime = now - time;
     //time = now;
 
-    //Clear before drawing
-    screen.gl.clear(screen.gl.COLOR_BUFFER_BIT | screen.gl.DEPTH_BUFFER_BIT);
-
-    //Draws sprites
-    screen.cameras.forEach((camera) => camera.Draw());
+    screen.draw();
   }
 
   return promise;

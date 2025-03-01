@@ -60,17 +60,15 @@ export class FScreen {
       if (this.screenAction === SCREENACTION.RESIZING) {
         this.resizingCameras[0].pxWidth += e.movementX;
         this.resizingCameras[0].camera_data.width =
-          this.resizingCameras[0].pxWidth / this.canvas.clientWidth;
+          this.resizingCameras[0].pxWidth / this.canvas.width;
 
         this.resizingCameras[1].camera_data.tlCorner[0] = this.resizingCameras[0].camera_data.width;
         this.resizingCameras[1].pxWidth -= e.movementX;
         this.resizingCameras[1].camera_data.width =
-          this.resizingCameras[1].pxWidth / this.canvas.clientWidth;
+          this.resizingCameras[1].pxWidth / this.canvas.width;
 
         this.on_resize();
-
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-        this.cameras.forEach((camera) => camera.Draw());
+        this.draw();
 
         return;
       }
@@ -130,10 +128,15 @@ export class FScreen {
     });
 
     window.addEventListener('resize', () => {
+      this.canvas.width = this.canvas.clientWidth;
+      this.canvas.height = this.canvas.clientHeight;
+
       this.cameras.forEach((camera) => {
         camera.recalculate_px_dim();
       });
+
       this.on_resize();
+      this.draw();
     });
   }
 
@@ -189,15 +192,20 @@ export class FScreen {
       });
   }
 
+  draw() {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.cameras.forEach((camera) => camera.Draw());
+  }
+
   getCamerasFromCursor(e: MouseEvent) {
     return this.cameras.filter(
       (camera) =>
-        camera.camera_data.tlCorner[0] * this.canvas.clientWidth - this.margin <= e.pageX &&
+        camera.camera_data.tlCorner[0] * this.canvas.width - this.margin <= e.pageX &&
         e.pageX <=
-          camera.camera_data.tlCorner[0] * this.canvas.clientWidth + camera.pxWidth + this.margin &&
-        camera.camera_data.tlCorner[1] * this.canvas.clientHeight - this.margin <= e.pageY &&
+          camera.camera_data.tlCorner[0] * this.canvas.width + camera.pxWidth + this.margin &&
+        camera.camera_data.tlCorner[1] * this.canvas.height - this.margin <= e.pageY &&
         e.pageY <=
-          camera.camera_data.tlCorner[1] * this.canvas.clientHeight + camera.pxHeight + this.margin,
+          camera.camera_data.tlCorner[1] * this.canvas.height + camera.pxHeight + this.margin,
     );
   }
 }

@@ -74,7 +74,7 @@ export class Camera {
     this.camera_data = camera_data;
 
     //Other default camera values
-    this.aspectRatio = this.window.canvas.clientWidth / this.window.canvas.clientHeight;
+    this.aspectRatio = this.window.canvas.width / this.window.canvas.height;
 
     this.recalculate_px_dim();
 
@@ -85,8 +85,8 @@ export class Camera {
 
   recalculate_px_dim() {
     //Pixel values of camera. ?Does floor matter?
-    this.pxWidth = Math.floor(this.window.canvas.clientWidth * this.camera_data.width);
-    this.pxHeight = Math.floor(this.window.canvas.clientHeight * this.camera_data.height);
+    this.pxWidth = Math.floor(this.window.canvas.width * this.camera_data.width);
+    this.pxHeight = Math.floor(this.window.canvas.height * this.camera_data.height);
   }
 
   //(Should get a better name) Calculates projection matrix based on whether the camera is 2D or 3D
@@ -122,13 +122,12 @@ export class Camera {
 
   CursorToWorldPosition(cursor_pos: [number, number]) {
     const ndc_x =
-      ((cursor_pos[0] - this.camera_data.tlCorner[0] * this.window.canvas.clientWidth) /
-        this.pxWidth) *
+      ((cursor_pos[0] - this.camera_data.tlCorner[0] * this.window.canvas.width) / this.pxWidth) *
         2 -
       1;
     const ndc_y =
       -(
-        (cursor_pos[1] - this.camera_data.tlCorner[1] * this.window.canvas.clientHeight) /
+        (cursor_pos[1] - this.camera_data.tlCorner[1] * this.window.canvas.height) /
         this.pxHeight
       ) *
         2 +
@@ -164,8 +163,8 @@ export class Camera {
   //Sets camera viewport in opengl - Important for cameras that change the amount of screen space they take up
   SetViewport() {
     this.window.gl.viewport(
-      this.window.canvas.clientWidth * this.camera_data.tlCorner[0],
-      this.window.canvas.clientHeight * this.camera_data.tlCorner[1],
+      this.window.canvas.width * this.camera_data.tlCorner[0],
+      this.window.canvas.height * this.camera_data.tlCorner[1],
       this.pxWidth,
       this.pxHeight,
     );
