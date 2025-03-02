@@ -170,18 +170,11 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     if (moving_objects.length == 0) {
       let movX = 0.0;
       let movY = 0.0;
-      if (screen.keysDown['KeyW'] === true) {
-        movY += 1.0;
-      }
-      if (screen.keysDown['KeyA'] === true) {
-        movX += 1.0;
-      }
-      if (screen.keysDown['KeyS'] === true) {
-        movY -= 1.0;
-      }
-      if (screen.keysDown['KeyD'] === true) {
-        movX -= 1.0;
-      }
+
+      if (screen.keysDown['KeyW'] === true) movY += 1.0;
+      if (screen.keysDown['KeyA'] === true) movX += 1.0;
+      if (screen.keysDown['KeyS'] === true) movY -= 1.0;
+      if (screen.keysDown['KeyD'] === true) movX -= 1.0;
 
       if (movX != 0.0) {
         play_animation(movX === 1 ? 'left' : 'right');
