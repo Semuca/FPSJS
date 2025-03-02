@@ -4,6 +4,8 @@ import { Objec, RotPos2D, Scale2D } from '../objec';
 import { Scene } from '../scene';
 import { CameraData } from '../camera';
 import { TileDataMap } from './types';
+import { distancePointToPoint, Point2D } from '../geometry';
+import { vec2 } from 'gl-matrix';
 
 export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   // interface TextureData {
@@ -21,7 +23,6 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
 
   const [modelData] = await Setup();
   screen.set_scene(scene);
-  requestAnimationFrame(Render);
 
   let promise_resolver: (value: void) => void;
   let is_resolved = false;
@@ -33,7 +34,23 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     promise_resolver();
   };
 
-  Tick();
+  function gen_texture_attributes(tile: number, tiles_wide: number, tiles_high: number) {
+    const tex_x = (tile % tiles_wide) / tiles_wide;
+    const tex_y = Math.floor(tile / tiles_wide) / tiles_high;
+    const size_x = 1 / tiles_wide;
+    const size_y = 1 / tiles_high;
+
+    return new Float32Array([
+      tex_x,
+      tex_y + size_y,
+      tex_x + size_x,
+      tex_y,
+      tex_x,
+      tex_y,
+      tex_x + size_x,
+      tex_y + size_y,
+    ]);
+  }
 
   async function Setup() {
     //Load shaders for the 2d camera
@@ -55,46 +72,36 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     //   }),
     // );
 
+    const sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Characters/Actor1.png');
+
     const modelData = await LoadModel(sprite_shader, 'verSprite.json');
     modelData.create_objec(
       new Objec({
         model: modelData,
         rotpos: new RotPos2D([0, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        texId: sprite_sheet,
+        overridden_attribs: {
+          aTextureCoord: gen_texture_attributes(7, 12, 8),
+        },
       }),
     );
 
-    await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
+    const dungeon_sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
 
     //Map loading
-    // const rawMap = await LoadFileText('map.txt');
-    // const map = rawMap.split('\n');
     Object.entries(tile_data_map).forEach(([x_string, entry]) => {
       const x = parseInt(x_string);
       Object.entries(entry).forEach(([y_string, { tile }]) => {
         const y = parseInt(y_string);
         if (tile != -1) {
-          const tex_x = (tile % 16) / 16;
-          const tex_y = Math.floor(tile / 16) / 16;
-          const size = 1 / 16;
-
-          const texture_attribute = new Float32Array([
-            tex_x,
-            tex_y + size,
-            tex_x + size,
-            tex_y,
-            tex_x,
-            tex_y,
-            tex_x + size,
-            tex_y + size,
-          ]);
           // TODO: Reimplement layers
           modelData.create_objec(
             new Objec({
               model: modelData,
               rotpos: new RotPos2D([-x, y], Math.PI, Scale2D.of_px(0.5, 0.5)),
-              texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
+              texId: dungeon_sprite_sheet,
               overridden_attribs: {
-                aTextureCoord: texture_attribute,
+                aTextureCoord: gen_texture_attributes(tile, 16, 16),
               },
             }),
           );
@@ -114,46 +121,107 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     return [modelData];
   }
 
+  const player_speed = 0.15;
+
+  interface MovingObject {
+    objec: Objec;
+    to: Point2D;
+    speed: number;
+  }
+
+  let moving_objects: MovingObject[] = [];
+
+  Tick();
+
+  function move_objec(moving_object: MovingObject) {
+    // TODO: Update tilemap with new positions
+    moving_objects.push(moving_object);
+  }
+
+  const animations: Record<string, number[]> = {
+    down: [8, 6, 7],
+    left: [20, 18, 19],
+    right: [32, 30, 31],
+    up: [44, 42, 43],
+  };
+
+  function play_animation(type: string) {
+    const player = modelData.objects[0];
+    const set_frame = (frames: number[]) => {
+      if (frames.length === 0) return;
+
+      const [head, ...tail] = frames;
+
+      player.overridden_attribs = {
+        aTextureCoord: gen_texture_attributes(head, 12, 8),
+      };
+      setTimeout(() => set_frame(tail), 40);
+    };
+
+    set_frame(animations[type]);
+  }
+
   function Tick() {
     if (is_resolved) return;
 
-    //Change movement based on keys currently pressed down
-    let movX = 0.0;
-    let movY = 0.0;
-    if (screen.keysDown['KeyW'] === true) {
-      movY += 1.0;
+    const player = modelData.objects[0];
+
+    if (moving_objects.length == 0) {
+      let movX = 0.0;
+      let movY = 0.0;
+      if (screen.keysDown['KeyW'] === true) {
+        movY += 1.0;
+      }
+      if (screen.keysDown['KeyA'] === true) {
+        movX += 1.0;
+      }
+      if (screen.keysDown['KeyS'] === true) {
+        movY -= 1.0;
+      }
+      if (screen.keysDown['KeyD'] === true) {
+        movX -= 1.0;
+      }
+
+      if (movX != 0.0) {
+        move_objec({
+          objec: player,
+          to: new Point2D(player.rotpos.position[0] + movX, player.rotpos.position[1]),
+          speed: player_speed,
+        });
+        play_animation(movX === 1 ? 'left' : 'right');
+      } else if (movY != 0.0) {
+        move_objec({
+          objec: player,
+          to: new Point2D(player.rotpos.position[0], player.rotpos.position[1] + movY),
+          speed: player_speed,
+        });
+        play_animation(movY === 1 ? 'up' : 'down');
+      }
     }
-    if (screen.keysDown['KeyA'] === true) {
-      movX += 1.0;
-    }
-    if (screen.keysDown['KeyS'] === true) {
-      movY -= 1.0;
-    }
-    if (screen.keysDown['KeyD'] === true) {
-      movX -= 1.0;
-    }
-    const playerPos = modelData.objects[0].rotpos;
 
-    if (movX != 0.0 || movY != 0.0) {
-      cam.rotpos.position[0] -= movX;
-      cam.rotpos.position[1] -= movY;
+    moving_objects = moving_objects.filter(({ objec, to, speed }) => {
+      const pos = (objec.rotpos as RotPos2D).position;
+      if (distancePointToPoint(new Point2D(pos[0], pos[1]), to) <= speed) {
+        pos[0] = to.x;
+        pos[1] = to.y;
+        return false;
+      }
 
-      playerPos.position[0] += movX; //Why subtraction??
-      playerPos.position[1] += movY;
+      const delta = vec2.fromValues(to.x - pos[0], to.y - pos[1]);
+      vec2.normalize(delta, delta);
+      vec2.scale(delta, delta, speed);
 
-      requestAnimationFrame(Render);
-    }
+      pos[0] += delta[0];
+      pos[1] += delta[1];
+      return true;
+    });
 
-    setTimeout(Tick, 10);
-  }
+    cam.rotpos.position[0] = -player.rotpos.position[0];
+    cam.rotpos.position[1] = -player.rotpos.position[1];
 
-  //Should only be called once per animation frame. Starts a loop of updating shaders.
-  function Render() {
-    //now *= 0.001;  // convert to seconds
-    //const deltaTime = now - time;
-    //time = now;
+    requestAnimationFrame(() => screen.draw());
 
-    screen.draw();
+    setTimeout(Tick, 1000 / 60);
   }
 
   return promise;
