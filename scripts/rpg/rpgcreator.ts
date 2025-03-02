@@ -1,27 +1,24 @@
 import { FScreen, toggleFullScreen } from '../screen';
 import { LoadTexture, LoadModel, LoadShader } from '../loading';
 import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec';
-import { run_rpg } from './rpg';
+import { run_rpg } from './rpg_scene';
 import { Scene } from '../scene';
 import { CameraData } from '../camera';
+import { serialize_tilemap, TileMap } from './types';
 
 const MODES = {
   MOVE: 0,
   PLACE: 1,
 };
 
-let mode = MODES.MOVE;
-
-interface Tile {
-  objec: Objec;
-  tile: number;
-}
+let mode = MODES.PLACE;
 
 let tile = 0;
-const tiles: Record<number, Record<number, Tile>> = {};
-for (let index = -50; index <= 50; index++) {
-  tiles[index] = {};
-}
+const tilemap: TileMap = {};
+// const tiles: Record<number, Record<number, Tile>> = {};
+// for (let index = -50; index <= 50; index++) {
+//   tiles[index] = {};
+// }
 
 let selector: Objec;
 
@@ -85,29 +82,15 @@ function RenderLoop() {
   screen.draw();
 }
 
-function get_map() {
-  const map = [];
-  for (let i = -50; i <= 50; i++) {
-    const row = [];
-    for (let j = -50; j <= 50; j++) {
-      if (tiles[i][j] != undefined) {
-        row.push(tiles[i][j].tile);
-      } else {
-        row.push(-1);
-      }
-    }
-    map.push(row);
-  }
-
-  return map;
-}
-
 // Downloads the map
 scene.keyDownCallbacks['KeyC'] = () => {
   const element = document.createElement('a');
 
-  const map = get_map().join('\r\n');
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(map));
+  element.setAttribute(
+    'href',
+    'data:text/plain;charset=utf-8,' +
+      encodeURIComponent(JSON.stringify(serialize_tilemap(tilemap))),
+  );
   element.setAttribute('download', 'map');
 
   element.style.display = 'none';
@@ -119,8 +102,7 @@ scene.keyDownCallbacks['KeyC'] = () => {
 };
 
 scene.keyDownCallbacks['KeyU'] = async () => {
-  const map = get_map();
-  await run_rpg(screen, map);
+  await run_rpg(serialize_tilemap(tilemap), screen);
   screen.set_scene(scene);
   requestAnimationFrame(RenderLoop);
 };
@@ -148,9 +130,24 @@ cam.onMouseDown = (e) => {
   //Positions on the grid
 
   // Delete tile on Z
-  if (screen.keysDown['KeyZ'] == true && tiles[posX][posY] != undefined) {
-    tiles[posX][posY].objec.Destructor();
-    delete tiles[posX][posY];
+  if (screen.keysDown['KeyZ'] == true && tilemap[posX][posY] != undefined) {
+    tilemap[posX][posY].objec.Destructor();
+    delete tilemap[posX][posY];
+
+    requestAnimationFrame(RenderLoop);
+    return;
+  }
+
+  if (screen.keysDown['KeyE'] == true) {
+    const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
+
+    model.create_objec(
+      new Objec({
+        model,
+        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        texId: scene.texIds['tframe.png'],
+      }),
+    );
 
     requestAnimationFrame(RenderLoop);
     return;
@@ -171,13 +168,15 @@ cam.onMouseDown = (e) => {
     tex_y + size,
   ]);
 
-  if (tiles[posX][posY] != undefined) {
-    tiles[posX][posY].objec.overridden_attribs = {
+  if (!tilemap[posX]) tilemap[posX] = {};
+
+  if (tilemap[posX][posY] != undefined) {
+    tilemap[posX][posY].objec.overridden_attribs = {
       aTextureCoord: texture_attribute,
     };
   } else {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
-    tiles[posX][posY] = {
+    tilemap[posX][posY] = {
       objec: new Objec({
         model,
         rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
@@ -186,10 +185,10 @@ cam.onMouseDown = (e) => {
           aTextureCoord: texture_attribute,
         },
       }),
-      tile,
+      data: { tile },
     };
 
-    model.create_objec(tiles[posX][posY].objec);
+    model.create_objec(tilemap[posX][posY].objec);
   }
 
   requestAnimationFrame(RenderLoop);
