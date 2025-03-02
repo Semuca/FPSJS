@@ -3,7 +3,7 @@ import { LoadTexture, LoadModel, LoadShader } from '../loading';
 import { Objec, RotPos2D, Scale2D } from '../objec';
 import { Scene } from '../scene';
 import { CameraData } from '../camera';
-import { TileDataMap } from './types';
+import { TileDataMap, TileInfoMap } from './types';
 import { distancePointToPoint, Point2D } from '../geometry';
 import { vec2 } from 'gl-matrix';
 
@@ -98,7 +98,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
           modelData.create_objec(
             new Objec({
               model: modelData,
-              rotpos: new RotPos2D([-x, y], Math.PI, Scale2D.of_px(0.5, 0.5)),
+              rotpos: new RotPos2D([x, y], Math.PI, Scale2D.of_px(0.5, 0.5)),
               texId: dungeon_sprite_sheet,
               overridden_attribs: {
                 aTextureCoord: gen_texture_attributes(tile, 16, 16),
@@ -110,10 +110,10 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       });
     });
 
-    await LoadTexture(scene, 'black.png');
-    await LoadTexture(scene, 'white.png');
+    // await LoadTexture(scene, 'black.png');
+    // await LoadTexture(scene, 'white.png');
 
-    await LoadTexture(scene, 'def.png');
+    // await LoadTexture(scene, 'def.png');
     // font = new Font('def.png', JSON.parse(await LoadFileText('textures/def.json')));
 
     // DisplayBox(cam, screen.shaders[1], [0.8, 0.4]);
@@ -130,6 +130,12 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   }
 
   let moving_objects: MovingObject[] = [];
+
+  const tile_info_map: TileInfoMap = {
+    65: { passable: true, layer: 0 },
+    104: { passable: false, layer: 0 },
+    236: { passable: false, layer: 0 },
+  };
 
   Tick();
 
@@ -183,19 +189,31 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       }
 
       if (movX != 0.0) {
-        move_objec({
-          objec: player,
-          to: new Point2D(player.rotpos.position[0] + movX, player.rotpos.position[1]),
-          speed: player_speed,
-        });
         play_animation(movX === 1 ? 'left' : 'right');
+
+        const new_x = player.rotpos.position[0] + movX;
+        const new_y = player.rotpos.position[1];
+        const new_tile = (tile_data_map[new_x] ?? {})[new_y];
+        if (new_tile === undefined || tile_info_map[new_tile.tile]?.passable) {
+          move_objec({
+            objec: player,
+            to: new Point2D(new_x, new_y),
+            speed: player_speed,
+          });
+        }
       } else if (movY != 0.0) {
-        move_objec({
-          objec: player,
-          to: new Point2D(player.rotpos.position[0], player.rotpos.position[1] + movY),
-          speed: player_speed,
-        });
         play_animation(movY === 1 ? 'up' : 'down');
+
+        const new_x = player.rotpos.position[0];
+        const new_y = player.rotpos.position[1] + movY;
+        const new_tile = (tile_data_map[new_x] ?? {})[new_y];
+        if (new_tile === undefined || tile_info_map[new_tile.tile]?.passable) {
+          move_objec({
+            objec: player,
+            to: new Point2D(new_x, new_y),
+            speed: player_speed,
+          });
+        }
       }
     }
 

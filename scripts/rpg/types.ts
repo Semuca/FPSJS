@@ -1,5 +1,12 @@
 import { Objec } from '../objec';
 
+export interface TileInfo {
+  passable: boolean;
+  layer: number;
+}
+
+export type TileInfoMap = Record<number, TileInfo>;
+
 export interface TileData {
   tile: number;
 }
