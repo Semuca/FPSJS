@@ -15,10 +15,6 @@ let mode = MODES.PLACE;
 
 let tile = 0;
 const tilemap: TileMap = {};
-// const tiles: Record<number, Record<number, Tile>> = {};
-// for (let index = -50; index <= 50; index++) {
-//   tiles[index] = {};
-// }
 
 let selector: Objec;
 
