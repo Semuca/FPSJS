@@ -3,16 +3,46 @@ import { LoadTexture, LoadModel, LoadShader } from '../loading';
 import { Objec, RotPos2D, Scale2D } from '../objec';
 import { Scene } from '../scene';
 import { CameraData } from '../camera';
-import { TileDataMap, TileInfoMap } from './types';
+import { EventStep, TileDataMap, TileInfoMap } from './types';
 import { distancePointToPoint, Point2D } from '../geometry';
 import { vec2 } from 'gl-matrix';
 
 const tile_info_map: TileInfoMap = {
+  34: { passable: true, layer: -1 },
   65: { passable: true, layer: -1 },
   88: { passable: true, layer: 0 },
   104: { passable: false, layer: 0 },
   236: { passable: false, layer: 0 },
 };
+
+enum Direction {
+  Up,
+  Down,
+  Left,
+  Right,
+}
+
+const animations: Record<Direction, number[]> = {
+  [Direction.Down]: [8, 6, 7],
+  [Direction.Left]: [20, 18, 19],
+  [Direction.Right]: [32, 30, 31],
+  [Direction.Up]: [44, 42, 43],
+};
+
+function add_direction_to_point(direction: Direction, point: Point2D) {
+  switch (direction) {
+    case Direction.Down:
+      return new Point2D(point.x, point.y - 1);
+    case Direction.Left:
+      return new Point2D(point.x - 1, point.y);
+    case Direction.Right:
+      return new Point2D(point.x + 1, point.y);
+    case Direction.Up:
+      return new Point2D(point.x, point.y + 1);
+  }
+}
+
+let direction = Direction.Down;
 
 export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   // let font: Font; //Think of a faster way to look up fonts later
@@ -34,6 +64,34 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   scene.keyDownCallbacks['Escape'] = () => {
     promise_resolver();
   };
+
+  const player = modelData.objects[0];
+
+  scene.keyDownCallbacks['KeyE'] = () => {
+    const tile_pos = add_direction_to_point(
+      direction,
+      new Point2D(player.rotpos.position[0], player.rotpos.position[1]),
+    );
+    const on_interact = tile_data_map[tile_pos.x]?.[tile_pos.y]?.on_interact;
+    if (on_interact) run_event(on_interact);
+  };
+
+  function run_event(event_steps: EventStep[]) {
+    const set_frame = ([event_step, ...tail]: EventStep[]) => {
+      switch (event_step.type) {
+        case 'DialogStep':
+          console.log(event_step.text);
+          break;
+        default:
+          break;
+      }
+
+      if (tail.length === 0) return;
+      setTimeout(() => set_frame(tail), 40);
+    };
+
+    set_frame(event_steps);
+  }
 
   function gen_texture_attributes(tile: number, tiles_wide: number, tiles_high: number) {
     const tex_x = (tile % tiles_wide) / tiles_wide;
@@ -60,18 +118,6 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       '2DspriteVertexShader.vs',
       'spriteFragmentShader.fs',
     );
-
-    //This texture stuff should be cleaned up
-    // const textures = await LoadFileText('../textures.txt');
-    // Promise.allSettled(
-    //   textures.split('\n').map((texture, index) => async () => {
-    //     await LoadTexture(scene, texture + '.png');
-    //     const rawMetadata = await LoadFileText('textures/' + texture + '.json');
-    //     const jsonMetadata = JSON.parse(rawMetadata) as TextureData;
-
-    //     textureData[index] = jsonMetadata;
-    //   }),
-    // );
 
     const sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Characters/Actor1.png');
 
@@ -139,33 +185,22 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     moving_objects.push(moving_object);
   }
 
-  const animations: Record<string, number[]> = {
-    down: [8, 6, 7],
-    left: [20, 18, 19],
-    right: [32, 30, 31],
-    up: [44, 42, 43],
-  };
-
-  function play_animation(type: string) {
-    const player = modelData.objects[0];
-    const set_frame = (frames: number[]) => {
-      if (frames.length === 0) return;
-
-      const [head, ...tail] = frames;
-
+  function play_animation(dir: Direction) {
+    const set_frame = ([head, ...tail]: number[]) => {
       player.overridden_attribs = {
         aTextureCoord: gen_texture_attributes(head, 12, 8),
       };
+
+      if (tail.length === 0) return;
       setTimeout(() => set_frame(tail), 40);
     };
 
-    set_frame(animations[type]);
+    set_frame(animations[dir]);
+    direction = dir;
   }
 
   function Tick() {
     if (is_resolved) return;
-
-    const player = modelData.objects[0];
 
     if (moving_objects.length == 0) {
       let movX = 0.0;
@@ -177,11 +212,11 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       if (screen.keysDown['KeyD'] === true) movX -= 1.0;
 
       if (movX != 0.0) {
-        play_animation(movX === 1 ? 'left' : 'right');
+        play_animation(movX === 1 ? Direction.Left : Direction.Right);
 
         const new_x = player.rotpos.position[0] + movX;
         const new_y = player.rotpos.position[1];
-        const new_tile = (tile_data_map[new_x] ?? {})[new_y];
+        const new_tile = tile_data_map[new_x]?.[new_y];
         if (new_tile === undefined || tile_info_map[new_tile.tile]?.passable) {
           move_objec({
             objec: player,
@@ -190,11 +225,11 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
           });
         }
       } else if (movY != 0.0) {
-        play_animation(movY === 1 ? 'up' : 'down');
+        play_animation(movY === 1 ? Direction.Up : Direction.Down);
 
         const new_x = player.rotpos.position[0];
         const new_y = player.rotpos.position[1] + movY;
-        const new_tile = (tile_data_map[new_x] ?? {})[new_y];
+        const new_tile = tile_data_map[new_x]?.[new_y];
         if (new_tile === undefined || tile_info_map[new_tile.tile]?.passable) {
           move_objec({
             objec: player,
@@ -210,6 +245,9 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       if (distancePointToPoint(new Point2D(pos[0], pos[1]), to) <= speed) {
         pos[0] = to.x;
         pos[1] = to.y;
+
+        const on_step = tile_data_map[to.x]?.[to.y]?.on_step;
+        if (on_step) run_event(on_step);
         return false;
       }
 

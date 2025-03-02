@@ -1,1 +1,23 @@
-{"0":{"0":{"tile":65},"1":{"tile":65},"2":{"tile":167},"-1":{"tile":65},"-2":{"tile":236}},"1":{"0":{"tile":34},"1":{"tile":65},"-1":{"tile":65},"-2":{"tile":236}},"-1":{"0":{"tile":65},"1":{"tile":65},"-1":{"tile":65},"-2":{"tile":236}},"-2":{"0":{"tile":104},"1":{"tile":88}}}
+{
+  "0": {
+    "0": { "tile": 65 },
+    "1": { "tile": 65 },
+    "2": {
+      "tile": 167,
+      "on_interact": [{ "type": "DialogStep", "text": "Aw heck yes! The orb of death!" }]
+    },
+    "-1": { "tile": 65 },
+    "-2": { "tile": 236 }
+  },
+  "1": {
+    "0": {
+      "tile": 34,
+      "on_step": [{ "type": "DialogStep", "text": "I can't leave yet- I've got things to do" }]
+    },
+    "1": { "tile": 65 },
+    "-1": { "tile": 65 },
+    "-2": { "tile": 236 }
+  },
+  "-1": { "0": { "tile": 65 }, "1": { "tile": 65 }, "-1": { "tile": 65 }, "-2": { "tile": 236 } },
+  "-2": { "0": { "tile": 104 }, "1": { "tile": 88 } }
+}
