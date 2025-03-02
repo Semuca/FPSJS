@@ -26,7 +26,7 @@ async function Setup() {
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
   const grid_versprite = await LoadModel(grid_shader, 'verSprite.json');
   grid_versprite.create_objec(
-    new Objec({ model: grid_versprite, rotpos: new RotPos2D([0.0, 0.0]) }),
+    new Objec({ model: grid_versprite, rotpos: new RotPos2D([0, 0, 0]) }),
   );
 
   //Load 2d shader, plus the model
@@ -43,7 +43,7 @@ async function Setup() {
     new Objec({
       model: sprite,
       rotpos: new RotPos2D(
-        [0, 0],
+        [0, 0, 0],
         Math.PI,
         Scale2D.of_width_percent(0.5, { type: ScaleType.Ratio, value: 1 }),
       ),
@@ -52,15 +52,15 @@ async function Setup() {
     }),
   );
 
-  await LoadTexture(scene, 'tframe.png');
+  const tframe_tex = await LoadTexture(scene, 'tframe.png');
   selector = new Objec({
     model: sprite,
     rotpos: new RotPos2D(
-      [0, 0],
+      [0, 0, 0],
       Math.PI,
       Scale2D.of_width_percent(1 / 32, { type: ScaleType.Ratio, value: 1 }),
     ),
-    texId: scene.texIds['tframe.png'],
+    texId: tframe_tex,
     worldIndex: 1,
   });
   sprite.create_objec(selector);
@@ -140,7 +140,7 @@ cam.onMouseDown = (e) => {
     model.create_objec(
       new Objec({
         model,
-        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
         texId: scene.texIds['tframe.png'],
       }),
     );
@@ -175,7 +175,7 @@ cam.onMouseDown = (e) => {
     tilemap[posX][posY] = {
       objec: new Objec({
         model,
-        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
         texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
         overridden_attribs: {
           aTextureCoord: texture_attribute,

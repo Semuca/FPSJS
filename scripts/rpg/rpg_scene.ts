@@ -7,13 +7,14 @@ import { TileDataMap, TileInfoMap } from './types';
 import { distancePointToPoint, Point2D } from '../geometry';
 import { vec2 } from 'gl-matrix';
 
-export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
-  // interface TextureData {
-  //   layer: number;
-  //   collider: boolean;
-  // }
-  // const textureData: Record<string, TextureData> = {};
+const tile_info_map: TileInfoMap = {
+  65: { passable: true, layer: -1 },
+  88: { passable: true, layer: 0 },
+  104: { passable: false, layer: 0 },
+  236: { passable: false, layer: 0 },
+};
 
+export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   // let font: Font; //Think of a faster way to look up fonts later
 
   //Set up new screen that takes up the entire space
@@ -78,7 +79,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     modelData.create_objec(
       new Objec({
         model: modelData,
-        rotpos: new RotPos2D([0, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        rotpos: new RotPos2D([0, 0, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
         texId: sprite_sheet,
         overridden_attribs: {
           aTextureCoord: gen_texture_attributes(7, 12, 8),
@@ -93,20 +94,20 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       const x = parseInt(x_string);
       Object.entries(entry).forEach(([y_string, { tile }]) => {
         const y = parseInt(y_string);
-        if (tile != -1) {
-          // TODO: Reimplement layers
-          modelData.create_objec(
-            new Objec({
-              model: modelData,
-              rotpos: new RotPos2D([x, y], Math.PI, Scale2D.of_px(0.5, 0.5)),
-              texId: dungeon_sprite_sheet,
-              overridden_attribs: {
-                aTextureCoord: gen_texture_attributes(tile, 16, 16),
-              },
-            }),
-          );
-          // tiles[x][index - 50] = tile;
-        }
+        modelData.create_objec(
+          new Objec({
+            model: modelData,
+            rotpos: new RotPos2D(
+              [x, y, tile_info_map[tile]?.layer ?? 0],
+              Math.PI,
+              Scale2D.of_px(0.5, 0.5),
+            ),
+            texId: dungeon_sprite_sheet,
+            overridden_attribs: {
+              aTextureCoord: gen_texture_attributes(tile, 16, 16),
+            },
+          }),
+        );
       });
     });
 
@@ -130,12 +131,6 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   }
 
   let moving_objects: MovingObject[] = [];
-
-  const tile_info_map: TileInfoMap = {
-    65: { passable: true, layer: 0 },
-    104: { passable: false, layer: 0 },
-    236: { passable: false, layer: 0 },
-  };
 
   Tick();
 

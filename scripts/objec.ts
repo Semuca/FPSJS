@@ -78,12 +78,11 @@ export class Objec {
 
   GetMatrix() {
     if (this.rotpos instanceof RotPos2D) {
-      mat4.fromRotationTranslationScale(
-        this.matrix,
-        this.rotpos.rotation,
-        [this.rotpos.position[0], this.rotpos.position[1], 0],
-        [this.rotpos.scale.dim[0], this.rotpos.scale.dim[1], 1],
-      );
+      mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, this.rotpos.position, [
+        this.rotpos.scale.dim[0],
+        this.rotpos.scale.dim[1],
+        1,
+      ]);
     } else {
       mat4.fromRotationTranslationScale(
         this.matrix,
@@ -140,13 +139,13 @@ export class RotPos {
 
 //A position and rotation that is used for 2D objects. The hope is to make some generic functionality between rotpos and rotpos2D
 export class RotPos2D {
-  position: vec2;
+  position: vec3;
   rotation: quat;
   scale: Scale2D;
 
   //Constructor passing in position and rotation
   constructor(
-    position: vec2 = vec2.create(),
+    position: vec3 = vec3.create(),
     rotation?: number,
     scale: Scale2D = Scale2D.of_px(1, 1),
   ) {
