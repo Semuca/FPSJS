@@ -227,7 +227,7 @@ sidebar.onMouseDown = (e) => {
   const x = Math.floor(cursorWorldPosition.x + num_squares_wide / 2);
   const y = Math.floor(num_squares_wide / 2 - cursorWorldPosition.y);
 
-  select_tile(x, y);
+  if (y < num_squares_wide) select_tile(x, y);
 };
 
 function select_tile(x: number, y: number) {
