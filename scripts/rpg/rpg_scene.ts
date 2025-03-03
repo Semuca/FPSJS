@@ -2,7 +2,7 @@ import { FScreen } from '../screen';
 import { LoadTexture, LoadModel, LoadShader } from '../loading';
 import { Objec, RotPos2D, Scale2D } from '../objec';
 import { Scene } from '../scene';
-import { CameraData } from '../camera';
+import { CameraData, ZoomCameraBound } from '../camera';
 import { EventStep, TileDataMap, TileInfoMap } from './types';
 import { distancePointToPoint, Point2D } from '../geometry';
 import { vec2 } from 'gl-matrix';
@@ -50,7 +50,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   //Set up new screen that takes up the entire space
   const scene = new Scene();
   const screen = _screen ?? new FScreen('canvas', scene);
-  const cam = new CameraData({ scene, zoom: 50 });
+  const cam = new CameraData({ scene, bounds: new ZoomCameraBound(100) });
 
   const [modelData] = await Setup();
   screen.set_scene(scene);
