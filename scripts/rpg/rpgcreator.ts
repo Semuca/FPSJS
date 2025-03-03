@@ -1,9 +1,9 @@
 import { FScreen, toggleFullScreen } from '../screen';
 import { LoadTexture, LoadModel, LoadShader } from '../loading';
-import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec';
+import { Model, Objec, RotPos2D, Scale2D } from '../objec';
 import { run_rpg } from './rpg_scene';
 import { Scene } from '../scene';
-import { CameraData } from '../camera';
+import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
 import { serialize_tilemap, TileMap } from './types';
 
 const MODES = {
@@ -16,11 +16,22 @@ let mode = MODES.PLACE;
 let tile = 0;
 const tilemap: TileMap = {};
 
+const num_squares_wide = 16;
 let selector: Objec;
 
 const scene = new Scene();
-const cam = new CameraData({ scene, width: 0.8, zoom: 50, worldIndex: 0 });
-const sidebar = new CameraData({ scene, tlCorner: [0.8, 0.0], width: 0.2, worldIndex: 1 });
+const cam_bounds = new ZoomCameraBound(100);
+const cam = new CameraData({ scene, width: 0.8, bounds: cam_bounds, worldIndex: 0 });
+const sidebar = new CameraData({
+  scene,
+  tlCorner: [0.8, 0.0],
+  width: 0.2,
+  bounds: new HorizontalCameraBound(num_squares_wide / 2, -num_squares_wide / 2, {
+    type: TopOrBottom.Top,
+    value: num_squares_wide / 2,
+  }),
+  worldIndex: 1,
+});
 
 async function Setup() {
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
@@ -45,7 +56,7 @@ async function Setup() {
       rotpos: new RotPos2D(
         [0, 0, 0],
         Math.PI,
-        Scale2D.of_width_percent(0.5, { type: ScaleType.Ratio, value: 1 }),
+        Scale2D.of_px(num_squares_wide / 2, num_squares_wide / 2),
       ),
       texId: tileset,
       worldIndex: 1,
@@ -55,11 +66,7 @@ async function Setup() {
   const tframe_tex = await LoadTexture(scene, 'tframe.png');
   selector = new Objec({
     model: sprite,
-    rotpos: new RotPos2D(
-      [0, 0, 0],
-      Math.PI,
-      Scale2D.of_width_percent(1 / 32, { type: ScaleType.Ratio, value: 1 }),
-    ),
+    rotpos: new RotPos2D([0, 0, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
     texId: tframe_tex,
     worldIndex: 1,
   });
@@ -194,8 +201,8 @@ cam.onMouseMove = (e) => {
   if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
       document.body.style.cursor = 'grabbing';
-      cam.rotpos.position[0] -= e.movementX / cam.zoom;
-      cam.rotpos.position[1] -= e.movementY / cam.zoom;
+      cam.rotpos.position[0] -= (2 * e.movementX) / cam_bounds.zoom;
+      cam.rotpos.position[1] -= (2 * e.movementY) / cam_bounds.zoom;
 
       requestAnimationFrame(RenderLoop);
     } else {
@@ -205,34 +212,27 @@ cam.onMouseMove = (e) => {
 };
 
 cam.onWheel = (e) => {
-  cam.zoom -= e.deltaY / 5;
+  cam_bounds.zoom -= e.deltaY / 5;
 
   //Zoom cap
-  cam.zoom = Math.max(20, cam.zoom);
+  cam_bounds.zoom = Math.max(40, cam_bounds.zoom);
 
   requestAnimationFrame(RenderLoop);
 };
 
 sidebar.onMouseDown = (e) => {
-  // TODO: I reckon this code would be much simpler if the square was aligned on the top-left corner
-  const num_squares_wide = 16;
-  const square_size = screen.cameras[1].pxWidth / num_squares_wide;
+  // TODO: I reckon this code would be simpler if the square was aligned on the top-left corner
   const cursorWorldPosition = screen.cameras[1].CursorToWorldPosition([e.pageX, e.pageY]);
 
-  const x = Math.floor((cursorWorldPosition.x + screen.cameras[1].pxWidth / 2) / square_size);
-  const y = -1 - Math.floor((cursorWorldPosition.y - screen.cameras[1].pxWidth / 2) / square_size);
+  const x = Math.floor(cursorWorldPosition.x + num_squares_wide / 2);
+  const y = Math.floor(num_squares_wide / 2 - cursorWorldPosition.y);
 
   select_tile(x, y);
 };
 
 function select_tile(x: number, y: number) {
-  const num_squares_wide = 16;
-  const square_size = screen.cameras[1].pxWidth / num_squares_wide;
-
-  selector.rotpos.position[0] =
-    (num_squares_wide * square_size) / 2 - x * square_size - square_size / 2;
-  selector.rotpos.position[1] =
-    (num_squares_wide * square_size) / 2 - y * square_size - square_size / 2;
+  selector.rotpos.position[0] = num_squares_wide / 2 - x - 0.5;
+  selector.rotpos.position[1] = num_squares_wide / 2 - y - 0.5;
 
   tile = y * num_squares_wide + x;
 

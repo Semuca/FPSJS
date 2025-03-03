@@ -10,7 +10,7 @@ import {
 } from './geometry';
 import { quat, vec3 } from 'gl-matrix';
 import { Scene } from './scene';
-import { CameraData } from './camera';
+import { CameraData, ZoomCameraBound } from './camera';
 
 const MODES = {
   MOVE: 0,
@@ -62,7 +62,8 @@ let secondHighlighter: Objec;
 
 const scene = new Scene();
 const screen = new FScreen('canvas', scene);
-const cam = new CameraData({ scene, width: 0.8, zoom: 50 });
+const cam_bounds = new ZoomCameraBound(100);
+const cam = new CameraData({ scene, width: 0.8, bounds: cam_bounds });
 new CameraData({ scene, tlCorner: [0.8, 0.0], width: 0.2, worldIndex: 1 });
 
 let currentSidepaneIndex = 0;
@@ -149,7 +150,7 @@ async function Setup() {
 
   highlighter = new Objec({
     model: modelData,
-    rotpos: new RotPos2D([0.5, 0.5], Math.PI, Scale2D.of_px(0.2, 0.2)),
+    rotpos: new RotPos2D([0.5, 0.5, 0], Math.PI, Scale2D.of_px(0.2, 0.2)),
     texId: scene.texIds['tframe.png'],
   });
   highlighter.hidden = true;
@@ -157,7 +158,7 @@ async function Setup() {
 
   secondHighlighter = new Objec({
     model: modelData,
-    rotpos: new RotPos2D([0.5, 0.5], Math.PI, Scale2D.of_px(0.2, 0.2)),
+    rotpos: new RotPos2D([0.5, 0.5, 0], Math.PI, Scale2D.of_px(0.2, 0.2)),
     texId: scene.texIds['tframe.png'],
   });
   secondHighlighter.hidden = true;
@@ -165,7 +166,7 @@ async function Setup() {
 
   hover = new Objec({
     model: modelData,
-    rotpos: new RotPos2D([0.5, 0.5], Math.PI, Scale2D.of_px(0.5, 0.5)),
+    rotpos: new RotPos2D([0.5, 0.5, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
     texId: scene.texIds['texture.png'],
   });
   hover.hidden = true;
@@ -176,13 +177,13 @@ async function Setup() {
   modelData = await LoadModel(line_shader, 'flatline.json');
   line = new Objec({
     model: modelData,
-    rotpos: new RotPos2D([0.0, 0.0], undefined, Scale2D.of_px(0.0, 0.0)),
+    rotpos: new RotPos2D([0, 0, 0], undefined, Scale2D.of_px(0, 0)),
   });
   modelData.create_objec(line);
 
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
   const plane = await LoadModel(grid_shader, 'verSprite.json');
-  plane.create_objec(new Objec({ model: plane, rotpos: new RotPos2D([0.0, 0.0]) }));
+  plane.create_objec(new Objec({ model: plane, rotpos: new RotPos2D([0, 0, 0]) }));
 
   return [modelData, plane];
 }
@@ -279,7 +280,7 @@ cam.onMouseDown = () => {
       new Objec({
         model: plane,
         rotpos: new RotPos2D(
-          [highlighter.rotpos.position[0], highlighter.rotpos.position[1]],
+          [highlighter.rotpos.position[0], highlighter.rotpos.position[1], 0],
           Math.PI,
           Scale2D.of_px(0.5, 0.5),
         ),
@@ -351,8 +352,8 @@ cam.onMouseMove = (e) => {
   } else if (mode === MODES.MOVE) {
     if (e.buttons === 1) {
       document.body.style.cursor = 'grabbing';
-      cam.rotpos.position[0] -= e.movementX / cam.zoom;
-      cam.rotpos.position[1] -= e.movementY / cam.zoom;
+      cam.rotpos.position[0] -= e.movementX / cam_bounds.zoom;
+      cam.rotpos.position[1] -= e.movementY / cam_bounds.zoom;
 
       requestAnimationFrame(RenderLoop);
     } else {
@@ -413,10 +414,10 @@ cam.onMouseUp = (e) => {
 };
 
 cam.onWheel = (e) => {
-  cam.zoom -= e.deltaY / 5;
+  cam_bounds.zoom -= e.deltaY / 5;
 
   //Zoom cap
-  cam.zoom = Math.max(20, cam.zoom);
+  cam_bounds.zoom = Math.max(40, cam_bounds.zoom);
 
   requestAnimationFrame(RenderLoop);
 };
@@ -473,7 +474,7 @@ scene.keyDownCallbacks['KeyU'] = () => {
           new Objec({
             model: plane,
             rotpos: new RotPos2D(
-              [object.position[0], object.position[2]],
+              [object.position[0], object.position[2], 0],
               Math.PI,
               Scale2D.of_px(1, 1),
             ),

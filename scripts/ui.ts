@@ -54,7 +54,7 @@ export function DisplayBox(camera: Camera, model: Model, scale: [number, number]
     new Objec({
       model,
       rotpos: new RotPos2D(
-        [0.0, underPercent * camera.pxHeight],
+        [0, underPercent * camera.pxHeight, 0],
         Math.PI,
         Scale2D.of_px(width, height),
       ),
@@ -66,7 +66,7 @@ export function DisplayBox(camera: Camera, model: Model, scale: [number, number]
     new Objec({
       model,
       rotpos: new RotPos2D(
-        [0.0, underPercent * camera.pxHeight],
+        [0, underPercent * camera.pxHeight, 0],
         Math.PI,
         Scale2D.of_px(width - 15, height - 15),
       ),
