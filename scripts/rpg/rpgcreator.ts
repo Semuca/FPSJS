@@ -133,11 +133,13 @@ cam.onMouseDown = (e) => {
   //Positions on the grid
 
   // Delete tile on Z
-  if (screen.keysDown['KeyZ'] == true && tilemap[posX][posY] != undefined) {
-    tilemap[posX][posY].objec.Destructor();
-    delete tilemap[posX][posY];
+  if (screen.keysDown['KeyZ'] == true) {
+    if (tilemap[posX][posY] != undefined) {
+      tilemap[posX][posY].objec.Destructor();
+      delete tilemap[posX][posY];
 
-    requestAnimationFrame(RenderLoop);
+      requestAnimationFrame(RenderLoop);
+    }
     return;
   }
 
