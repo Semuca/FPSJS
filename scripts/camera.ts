@@ -233,8 +233,8 @@ export class Camera {
 
         return [ndc_x * this.camera_data.bounds.left, next];
       } else {
-        const orig = this.pxHeight / (this.pxWidth / this.camera_data.bounds.top);
-        let next = ndc_y * orig;
+        const orig = this.pxWidth / (this.pxHeight / this.camera_data.bounds.top);
+        let next = ndc_x * orig;
         if (this.camera_data.bounds.side?.type === LeftOrRight.Left) {
           next = next - orig + this.camera_data.bounds.side.value;
         } else if (this.camera_data.bounds.side?.type === LeftOrRight.Right) {

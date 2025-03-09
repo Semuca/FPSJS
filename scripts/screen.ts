@@ -1,12 +1,25 @@
 import { Shader } from './shader';
 import { Scene } from './scene';
 import { Scale2D } from './objec';
-import { Camera } from './camera';
+import { Camera, CameraData } from './camera';
 
-export enum SCREENACTION {
-  IDLE,
-  RESIZING,
+export class HorizontalCameraLine<T> {
+  constructor(
+    public top: T | VerticalCameraLine<T>,
+    public bottom: T | VerticalCameraLine<T>,
+    public pos: number,
+  ) {}
 }
+
+export class VerticalCameraLine<T> {
+  constructor(
+    public left: T | HorizontalCameraLine<T>,
+    public right: T | HorizontalCameraLine<T>,
+    public pos: number,
+  ) {}
+}
+
+export type CameraTree<T> = T | HorizontalCameraLine<T>[] | VerticalCameraLine<T>[];
 
 // Fills up one canvas
 export class FScreen {
@@ -15,11 +28,12 @@ export class FScreen {
 
   scene: Scene;
   shaders: Shader[] = [];
-  cameras: Camera[] = [];
+
+  camera_tree!: CameraTree<Camera>;
+  cameras!: Camera[];
 
   margin: number = 5;
-  screenAction = SCREENACTION.IDLE;
-  resizingCameras: Camera[] = [];
+  resizing_lines?: [HorizontalCameraLine<Camera>[], VerticalCameraLine<Camera>[]];
 
   textures: Record<number, WebGLTexture> = {}; //For the context of webgl, we need to track what objects use what texture
 
@@ -34,7 +48,9 @@ export class FScreen {
     this.canvas.height = this.canvas.clientHeight;
 
     this.gl = this.canvas.getContext('webgl2') as WebGL2RenderingContext;
+
     this.scene = scene;
+    this.set_scene(this.scene);
 
     //Ensure webgl is properly set up
     if (!this.gl) {
@@ -42,30 +58,61 @@ export class FScreen {
       return;
     }
 
-    this.set_scene(this.scene);
-
     document.addEventListener('mousedown', (e) => {
-      const focussedCameras = this.getCamerasFromCursor(e);
+      const hovered_cameras = this.getCamerasFromCursor(e);
 
       // If there are multiple cameras, start resizing
-      if (focussedCameras.length >= 2) {
-        this.screenAction = SCREENACTION.RESIZING;
-        this.resizingCameras = focussedCameras;
-      } else if (focussedCameras.length == 1) {
-        focussedCameras.at(0)?.camera_data.onMouseDown(e);
+      if (hovered_cameras.length >= 2) {
+        this.resizing_lines = hovered_cameras;
+      } else if (hovered_cameras.length == 1) {
+        hovered_cameras.at(0)?.camera_data.onMouseDown(e);
       }
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (this.screenAction === SCREENACTION.RESIZING) {
-        this.resizingCameras[0].pxWidth += e.movementX;
-        this.resizingCameras[0].camera_data.width =
-          this.resizingCameras[0].pxWidth / this.canvas.width;
+      if (this.resizing_lines !== undefined) {
+        const [horizontal_lines, vertical_lines] = this.resizing_lines;
 
-        this.resizingCameras[1].camera_data.tlCorner[0] = this.resizingCameras[0].camera_data.width;
-        this.resizingCameras[1].pxWidth -= e.movementX;
-        this.resizingCameras[1].camera_data.width =
-          this.resizingCameras[1].pxWidth / this.canvas.width;
+        const split_by = (
+          what: Camera | HorizontalCameraLine<Camera> | VerticalCameraLine<Camera>,
+          mod: number,
+          by: HorizontalCameraLine<Camera> | VerticalCameraLine<Camera>,
+          most: boolean,
+        ): [Camera, number, boolean][] => {
+          if (what instanceof Camera) {
+            return [[what, mod, most]];
+          } else if (what instanceof HorizontalCameraLine) {
+            mod *= by instanceof VerticalCameraLine ? 2 : 1;
+            return split_by(what.top, mod, by, most).concat(split_by(what.bottom, mod, by, false));
+          } else {
+            mod *= by instanceof HorizontalCameraLine ? 2 : 1;
+            return split_by(what.left, mod, by, most).concat(split_by(what.right, mod, by, false));
+          }
+        };
+
+        horizontal_lines.forEach((horizontal_line) => {
+          split_by(horizontal_line, 0.5, horizontal_line, true).forEach(([camera, mod, most]) => {
+            const mov = e.movementY / mod;
+            if (most === false) {
+              camera.camera_data.tlCorner[1] =
+                (camera.camera_data.tlCorner[1] * this.canvas.height + mov) / this.canvas.height;
+            }
+            camera.pxHeight += mov;
+            camera.camera_data.height = camera.pxHeight / this.canvas.height;
+          });
+        });
+
+        vertical_lines.forEach((vertical_line) => {
+          split_by(vertical_line, 0.5, vertical_line, true).forEach(([camera, mod, most]) => {
+            const mov = e.movementX / mod;
+            if (most === false) {
+              camera.camera_data.tlCorner[0] =
+                (camera.camera_data.tlCorner[0] * this.canvas.width + mov) / this.canvas.width;
+            }
+            camera.pxWidth += mov;
+            camera.camera_data.width = camera.pxWidth / this.canvas.width;
+          });
+        });
 
         this.on_resize();
         this.draw();
@@ -89,9 +136,8 @@ export class FScreen {
 
     document.addEventListener('mouseup', (e) => {
       // If just done resizing, end here
-      if (this.screenAction === SCREENACTION.RESIZING) {
-        this.screenAction = SCREENACTION.IDLE;
-        this.resizingCameras = [];
+      if (this.resizing_lines !== undefined) {
+        this.resizing_lines = undefined;
         return;
       }
 
@@ -104,7 +150,7 @@ export class FScreen {
 
     document.addEventListener('wheel', (e) => {
       // If just done resizing, end here
-      if (this.screenAction === SCREENACTION.RESIZING) return;
+      if (this.resizing_lines !== undefined) return;
 
       const focussedCameras = this.getCamerasFromCursor(e);
 
@@ -147,7 +193,46 @@ export class FScreen {
 
     this.scene = scene;
     this.shaders = this.scene.shader_data.map((shader_data) => new Shader(this, shader_data));
-    this.cameras = this.scene.camera_data.map((camera_data) => new Camera(this, camera_data));
+
+    const camera_tree_walk_horiz = (
+      camera_tree: HorizontalCameraLine<CameraData>,
+    ): HorizontalCameraLine<Camera> => {
+      return new HorizontalCameraLine(
+        camera_tree.top instanceof CameraData
+          ? new Camera(this, camera_tree.top)
+          : camera_tree_walk_vert(camera_tree.top),
+        camera_tree.bottom instanceof CameraData
+          ? new Camera(this, camera_tree.bottom)
+          : camera_tree_walk_vert(camera_tree.bottom),
+        camera_tree.pos,
+      );
+    };
+
+    const camera_tree_walk_vert = (
+      camera_tree: VerticalCameraLine<CameraData>,
+    ): VerticalCameraLine<Camera> => {
+      return new VerticalCameraLine(
+        camera_tree.left instanceof CameraData
+          ? new Camera(this, camera_tree.left)
+          : camera_tree_walk_horiz(camera_tree.left),
+        camera_tree.right instanceof CameraData
+          ? new Camera(this, camera_tree.right)
+          : camera_tree_walk_horiz(camera_tree.right),
+        camera_tree.pos,
+      );
+    };
+
+    if (scene.camera_tree instanceof CameraData) {
+      this.camera_tree = new Camera(this, scene.camera_tree);
+    } else if (scene.camera_tree.at(0) instanceof HorizontalCameraLine) {
+      this.camera_tree = (scene.camera_tree as HorizontalCameraLine<CameraData>[]).map((line) =>
+        camera_tree_walk_horiz(line),
+      );
+    } else if (scene.camera_tree.at(0) instanceof VerticalCameraLine) {
+      this.camera_tree = (scene.camera_tree as VerticalCameraLine<CameraData>[]).map((line) =>
+        camera_tree_walk_vert(line),
+      );
+    }
 
     Object.entries(this.scene.textures).forEach(([id, texture_source]) => {
       //Creates texture and binds it to WebGL
