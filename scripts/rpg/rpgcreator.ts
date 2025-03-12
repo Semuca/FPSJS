@@ -1,11 +1,11 @@
 import { FScreen, HorizontalCameraLine, toggleFullScreen, VerticalCameraLine } from '../screen';
-import { LoadTexture, LoadModel, LoadShader } from '../loading';
+import { LoadTexture, LoadModel, LoadShader, LoadFileText } from '../loading';
 import { Model, Objec, RotPos2D, Scale2D } from '../objec';
 import { run_rpg } from './rpg_scene';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
 import { serialize_tilemap, TileMap } from './types';
-import { DisplayBox } from './dialog';
+import { DisplayBox, Font } from './dialog';
 
 const MODES = {
   MOVE: 0,
@@ -94,11 +94,17 @@ async function Setup() {
   const white_tex_id = await LoadTexture(scene, 'white.png');
   const black_tex_id = await LoadTexture(scene, 'black.png');
 
-  return [sprite_shader, sprite, white_tex_id, black_tex_id];
+  DisplayBox(sprite, white_tex_id, black_tex_id);
+
+  const font_texture = await LoadTexture(scene, 'def.png');
+  const font_texture_atlas = new TextureAtlas(font_texture, 8, 8);
+  const font = new Font(font_texture_atlas, JSON.parse(await LoadFileText('textures/def.json')));
+  font.CreateSentence(sprite, 8, 1.5, '* HELLO WORLD!');
+
+  return [sprite_shader];
 }
 
-const [sprite_shader, sprite, white_tex_id, black_tex_id] = await Setup();
-DisplayBox(sprite as Model, white_tex_id as number, black_tex_id as number);
+const [sprite_shader] = await Setup();
 const screen = new FScreen('canvas', scene);
 select_tile(0, 0);
 requestAnimationFrame(RenderLoop);

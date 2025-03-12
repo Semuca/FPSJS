@@ -1,38 +1,39 @@
 import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec';
+import { TextureAtlas } from '../scene';
 
 // For making fonts. This can probably be an extension of a spritesheet if i ever make them
 export class Font {
-  textureName: string;
+  texture_atlas: TextureAtlas;
   metaData: { chars: string };
 
   chars: Record<string, number> = {};
 
-  constructor(textureName: string, metaData: { chars: string }) {
-    this.textureName = textureName;
+  constructor(texture_atlas: TextureAtlas, metaData: { chars: string }) {
+    this.texture_atlas = texture_atlas;
     this.metaData = metaData;
 
     this.chars = {};
 
-    // Sets up char hash table
     metaData.chars.split('').forEach((char, index) => {
       this.chars[char] = index;
     });
   }
 
   // Creates sentence
-  // CreateSentence(target: Shader, posX: number, posY: number, sentence: string): void {
-  //   //Putting in physicsScene here is so stupid
-  //   sentence.split('').map((_char, index) => {
-  //     // const numCode = this.chars[char];
-  //     // target.models["verSprite.json"].objects[target.models["verSprite.json"].objects.length - 1].texAttributes = [(numCode % 8) / 8, (Math.floor(numCode / 8) + 1) / 8, ((numCode % 8) + 1) / 8, Math.floor(numCode / 8) / 8, (numCode % 8) / 8, Math.floor(numCode / 8) / 8, ((numCode % 8) + 1) / 8, (Math.floor(numCode / 8) + 1) / 8];
-  //     return target.InstanceObject(
-  //       'verSprite.json',
-  //       new RotPos2D([posX - index * 20.0, posY], Math.PI, [25.0, 25.0]),
-  //       0,
-  //       'def.png',
-  //     );
-  //   });
-  // }
+  CreateSentence(model: Model, posX: number, posY: number, sentence: string): void {
+    sentence.split('').map((char, index) => {
+      return model.create_objec(
+        new Objec({
+          model,
+          rotpos: new RotPos2D([posX - index, posY, 0], Math.PI, Scale2D.of_px(1, 1)),
+          texId: this.texture_atlas.tex_id,
+          overridden_attribs: {
+            aTextureCoord: this.texture_atlas.get_from_num(this.chars[char]),
+          },
+        }),
+      );
+    });
+  }
 
   // Clears sentence
   // ClearSentence(target, sentence) {
