@@ -1,4 +1,4 @@
-import { FScreen, toggleFullScreen } from '../screen';
+import { FScreen, HorizontalCameraLine, toggleFullScreen, VerticalCameraLine } from '../screen';
 import { LoadTexture, LoadModel, LoadShader } from '../loading';
 import { Model, Objec, RotPos2D, Scale2D } from '../objec';
 import { run_rpg } from './rpg_scene';
@@ -26,12 +26,27 @@ const sidebar = new CameraData({
   scene,
   tlCorner: [0.8, 0.0],
   width: 0.2,
+  height: 0.5,
   bounds: new HorizontalCameraBound(num_squares_wide / 2, -num_squares_wide / 2, {
     type: TopOrBottom.Top,
     value: num_squares_wide / 2,
   }),
   worldIndex: 1,
 });
+const other_sidebar = new CameraData({
+  scene,
+  tlCorner: [0.8, 0.5],
+  width: 0.2,
+  height: 0.5,
+  bounds: new HorizontalCameraBound(num_squares_wide / 2, -num_squares_wide / 2, {
+    type: TopOrBottom.Top,
+    value: num_squares_wide / 2,
+  }),
+  worldIndex: 1,
+});
+scene.AddCameraTree([
+  new VerticalCameraLine(cam, new HorizontalCameraLine(sidebar, other_sidebar, 0.5), 0.8),
+]);
 
 async function Setup() {
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
