@@ -5,6 +5,7 @@ import { run_rpg } from './rpg_scene';
 import { Scene } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
 import { serialize_tilemap, TileMap } from './types';
+import { DisplayBox } from './dialog';
 
 const MODES = {
   MOVE: 0,
@@ -87,10 +88,14 @@ async function Setup() {
   });
   sprite.create_objec(selector);
 
-  return [sprite_shader];
+  const white_tex_id = await LoadTexture(scene, 'white.png');
+  const black_tex_id = await LoadTexture(scene, 'black.png');
+
+  return [sprite_shader, sprite, white_tex_id, black_tex_id];
 }
 
-const [sprite_shader] = await Setup();
+const [sprite_shader, sprite, white_tex_id, black_tex_id] = await Setup();
+DisplayBox(sprite as Model, white_tex_id as number, black_tex_id as number);
 const screen = new FScreen('canvas', scene);
 select_tile(0, 0);
 requestAnimationFrame(RenderLoop);

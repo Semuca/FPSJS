@@ -1,6 +1,7 @@
 import { mat4, quat, vec2, vec3 } from 'gl-matrix';
 // import { PhysicsObjec, PhysicsScene } from "./physics.js";
 import { FScreen } from './screen';
+import { Camera } from './camera';
 
 export interface ModelData {
   ARRAY_BUFFER: Record<string, [number[], number, number, number]>;
@@ -186,7 +187,7 @@ export class Scale2D {
       { type: ScaleType.Px, value: width },
       { type: ScaleType.Px, value: height },
     );
-    result.calculate_dim(0, 0); // Doesn't matter
+    result.dim = [width, height];
     return result;
   }
 
@@ -204,13 +205,13 @@ export class Scale2D {
     });
   }
 
-  calculate_dim(camera_width: number, camera_height: number) {
+  calculate_dim(camera: Camera) {
     switch (this.width.type) {
       case ScaleType.Px:
         this.dim[0] = this.width.value;
         break;
       case ScaleType.Percent:
-        this.dim[0] = this.width.value * camera_width;
+        this.dim[0] = (this.width.value * camera.pxWidth) / camera.camera_data.bounds.zoom;
         break;
     }
 
@@ -219,7 +220,7 @@ export class Scale2D {
         this.dim[1] = this.height.value;
         break;
       case ScaleType.Percent:
-        this.dim[1] = this.height.value * camera_height;
+        this.dim[1] = (this.height.value * camera.pxHeight) / camera.camera_data.bounds.zoom;
         break;
       case ScaleType.Ratio:
         this.dim[1] = this.height.value * this.dim[0];

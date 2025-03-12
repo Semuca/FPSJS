@@ -1,5 +1,4 @@
-import { Model, Objec, RotPos2D, Scale2D } from './objec';
-import { Camera } from './camera';
+import { Model, Objec, RotPos2D, Scale2D, ScaleType } from '../objec';
 
 // For making fonts. This can probably be an extension of a spritesheet if i ever make them
 export class Font {
@@ -43,22 +42,19 @@ export class Font {
   // }
 }
 
-//This needs to be hooked up to something to dynamically resize
-export function DisplayBox(camera: Camera, model: Model, scale: [number, number]) {
-  const width = (scale[0] * camera.pxWidth) / 2;
-  const height = (scale[1] * camera.pxHeight) / 2;
-
-  const underPercent = -0.25;
+export function DisplayBox(model: Model, white_tex_id: number, black_tex_id: number) {
+  const width = 0.8;
+  const height = 0.4;
 
   model.create_objec(
     new Objec({
       model,
       rotpos: new RotPos2D(
-        [0, underPercent * camera.pxHeight, 0],
+        [0, 0, 0],
         Math.PI,
-        Scale2D.of_px(width, height),
+        Scale2D.of_width_percent(width, { type: ScaleType.Percent, value: height }),
       ),
-      // texId: 'white.png'
+      texId: white_tex_id,
     }),
   );
 
@@ -66,11 +62,11 @@ export function DisplayBox(camera: Camera, model: Model, scale: [number, number]
     new Objec({
       model,
       rotpos: new RotPos2D(
-        [0, underPercent * camera.pxHeight, 0],
+        [0, 0, 0],
         Math.PI,
-        Scale2D.of_px(width - 15, height - 15),
+        Scale2D.of_width_percent(width - 0.05, { type: ScaleType.Percent, value: height - 0.05 }),
       ),
-      // texId: 'black.png'
+      texId: black_tex_id,
     }),
   );
 }

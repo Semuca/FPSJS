@@ -335,8 +335,7 @@ export class FScreen {
         const camera = this.cameras.find(
           (camera) => camera.camera_data.worldIndex === object.worldIndex,
         ) as Camera;
-        if (object.rotpos.scale instanceof Scale2D)
-          object.rotpos.scale.calculate_dim(camera.pxWidth, camera.pxHeight);
+        if (object.rotpos.scale instanceof Scale2D) object.rotpos.scale.calculate_dim(camera);
       });
   }
 
