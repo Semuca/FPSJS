@@ -1,7 +1,7 @@
 import { FScreen } from '../screen';
 import { LoadTexture, LoadModel, LoadShader } from '../loading';
 import { Objec, RotPos2D, Scale2D } from '../objec';
-import { Scene } from '../scene';
+import { Scene, TextureAtlas } from '../scene';
 import { CameraData, ZoomCameraBound } from '../camera';
 import { EventStep, TileDataMap, TileInfoMap } from './types';
 import { distancePointToPoint, Point2D } from '../geometry';
@@ -93,23 +93,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     set_frame(event_steps);
   }
 
-  function gen_texture_attributes(tile: number, tiles_wide: number, tiles_high: number) {
-    const tex_x = (tile % tiles_wide) / tiles_wide;
-    const tex_y = Math.floor(tile / tiles_wide) / tiles_high;
-    const size_x = 1 / tiles_wide;
-    const size_y = 1 / tiles_high;
-
-    return new Float32Array([
-      tex_x,
-      tex_y + size_y,
-      tex_x + size_x,
-      tex_y,
-      tex_x,
-      tex_y,
-      tex_x + size_x,
-      tex_y + size_y,
-    ]);
-  }
+  let texture_atlas: TextureAtlas;
 
   async function Setup() {
     //Load shaders for the 2d camera
@@ -120,6 +104,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     );
 
     const sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Characters/Actor1.png');
+    texture_atlas = new TextureAtlas(sprite_sheet, 12, 8);
 
     const modelData = await LoadModel(sprite_shader, 'verSprite.json');
     modelData.create_objec(
@@ -128,12 +113,13 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
         rotpos: new RotPos2D([0, 0, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
         texId: sprite_sheet,
         overridden_attribs: {
-          aTextureCoord: gen_texture_attributes(7, 12, 8),
+          aTextureCoord: texture_atlas.get_from_num(7),
         },
       }),
     );
 
     const dungeon_sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
+    const dungeon_texture_atlas = new TextureAtlas(dungeon_sprite_sheet, 16, 16);
 
     //Map loading
     Object.entries(tile_data_map).forEach(([x_string, entry]) => {
@@ -150,7 +136,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
             ),
             texId: dungeon_sprite_sheet,
             overridden_attribs: {
-              aTextureCoord: gen_texture_attributes(tile, 16, 16),
+              aTextureCoord: dungeon_texture_atlas.get_from_num(tile),
             },
           }),
         );
@@ -188,7 +174,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   function play_animation(dir: Direction) {
     const set_frame = ([head, ...tail]: number[]) => {
       player.overridden_attribs = {
-        aTextureCoord: gen_texture_attributes(head, 12, 8),
+        aTextureCoord: texture_atlas.get_from_num(head),
       };
 
       if (tail.length === 0) return;

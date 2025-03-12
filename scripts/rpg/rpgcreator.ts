@@ -2,7 +2,7 @@ import { FScreen, HorizontalCameraLine, toggleFullScreen, VerticalCameraLine } f
 import { LoadTexture, LoadModel, LoadShader } from '../loading';
 import { Model, Objec, RotPos2D, Scale2D } from '../objec';
 import { run_rpg } from './rpg_scene';
-import { Scene } from '../scene';
+import { Scene, TextureAtlas } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
 import { serialize_tilemap, TileMap } from './types';
 import { DisplayBox } from './dialog';
@@ -18,6 +18,8 @@ let tile = 0;
 const tilemap: TileMap = {};
 
 const num_squares_wide = 16;
+let texture_atlas: TextureAtlas;
+
 let selector: Objec;
 
 const scene = new Scene();
@@ -66,6 +68,7 @@ async function Setup() {
 
   // Load sidebar
   const tileset = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
+  texture_atlas = new TextureAtlas(tileset, num_squares_wide, num_squares_wide);
   sprite.create_objec(
     new Objec({
       model: sprite,
@@ -178,20 +181,7 @@ cam.onMouseDown = (e) => {
     return;
   }
 
-  const tex_x = (tile % 16) / 16;
-  const tex_y = Math.floor(tile / 16) / 16;
-  const size = 1 / 16;
-
-  const texture_attribute = new Float32Array([
-    tex_x,
-    tex_y + size,
-    tex_x + size,
-    tex_y,
-    tex_x,
-    tex_y,
-    tex_x + size,
-    tex_y + size,
-  ]);
+  const texture_attribute = texture_atlas.get_from_num(tile);
 
   if (!tilemap[posX]) tilemap[posX] = {};
 
