@@ -18,7 +18,6 @@ export class DialogBox {
     black_tex_id: number,
     sentence: string,
   ) {
-    console.log(font, model, white_tex_id, black_tex_id, sentence);
     this.box_objecs = [
       new Objec({
         model,
