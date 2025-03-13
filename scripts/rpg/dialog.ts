@@ -1,89 +1,60 @@
+import { Font, Sentence } from '../font';
 import { Model, Objec, Position2D, Position2DType, RotPos2D, Scale2D, ScaleType } from '../objec';
-import { TextureAtlas } from '../scene';
 
-// For making fonts. This can probably be an extension of a spritesheet if i ever make them
-export class Font {
-  texture_atlas: TextureAtlas;
-  metaData: { chars: string };
+const width = 0.8;
+const height = 0.4;
+const margin = 0.05;
+const x = 0;
+const y = -0.5;
 
-  chars: Record<string, number> = {};
+export class DialogBox {
+  sentence: Sentence;
+  box_objecs: Objec[];
 
-  constructor(texture_atlas: TextureAtlas, metaData: { chars: string }) {
-    this.texture_atlas = texture_atlas;
-    this.metaData = metaData;
-
-    this.chars = {};
-
-    metaData.chars.split('').forEach((char, index) => {
-      this.chars[char] = index;
-    });
-  }
-
-  // Creates sentence
-  CreateSentence(model: Model, posX: number, posY: number, sentence: string): void {
-    sentence.split('').map((char, index) => {
-      return model.create_objec(
-        new Objec({
-          model,
-          rotpos: new RotPos2D({
-            position: new Position2D(
-              { type: Position2DType.Percent, value: posX + 0.1 * index },
-              { type: Position2DType.Percent, value: posY },
-              0,
-            ),
-            scale: Scale2D.of_width_percent(0.1),
+  constructor(
+    font: Font,
+    model: Model,
+    white_tex_id: number,
+    black_tex_id: number,
+    sentence: string,
+  ) {
+    this.box_objecs = [
+      new Objec({
+        model,
+        rotpos: new RotPos2D({
+          position: new Position2D(
+            { type: Position2DType.Percent, value: x },
+            { type: Position2DType.Percent, value: y },
+            0,
+          ),
+          scale: Scale2D.of_width_percent(width, { type: ScaleType.Percent, value: height }),
+        }),
+        texId: white_tex_id,
+      }),
+      new Objec({
+        model,
+        rotpos: new RotPos2D({
+          position: new Position2D(
+            { type: Position2DType.Percent, value: x },
+            { type: Position2DType.Percent, value: y },
+            0,
+          ),
+          scale: Scale2D.of_width_percent(width - margin, {
+            type: ScaleType.Percent,
+            value: height - margin,
           }),
-          texId: this.texture_atlas.tex_id,
-          overridden_attribs: {
-            aTextureCoord: this.texture_atlas.get_from_num(this.chars[char]),
-          },
         }),
-      );
-    });
+        texId: black_tex_id,
+      }),
+    ];
+
+    this.box_objecs.forEach((box_objec) => model.create_objec(box_objec));
+
+    this.sentence = new Sentence(font, model, -0.6, -0.35, sentence);
   }
 
-  // Clears sentence
-  // ClearSentence(target, sentence) {
-  //     for (const letter in sentence) {
-  //         target
-  //     }
-  // }
-}
-
-export function DisplayBox(model: Model, white_tex_id: number, black_tex_id: number) {
-  const width = 0.8;
-  const height = 0.4;
-
-  model.create_objec(
-    new Objec({
-      model,
-      rotpos: new RotPos2D({
-        position: new Position2D(
-          { type: Position2DType.Percent, value: 0 },
-          { type: Position2DType.Percent, value: -0.5 },
-          0,
-        ),
-        scale: Scale2D.of_width_percent(width, { type: ScaleType.Percent, value: height }),
-      }),
-      texId: white_tex_id,
-    }),
-  );
-
-  model.create_objec(
-    new Objec({
-      model,
-      rotpos: new RotPos2D({
-        position: new Position2D(
-          { type: Position2DType.Percent, value: 0 },
-          { type: Position2DType.Percent, value: -0.5 },
-          0,
-        ),
-        scale: Scale2D.of_width_percent(width - 0.05, {
-          type: ScaleType.Percent,
-          value: height - 0.05,
-        }),
-      }),
-      texId: black_tex_id,
-    }),
-  );
+  Destructor() {
+    this.box_objecs.forEach((box_objec) => box_objec.Destructor());
+    this.sentence.Destructor();
+  }
 }

@@ -5,8 +5,9 @@ import { run_rpg } from './rpg_scene';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
 import { serialize_tilemap, TileMap } from './types';
-import { DisplayBox, Font } from './dialog';
+import { DialogBox } from './dialog';
 import { vec3 } from 'gl-matrix';
+import { Font } from '../font';
 
 const MODES = {
   MOVE: 0,
@@ -93,12 +94,15 @@ async function Setup() {
   const white_tex_id = await LoadTexture(scene, 'white.png');
   const black_tex_id = await LoadTexture(scene, 'black.png');
 
-  DisplayBox(ui_sprite, white_tex_id, black_tex_id);
-
   const font_texture = await LoadTexture(scene, 'def.png');
   const font_texture_atlas = new TextureAtlas(font_texture, 8, 8);
   const font = new Font(font_texture_atlas, JSON.parse(await LoadFileText('textures/def.json')));
-  font.CreateSentence(ui_sprite, -0.5, 0.5, '* HELLO WORLD!');
+  const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, '* HELLO WORLD!');
+
+  scene.keyDownCallbacks['Minus'] = () => {
+    dialog_box.Destructor();
+    requestAnimationFrame(RenderLoop);
+  };
 
   return [sprite_shader];
 }
