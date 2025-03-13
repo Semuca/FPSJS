@@ -49,7 +49,7 @@ export class Shader {
     this.shader_data = shader_data;
 
     // Automatically cull backfaces for now, change later if needed
-    // this.gl.enable(this.gl.CULL_FACE);
+    this.gl.enable(this.gl.CULL_FACE);
 
     // Creates shaders
     this.vertexShader = this.CreateShader(this.gl.VERTEX_SHADER, this.shader_data.vertexSource);

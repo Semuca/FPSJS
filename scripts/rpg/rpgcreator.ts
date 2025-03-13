@@ -1,11 +1,12 @@
 import { FScreen, HorizontalCameraLine, toggleFullScreen, VerticalCameraLine } from '../screen';
 import { LoadTexture, LoadModel, LoadShader, LoadFileText } from '../loading';
-import { Model, Objec, RotPos2D, Scale2D } from '../objec';
+import { Model, Objec, Position2D, Position2DType, RotPos, RotPos2D, Scale2D } from '../objec';
 import { run_rpg } from './rpg_scene';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
 import { serialize_tilemap, TileMap } from './types';
 import { DisplayBox, Font } from './dialog';
+import { vec3 } from 'gl-matrix';
 
 const MODES = {
   MOVE: 0,
@@ -52,19 +53,17 @@ scene.AddCameraTree([
 ]);
 
 async function Setup() {
-  const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
+  const grid_shader = await LoadShader(scene, 'ui.vs', 'grid.fs');
   const grid_versprite = await LoadModel(grid_shader, 'verSprite.json');
-  grid_versprite.create_objec(
-    new Objec({ model: grid_versprite, rotpos: new RotPos2D([0, 0, 0]) }),
-  );
+  grid_versprite.create_objec(new Objec({ model: grid_versprite, rotpos: new RotPos2D({}) }));
 
-  //Load 2d shader, plus the model
-  const sprite_shader = await LoadShader(
-    scene,
-    '2DspriteVertexShader.vs',
-    'spriteFragmentShader.fs',
-  );
+  // Load 2d shader, plus the model
+  const sprite_shader = await LoadShader(scene, '2DspriteVertexShader.vs', 'fragmentShader.fs');
   const sprite = await LoadModel(sprite_shader, 'verSprite.json');
+
+  // Load ui shader, plus the model
+  const ui_shader = await LoadShader(scene, 'ui.vs', 'fragmentShader.fs');
+  const ui_sprite = await LoadModel(ui_shader, 'verSprite.json');
 
   // Load sidebar
   const tileset = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
@@ -72,11 +71,9 @@ async function Setup() {
   sprite.create_objec(
     new Objec({
       model: sprite,
-      rotpos: new RotPos2D(
-        [0, 0, 0],
-        Math.PI,
-        Scale2D.of_px(num_squares_wide / 2, num_squares_wide / 2),
-      ),
+      rotpos: new RotPos({
+        scale: [num_squares_wide / 2, num_squares_wide / 2, 1],
+      }),
       texId: tileset,
       worldIndex: 1,
     }),
@@ -85,7 +82,9 @@ async function Setup() {
   const tframe_tex = await LoadTexture(scene, 'tframe.png');
   selector = new Objec({
     model: sprite,
-    rotpos: new RotPos2D([0, 0, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
+    rotpos: new RotPos({
+      scale: [0.5, 0.5, 1],
+    }),
     texId: tframe_tex,
     worldIndex: 1,
   });
@@ -94,12 +93,12 @@ async function Setup() {
   const white_tex_id = await LoadTexture(scene, 'white.png');
   const black_tex_id = await LoadTexture(scene, 'black.png');
 
-  DisplayBox(sprite, white_tex_id, black_tex_id);
+  DisplayBox(ui_sprite, white_tex_id, black_tex_id);
 
   const font_texture = await LoadTexture(scene, 'def.png');
   const font_texture_atlas = new TextureAtlas(font_texture, 8, 8);
   const font = new Font(font_texture_atlas, JSON.parse(await LoadFileText('textures/def.json')));
-  font.CreateSentence(sprite, 8, 1.5, '* HELLO WORLD!');
+  font.CreateSentence(ui_sprite, -0.5, 0.5, '* HELLO WORLD!');
 
   return [sprite_shader];
 }
@@ -178,7 +177,14 @@ cam.onMouseDown = (e) => {
     model.create_objec(
       new Objec({
         model,
-        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        rotpos: new RotPos2D({
+          position: new Position2D(
+            { type: Position2DType.Px, value: -posX - 0.5 },
+            { type: Position2DType.Px, value: posY + 0.5 },
+            0,
+          ),
+          scale: Scale2D.of_px(0.5, 0.5),
+        }),
         texId: scene.texIds['tframe.png'],
       }),
     );
@@ -200,7 +206,10 @@ cam.onMouseDown = (e) => {
     tilemap[posX][posY] = {
       objec: new Objec({
         model,
-        rotpos: new RotPos2D([-posX - 0.5, posY + 0.5, 0], Math.PI, Scale2D.of_px(0.5, 0.5)),
+        rotpos: new RotPos({
+          position: [-posX - 0.5, posY + 0.5, 0.5],
+          scale: [0.5, 0.5, 1],
+        }),
         texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
         overridden_attribs: {
           aTextureCoord: texture_attribute,
@@ -249,8 +258,8 @@ sidebar.onMouseDown = (e) => {
 };
 
 function select_tile(x: number, y: number) {
-  selector.rotpos.position[0] = num_squares_wide / 2 - x - 0.5;
-  selector.rotpos.position[1] = num_squares_wide / 2 - y - 0.5;
+  (selector.rotpos.position as vec3)[0] = num_squares_wide / 2 - x - 0.5;
+  (selector.rotpos.position as vec3)[1] = num_squares_wide / 2 - y - 0.5;
 
   tile = y * num_squares_wide + x;
 

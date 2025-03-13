@@ -1,6 +1,6 @@
 import { Shader } from './shader';
 import { Scene } from './scene';
-import { Scale2D } from './objec';
+import { RotPos2D } from './objec';
 import { Camera, CameraData } from './camera';
 
 export class HorizontalCameraLine<T> {
@@ -335,7 +335,7 @@ export class FScreen {
         const camera = this.cameras.find(
           (camera) => camera.camera_data.worldIndex === object.worldIndex,
         ) as Camera;
-        if (object.rotpos.scale instanceof Scale2D) object.rotpos.scale.calculate_dim(camera);
+        if (object.rotpos instanceof RotPos2D) object.rotpos.calculate_dim(camera);
       });
   }
 

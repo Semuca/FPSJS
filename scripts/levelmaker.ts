@@ -117,11 +117,7 @@ requestAnimationFrame(RenderLoop);
 
 async function Setup() {
   //Load 2d shader, plus the model
-  const sprite_shader = await LoadShader(
-    scene,
-    '2DspriteVertexShader.vs',
-    'spriteFragmentShader.fs',
-  );
+  const sprite_shader = await LoadShader(scene, '2DspriteVertexShader.vs', 'fragmentShader.fs');
   let modelData = await LoadModel(sprite_shader, 'verSprite.json');
 
   //Processing textures to be loaded. Shouldn't this be a part of the map?

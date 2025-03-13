@@ -79,11 +79,12 @@ export class Objec {
 
   GetMatrix() {
     if (this.rotpos instanceof RotPos2D) {
-      mat4.fromRotationTranslationScale(this.matrix, this.rotpos.rotation, this.rotpos.position, [
-        this.rotpos.scale.dim[0],
-        this.rotpos.scale.dim[1],
-        1,
-      ]);
+      mat4.fromRotationTranslationScale(
+        this.matrix,
+        this.rotpos.rotation,
+        this.rotpos.position.dim,
+        [this.rotpos.scale.dim[0], this.rotpos.scale.dim[1], 1],
+      );
     } else {
       mat4.fromRotationTranslationScale(
         this.matrix,
@@ -107,10 +108,18 @@ export class RotPos {
   scale: vec3;
 
   //Constructor passing in position and rotation
-  constructor(position: vec3, rotation?: quat, scale?: vec3) {
-    this.position = position ?? vec3.create();
-    this.rotation = rotation ?? quat.create();
-    this.scale = scale ?? vec3.fromValues(1, 1, 1);
+  constructor({
+    position = vec3.create(),
+    rotation = quat.fromValues(0, 0, 0, 1),
+    scale = vec3.fromValues(1, 1, 1),
+  }: {
+    position?: vec3;
+    rotation?: quat;
+    scale?: vec3;
+  }) {
+    this.position = position;
+    this.rotation = rotation;
+    this.scale = scale;
   }
 
   get forward() {
@@ -140,23 +149,76 @@ export class RotPos {
 
 //A position and rotation that is used for 2D objects. The hope is to make some generic functionality between rotpos and rotpos2D
 export class RotPos2D {
-  position: vec3;
+  position: Position2D;
   rotation: quat;
   scale: Scale2D;
 
   //Constructor passing in position and rotation
-  constructor(
-    position: vec3 = vec3.create(),
-    rotation?: number,
-    scale: Scale2D = Scale2D.of_px(1, 1),
-  ) {
+  constructor({
+    position = new Position2D(
+      { type: Position2DType.Px, value: 0 },
+      { type: Position2DType.Px, value: 0 },
+      0,
+    ),
+    rotation = Math.PI,
+    scale = Scale2D.of_width_percent(1, { type: ScaleType.Percent, value: 1 }),
+  }: {
+    position?: Position2D;
+    rotation?: number;
+    scale?: Scale2D;
+  }) {
     this.position = position;
 
     this.rotation = quat.create();
-    if (rotation != undefined) {
-      quat.setAxisAngle(this.rotation, [0.0, 0.0, 1.0], rotation);
-    }
+    quat.setAxisAngle(this.rotation, [0.0, 1.0, 0.0], rotation);
+
     this.scale = scale;
+  }
+
+  calculate_dim(camera: Camera) {
+    this.position.calculate_dim(camera);
+    this.scale.calculate_dim(camera);
+  }
+}
+
+export enum Position2DType {
+  Px, // Misnomer?
+  Percent,
+}
+
+type Position2DValue =
+  | { type: Position2DType.Px; value: number }
+  | { type: Position2DType.Percent; value: number };
+
+export class Position2D {
+  dim: vec3 = [0, 0, 0];
+
+  constructor(
+    public x: Position2DValue,
+    public y: Position2DValue,
+    z: number,
+  ) {
+    this.dim[2] = z;
+  }
+
+  calculate_dim(camera: Camera) {
+    switch (this.x.type) {
+      case Position2DType.Px:
+        this.dim[0] = this.x.value / camera.pxWidth;
+        break;
+      case Position2DType.Percent:
+        this.dim[0] = this.x.value;
+        break;
+    }
+
+    switch (this.y.type) {
+      case Position2DType.Px:
+        this.dim[1] = this.y.value / camera.pxHeight;
+        break;
+      case Position2DType.Percent:
+        this.dim[1] = this.y.value;
+        break;
+    }
   }
 }
 
@@ -172,15 +234,12 @@ type Scale =
   | { type: ScaleType.Ratio; value: number };
 
 export class Scale2D {
-  width: Scale;
-  height: Scale;
-
   dim: vec2 = [1, 1];
 
-  private constructor(width: Scale, height: Scale) {
-    this.width = width;
-    this.height = height;
-  }
+  private constructor(
+    public width: Scale,
+    public height: Scale,
+  ) {}
 
   static of_px(width: number, height: number) {
     const result = new Scale2D(
@@ -208,19 +267,19 @@ export class Scale2D {
   calculate_dim(camera: Camera) {
     switch (this.width.type) {
       case ScaleType.Px:
-        this.dim[0] = this.width.value;
+        this.dim[0] = this.width.value / camera.pxWidth;
         break;
       case ScaleType.Percent:
-        this.dim[0] = (this.width.value * camera.pxWidth) / camera.camera_data.bounds.zoom;
+        this.dim[0] = this.width.value;
         break;
     }
 
     switch (this.height.type) {
       case ScaleType.Px:
-        this.dim[1] = this.height.value;
+        this.dim[1] = this.height.value / camera.pxWidth;
         break;
       case ScaleType.Percent:
-        this.dim[1] = (this.height.value * camera.pxHeight) / camera.camera_data.bounds.zoom;
+        this.dim[1] = this.height.value;
         break;
       case ScaleType.Ratio:
         this.dim[1] = this.height.value * this.dim[0];

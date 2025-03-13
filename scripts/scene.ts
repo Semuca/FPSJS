@@ -40,19 +40,19 @@ export class TextureAtlas {
 
   get_from_num(tile: number) {
     const tex_x = (tile % this.tiles_wide) / this.tiles_wide;
-    const tex_y = Math.floor(tile / this.tiles_high) / this.tiles_high;
+    const tex_y = Math.floor(tile / this.tiles_wide) / this.tiles_high;
     const size_x = 1 / this.tiles_wide;
     const size_y = 1 / this.tiles_high;
 
     return new Float32Array([
-      tex_x,
-      tex_y + size_y,
       tex_x + size_x,
       tex_y,
       tex_x,
-      tex_y,
+      tex_y + size_y,
       tex_x + size_x,
       tex_y + size_y,
+      tex_x,
+      tex_y,
     ]);
   }
 }
