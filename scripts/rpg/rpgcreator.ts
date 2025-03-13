@@ -94,9 +94,10 @@ async function Setup() {
   const white_tex_id = await LoadTexture(scene, 'white.png');
   const black_tex_id = await LoadTexture(scene, 'black.png');
 
-  const font_texture = await LoadTexture(scene, 'def.png');
-  const font_texture_atlas = new TextureAtlas(font_texture, 8, 8);
-  const font = new Font(font_texture_atlas, JSON.parse(await LoadFileText('textures/def.json')));
+  const font = new Font(
+    new TextureAtlas(await LoadTexture(scene, 'def.png'), 8, 8),
+    JSON.parse(await LoadFileText('textures/def.json')),
+  );
   const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, '* HELLO WORLD!');
 
   scene.keyDownCallbacks['Minus'] = () => {

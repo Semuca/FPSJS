@@ -1,11 +1,13 @@
 import { FScreen } from '../screen';
-import { LoadTexture, LoadModel, LoadShader } from '../loading';
-import { Objec, RotPos } from '../objec';
+import { LoadTexture, LoadModel, LoadShader, LoadFileText } from '../loading';
+import { Model, Objec, RotPos } from '../objec';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, ZoomCameraBound } from '../camera';
 import { EventStep, TileDataMap, TileInfoMap } from './types';
 import { distancePointToPoint, Point2D } from '../geometry';
 import { vec2, vec3 } from 'gl-matrix';
+import { Font } from '../font';
+import { DialogBox } from './dialog';
 
 const tile_info_map: TileInfoMap = {
   34: { passable: true, layer: -1 },
@@ -45,14 +47,16 @@ function add_direction_to_point(direction: Direction, point: Point2D) {
 let direction = Direction.Down;
 
 export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
-  // let font: Font; //Think of a faster way to look up fonts later
-
-  //Set up new screen that takes up the entire space
   const scene = new Scene();
   const screen = _screen ?? new FScreen('canvas', scene);
   const cam = new CameraData({ scene, bounds: new ZoomCameraBound(100) });
 
   let texture_atlas: TextureAtlas;
+
+  let ui_sprite: Model;
+  let white_tex_id: number;
+  let black_tex_id: number;
+  let font: Font;
 
   const [modelData] = await Setup();
   screen.set_scene(scene);
@@ -66,34 +70,6 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   scene.keyDownCallbacks['Escape'] = () => {
     promise_resolver();
   };
-
-  const player = modelData.objects[0];
-
-  scene.keyDownCallbacks['KeyE'] = () => {
-    const tile_pos = add_direction_to_point(
-      direction,
-      new Point2D((player.rotpos.position as vec3)[0], (player.rotpos.position as vec3)[1]),
-    );
-    const on_interact = tile_data_map[tile_pos.x]?.[tile_pos.y]?.on_interact;
-    if (on_interact) run_event(on_interact);
-  };
-
-  function run_event(event_steps: EventStep[]) {
-    const set_frame = ([event_step, ...tail]: EventStep[]) => {
-      switch (event_step.type) {
-        case 'DialogStep':
-          console.log(event_step.text);
-          break;
-        default:
-          break;
-      }
-
-      if (tail.length === 0) return;
-      setTimeout(() => set_frame(tail), 40);
-    };
-
-    set_frame(event_steps);
-  }
 
   async function Setup() {
     //Load shaders for the 2d camera
@@ -138,15 +114,47 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       });
     });
 
-    // await LoadTexture(scene, 'black.png');
-    // await LoadTexture(scene, 'white.png');
+    // Load ui shader, plus the model
+    const ui_shader = await LoadShader(scene, 'ui.vs', 'fragmentShader.fs');
+    ui_sprite = await LoadModel(ui_shader, 'verSprite.json');
 
-    // await LoadTexture(scene, 'def.png');
-    // font = new Font('def.png', JSON.parse(await LoadFileText('textures/def.json')));
+    white_tex_id = await LoadTexture(scene, 'white.png');
+    black_tex_id = await LoadTexture(scene, 'black.png');
 
-    // DisplayBox(cam, screen.shaders[1], [0.8, 0.4]);
-    // font.CreateSentence(screen.shaders[1], 400.0, -100.0, '* HELLO CONOR!');
+    font = new Font(
+      new TextureAtlas(await LoadTexture(scene, 'def.png'), 8, 8),
+      JSON.parse(await LoadFileText('textures/def.json')),
+    );
     return [modelData];
+  }
+
+  const player = modelData.objects[0];
+
+  scene.keyDownCallbacks['KeyE'] = () => {
+    const tile_pos = add_direction_to_point(
+      direction,
+      new Point2D((player.rotpos.position as vec3)[0], (player.rotpos.position as vec3)[1]),
+    );
+    const on_interact = tile_data_map[tile_pos.x]?.[tile_pos.y]?.on_interact;
+    if (on_interact) run_event(on_interact);
+  };
+
+  function run_event(event_steps: EventStep[]) {
+    const set_frame = ([event_step, ...tail]: EventStep[]) => {
+      switch (event_step.type) {
+        case 'DialogStep':
+          new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, event_step.text);
+          screen.on_resize();
+          break;
+        default:
+          break;
+      }
+
+      if (tail.length === 0) return;
+      setTimeout(() => set_frame(tail), 40);
+    };
+
+    set_frame(event_steps);
   }
 
   const player_speed = 0.15;

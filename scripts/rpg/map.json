@@ -4,7 +4,7 @@
     "1": { "tile": 65 },
     "2": {
       "tile": 167,
-      "on_interact": [{ "type": "DialogStep", "text": "Aw heck yes! The orb of death!" }]
+      "on_interact": [{ "type": "DialogStep", "text": "AW HECK YES! THE ORB OF DEATH!" }]
     },
     "-1": { "tile": 65 },
     "-2": { "tile": 236 }
@@ -12,7 +12,7 @@
   "1": {
     "0": {
       "tile": 34,
-      "on_step": [{ "type": "DialogStep", "text": "I can't leave yet- I've got things to do" }]
+      "on_step": [{ "type": "DialogStep", "text": "I CAN'T LEAVE YET- I'VE GOT THINGS TO DO" }]
     },
     "1": { "tile": 65 },
     "-1": { "tile": 65 },
