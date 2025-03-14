@@ -19,22 +19,51 @@ export class Font {
   }
 }
 
+const letter_size = 100;
+
+export class TextBlock {
+  lines: Line[];
+
+  constructor(font: Font, model: Model, x: number, y: number, width: number, text: string) {
+    // INVARIANT: A piece of text should have at least one word
+    const [first_word, ...words] = text.split(' ');
+    this.lines = words
+      .reduce(
+        (acc, word) => {
+          const line_length = acc[acc.length - 1].reduce((acc, word) => acc + word.length + 1, 0);
+          if (line_length + word.length <= width) {
+            acc[acc.length - 1].push(word);
+          } else {
+            acc.push([word]);
+          }
+          return acc;
+        },
+        [[first_word]],
+      )
+      .map((words, index) => new Line(font, model, x, y - index * 0.1, words.join(' ')));
+  }
+
+  Destructor() {
+    this.lines.forEach((line) => line.Destructor());
+  }
+}
+
 export class Line {
   font: Font;
   objecs: Objec[];
 
-  constructor(font: Font, model: Model, posX: number, posY: number, text: string) {
+  constructor(font: Font, model: Model, x: number, y: number, text: string) {
     this.font = font;
     this.objecs = text.split('').map((char, index) => {
       const objec = new Objec({
         model,
         rotpos: new RotPos2D({
           position: new Position2D(
-            { type: Position2DType.Percent, value: posX + 0.1 * index },
-            { type: Position2DType.Percent, value: posY },
+            { type: Position2DType.Px, value: x + letter_size * index },
+            { type: Position2DType.Percent, value: y },
             0,
           ),
-          scale: Scale2D.of_width_percent(0.1),
+          scale: Scale2D.of_px(letter_size, letter_size),
         }),
         texId: this.font.texture_atlas.tex_id,
         overridden_attribs: {
