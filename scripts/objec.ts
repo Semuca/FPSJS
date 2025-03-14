@@ -9,7 +9,7 @@ export interface ModelData {
   TEXTURE?: string;
 }
 
-//Stores data about an unloaded, uninstantiated object that is generic. I.e what shaders does this object work with?
+// Stores data about an unloaded, uninstantiated object that is generic. I.e what shaders does this object work with?
 export class Model {
   name: string;
   modelData: ModelData;
@@ -25,7 +25,6 @@ export class Model {
   constructor(name: string, modelData: ModelData, vao?: WebGLVertexArrayObject) {
     this.name = name;
     this.modelData = modelData;
-    this.textureId = undefined;
     this.vao = vao;
   }
 

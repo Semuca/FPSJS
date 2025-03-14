@@ -53,6 +53,42 @@ scene.AddCameraTree([
   new VerticalCameraLine(cam, new HorizontalCameraLine(sidebar, other_sidebar, 0.5), 0.8),
 ]);
 
+const base_keydown_callbacks: Record<string, () => void> = {};
+
+// Downloads the map
+base_keydown_callbacks['c'] = () => {
+  const element = document.createElement('a');
+
+  element.setAttribute(
+    'href',
+    'data:text/plain;charset=utf-8,' +
+      encodeURIComponent(JSON.stringify(serialize_tilemap(tilemap))),
+  );
+  element.setAttribute('download', 'map');
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+};
+
+base_keydown_callbacks['u'] = async () => {
+  await run_rpg(serialize_tilemap(tilemap), screen);
+  screen.set_scene(scene);
+  requestAnimationFrame(RenderLoop);
+};
+
+base_keydown_callbacks['Enter'] = () => {
+  toggleFullScreen();
+};
+
+base_keydown_callbacks[' '] = () => {
+  mode = mode === MODES.MOVE ? MODES.PLACE : MODES.MOVE;
+  document.body.style.cursor = mode === MODES.MOVE ? 'grab' : 'pointer';
+};
+
 async function Setup() {
   const grid_shader = await LoadShader(scene, 'ui.vs', 'grid.fs');
   const grid_versprite = await LoadModel(grid_shader, 'verSprite.json');
@@ -100,8 +136,22 @@ async function Setup() {
   );
   const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, '* HELLO WORLD!');
 
+  ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[¥]^_'.split('').forEach((char) => {
+    scene.keyDownCallbacks[char.toLowerCase()] = () => {
+      dialog_box.text_block.add_characters(char);
+      screen.on_resize();
+      requestAnimationFrame(RenderLoop);
+    };
+  });
+
+  scene.keyDownCallbacks['Backspace'] = () => {
+    dialog_box.text_block.delete_character();
+    requestAnimationFrame(RenderLoop);
+  };
+
   scene.keyDownCallbacks['Minus'] = () => {
     dialog_box.Destructor();
+    scene.keyDownCallbacks = base_keydown_callbacks;
     requestAnimationFrame(RenderLoop);
   };
 
@@ -117,40 +167,6 @@ requestAnimationFrame(RenderLoop);
 function RenderLoop() {
   screen.draw();
 }
-
-// Downloads the map
-scene.keyDownCallbacks['KeyC'] = () => {
-  const element = document.createElement('a');
-
-  element.setAttribute(
-    'href',
-    'data:text/plain;charset=utf-8,' +
-      encodeURIComponent(JSON.stringify(serialize_tilemap(tilemap))),
-  );
-  element.setAttribute('download', 'map');
-
-  element.style.display = 'none';
-  document.body.appendChild(element);
-
-  element.click();
-
-  document.body.removeChild(element);
-};
-
-scene.keyDownCallbacks['KeyU'] = async () => {
-  await run_rpg(serialize_tilemap(tilemap), screen);
-  screen.set_scene(scene);
-  requestAnimationFrame(RenderLoop);
-};
-
-scene.keyDownCallbacks['Enter'] = () => {
-  toggleFullScreen();
-};
-
-scene.keyDownCallbacks['Space'] = () => {
-  mode = mode === MODES.MOVE ? MODES.PLACE : MODES.MOVE;
-  document.body.style.cursor = mode === MODES.MOVE ? 'grab' : 'pointer';
-};
 
 //For placing tiles
 cam.onMouseDown = (e) => {

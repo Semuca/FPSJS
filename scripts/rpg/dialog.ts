@@ -8,7 +8,7 @@ const x = 0;
 const y = -0.5;
 
 export class DialogBox {
-  line: TextBlock;
+  text_block: TextBlock;
   box_objecs: Objec[];
 
   constructor(font: Font, model: Model, white_tex_id: number, black_tex_id: number, text: string) {
@@ -44,11 +44,11 @@ export class DialogBox {
 
     this.box_objecs.forEach((box_objec) => model.create_objec(box_objec));
 
-    this.line = new TextBlock(font, model, -950, -0.3, 21, text);
+    this.text_block = new TextBlock(font, model, -950, -0.3, 21, text);
   }
 
   Destructor() {
     this.box_objecs.forEach((box_objec) => box_objec.Destructor());
-    this.line.Destructor();
+    this.text_block.Destructor();
   }
 }

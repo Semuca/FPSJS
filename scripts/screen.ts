@@ -203,16 +203,16 @@ export class FScreen {
     });
 
     window.addEventListener('keydown', (e) => {
-      this.keysDown[e.code] = true;
-      if (this.scene.keyDownCallbacks[e.code]) {
-        this.scene.keyDownCallbacks[e.code]();
+      this.keysDown[e.key] = true;
+      if (this.scene.keyDownCallbacks[e.key]) {
+        this.scene.keyDownCallbacks[e.key]();
       }
     });
 
     window.addEventListener('keyup', (e) => {
-      this.keysDown[e.code] = false;
-      if (this.scene.keyUpCallbacks[e.code]) {
-        this.scene.keyUpCallbacks[e.code]();
+      this.keysDown[e.key] = false;
+      if (this.scene.keyUpCallbacks[e.key]) {
+        this.scene.keyUpCallbacks[e.key]();
       }
     });
 
