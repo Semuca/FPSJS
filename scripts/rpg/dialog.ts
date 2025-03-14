@@ -1,4 +1,4 @@
-import { Font, Sentence } from '../font';
+import { Font, Line } from '../font';
 import { Model, Objec, Position2D, Position2DType, RotPos2D, Scale2D, ScaleType } from '../objec';
 
 const width = 0.8;
@@ -8,7 +8,7 @@ const x = 0;
 const y = -0.5;
 
 export class DialogBox {
-  sentence: Sentence;
+  line: Line;
   box_objecs: Objec[];
 
   constructor(
@@ -16,7 +16,7 @@ export class DialogBox {
     model: Model,
     white_tex_id: number,
     black_tex_id: number,
-    sentence: string,
+    text: string,
   ) {
     this.box_objecs = [
       new Objec({
@@ -50,11 +50,11 @@ export class DialogBox {
 
     this.box_objecs.forEach((box_objec) => model.create_objec(box_objec));
 
-    this.sentence = new Sentence(font, model, -0.6, -0.35, sentence);
+    this.line = new Line(font, model, -0.6, -0.35, text);
   }
 
   Destructor() {
     this.box_objecs.forEach((box_objec) => box_objec.Destructor());
-    this.sentence.Destructor();
+    this.line.Destructor();
   }
 }

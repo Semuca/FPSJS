@@ -19,13 +19,13 @@ export class Font {
   }
 }
 
-export class Sentence {
+export class Line {
   font: Font;
   objecs: Objec[];
 
-  constructor(font: Font, model: Model, posX: number, posY: number, sentence: string) {
+  constructor(font: Font, model: Model, posX: number, posY: number, text: string) {
     this.font = font;
-    this.objecs = sentence.split('').map((char, index) => {
+    this.objecs = text.split('').map((char, index) => {
       const objec = new Objec({
         model,
         rotpos: new RotPos2D({
