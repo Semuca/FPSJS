@@ -36,9 +36,9 @@ function add_direction_to_point(direction: Direction, point: Point2D) {
     case Direction.Down:
       return new Point2D(point.x, point.y - 1);
     case Direction.Left:
-      return new Point2D(point.x - 1, point.y);
-    case Direction.Right:
       return new Point2D(point.x + 1, point.y);
+    case Direction.Right:
+      return new Point2D(point.x - 1, point.y);
     case Direction.Up:
       return new Point2D(point.x, point.y + 1);
   }
@@ -57,6 +57,8 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   let white_tex_id: number;
   let black_tex_id: number;
   let font: Font;
+
+  let can_move: boolean = true;
 
   const [modelData] = await Setup();
   screen.set_scene(scene);
@@ -136,22 +138,36 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       new Point2D((player.rotpos.position as vec3)[0], (player.rotpos.position as vec3)[1]),
     );
     const on_interact = tile_data_map[tile_pos.x]?.[tile_pos.y]?.on_interact;
-    if (on_interact) run_event(on_interact);
+    if (on_interact) {
+      can_move = false;
+      run_event(on_interact);
+    }
   };
 
   function run_event(event_steps: EventStep[]) {
     const set_frame = ([event_step, ...tail]: EventStep[]) => {
       switch (event_step.type) {
-        case 'DialogStep':
-          new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, event_step.text);
+        case 'DialogStep': {
+          const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, event_step.text);
+          scene.keyDownCallbacks['Enter'] = () => {
+            dialog_box.Destructor();
+            scene.keyDownCallbacks['Enter'] = () => {};
+            if (tail.length === 0) {
+              can_move = true;
+              return;
+            }
+            setTimeout(() => set_frame(tail), 40);
+          };
           screen.on_resize();
           break;
+        }
         default:
-          break;
+          if (tail.length === 0) {
+            can_move = true;
+            return;
+          }
+          setTimeout(() => set_frame(tail), 40);
       }
-
-      if (tail.length === 0) return;
-      setTimeout(() => set_frame(tail), 40);
     };
 
     set_frame(event_steps);
@@ -193,7 +209,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
 
     const position = player.rotpos.position as vec3;
 
-    if (moving_objects.length == 0) {
+    if (moving_objects.length == 0 && can_move) {
       let movX = 0.0;
       let movY = 0.0;
 
@@ -238,7 +254,10 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
         pos[1] = to.y;
 
         const on_step = tile_data_map[to.x]?.[to.y]?.on_step;
-        if (on_step) run_event(on_step);
+        if (on_step) {
+          can_move = false;
+          run_event(on_step);
+        }
         return false;
       }
 
