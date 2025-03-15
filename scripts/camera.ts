@@ -50,7 +50,7 @@ export class CameraData {
   zNear = 0.1;
   zFar = 100.0;
 
-  rotpos: RotPos = new RotPos([0.0, 0.0, 0.0], undefined, [1.0, 1.0, 1.0]);
+  rotpos: RotPos = new RotPos({});
 
   onMouseDown: (e: MouseEvent) => void = () => {};
   onMouseMove: (e: MouseEvent) => void = () => {};
@@ -275,7 +275,9 @@ export class Camera {
   SetViewport() {
     this.window.gl.viewport(
       this.window.canvas.width * this.camera_data.tlCorner[0],
-      this.window.canvas.height * this.camera_data.tlCorner[1],
+      this.window.canvas.height - // TODO: Move tlCorner to blCorner
+        this.window.canvas.height * this.camera_data.tlCorner[1] -
+        this.pxHeight,
       this.pxWidth,
       this.pxHeight,
     );
