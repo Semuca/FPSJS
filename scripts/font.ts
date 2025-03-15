@@ -1,4 +1,4 @@
-import { Model, Objec, Position2D, Position2DType, RotPos2D, Scale2D } from './objec';
+import { Model, Objec, Position2D, Position2DValue, RotPos2D, Scale2D } from './objec';
 import { TextureAtlas } from './scene';
 
 export class Font {
@@ -24,13 +24,20 @@ const letter_size = 100;
 export class TextBlock {
   font: Font;
   model: Model;
-  x: number;
+  x: Position2DValue;
   y: number;
   line_length: number;
 
   lines: { line: Line; words: string[] }[];
 
-  constructor(font: Font, model: Model, x: number, y: number, line_length: number, text: string) {
+  constructor(
+    font: Font,
+    model: Model,
+    x: Position2DValue,
+    y: number,
+    line_length: number,
+    text: string,
+  ) {
     this.font = font;
     this.model = model;
     this.x = x;
@@ -111,11 +118,11 @@ export class TextBlock {
 export class Line {
   font: Font;
   model: Model;
-  x: number;
+  x: Position2DValue;
   y: number;
   objecs: Objec[] = [];
 
-  constructor(font: Font, model: Model, x: number, y: number, text: string) {
+  constructor(font: Font, model: Model, x: Position2DValue, y: number, text: string) {
     this.font = font;
     this.model = model;
     this.x = x;
@@ -130,8 +137,11 @@ export class Line {
         model: this.model,
         rotpos: new RotPos2D({
           position: new Position2D(
-            { type: Position2DType.Px, value: this.x + letter_size * this.objecs.length },
-            { type: Position2DType.Percent, value: this.y },
+            {
+              value: this.x.value,
+              px_mod: (this.x.px_mod ?? 0) + letter_size * this.objecs.length,
+            },
+            { value: this.y },
             0,
           ),
           scale: Scale2D.of_px(letter_size, letter_size),

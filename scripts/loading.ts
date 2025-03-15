@@ -120,7 +120,11 @@ export async function LoadMap(
       ) as Model;
       const objec = new Objec({
         model,
-        rotpos: new RotPos(object.position, object.rotation, object.scale),
+        rotpos: new RotPos({
+          position: object.position,
+          rotation: object.rotation,
+          scale: object.scale,
+        }),
         texId: object.texture ? scene.texIds[object.texture] : undefined,
         tags,
       });

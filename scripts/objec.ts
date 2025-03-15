@@ -154,13 +154,9 @@ export class RotPos2D {
 
   //Constructor passing in position and rotation
   constructor({
-    position = new Position2D(
-      { type: Position2DType.Px, value: 0 },
-      { type: Position2DType.Px, value: 0 },
-      0,
-    ),
+    position = new Position2D({ value: 0 }, { value: 0 }, 0),
     rotation = Math.PI,
-    scale = Scale2D.of_width_percent(1, { type: ScaleType.Percent, value: 1 }),
+    scale = Scale2D.of_width_percent(1, { type: ScaleType.Percent, value: 1, px_mod: 0 }),
   }: {
     position?: Position2D;
     rotation?: number;
@@ -179,15 +175,7 @@ export class RotPos2D {
     this.scale.calculate_dim(camera);
   }
 }
-
-export enum Position2DType {
-  Px, // Misnomer?
-  Percent,
-}
-
-type Position2DValue =
-  | { type: Position2DType.Px; value: number }
-  | { type: Position2DType.Percent; value: number };
+export type Position2DValue = { value: number; px_mod?: number };
 
 export class Position2D {
   dim: vec3 = [0, 0, 0];
@@ -201,23 +189,8 @@ export class Position2D {
   }
 
   calculate_dim(camera: Camera) {
-    switch (this.x.type) {
-      case Position2DType.Px:
-        this.dim[0] = this.x.value / camera.pxWidth;
-        break;
-      case Position2DType.Percent:
-        this.dim[0] = this.x.value;
-        break;
-    }
-
-    switch (this.y.type) {
-      case Position2DType.Px:
-        this.dim[1] = this.y.value / camera.pxHeight;
-        break;
-      case Position2DType.Percent:
-        this.dim[1] = this.y.value;
-        break;
-    }
+    this.dim[0] = this.x.value + (this.x.px_mod ?? 0) / camera.pxWidth;
+    this.dim[1] = this.y.value + (this.y.px_mod ?? 0) / camera.pxHeight;
   }
 }
 
@@ -229,7 +202,7 @@ export enum ScaleType {
 
 type Scale =
   | { type: ScaleType.Px; value: number }
-  | { type: ScaleType.Percent; value: number }
+  | { type: ScaleType.Percent; value: number; px_mod?: number }
   | { type: ScaleType.Ratio; value: number };
 
 export class Scale2D {
@@ -249,17 +222,18 @@ export class Scale2D {
     return result;
   }
 
-  static of_width_percent(width_percent: number, height?: Scale) {
+  static of_width_percent(width_percent: number, height?: Scale, px_mod?: number) {
     return new Scale2D(
-      { type: ScaleType.Percent, value: width_percent },
+      { type: ScaleType.Percent, value: width_percent, px_mod },
       height ?? { type: ScaleType.Ratio, value: 1 },
     );
   }
 
-  static of_height_percent(height_percent: number, width?: Scale) {
+  static of_height_percent(height_percent: number, width?: Scale, px_mod?: number) {
     return new Scale2D(width ?? { type: ScaleType.Ratio, value: 1 }, {
       type: ScaleType.Percent,
       value: height_percent,
+      px_mod,
     });
   }
 
@@ -269,16 +243,16 @@ export class Scale2D {
         this.dim[0] = this.width.value / camera.pxWidth;
         break;
       case ScaleType.Percent:
-        this.dim[0] = this.width.value;
+        this.dim[0] = this.width.value + (this.width.px_mod ?? 0) / camera.pxWidth;
         break;
     }
 
     switch (this.height.type) {
       case ScaleType.Px:
-        this.dim[1] = this.height.value / camera.pxWidth;
+        this.dim[1] = this.height.value / camera.pxHeight;
         break;
       case ScaleType.Percent:
-        this.dim[1] = this.height.value;
+        this.dim[1] = this.height.value + (this.height.px_mod ?? 0) / camera.pxHeight;
         break;
       case ScaleType.Ratio:
         this.dim[1] = this.height.value * this.dim[0];

@@ -1,9 +1,9 @@
 import { Font, TextBlock } from '../font';
-import { Model, Objec, Position2D, Position2DType, RotPos2D, Scale2D, ScaleType } from '../objec';
+import { Model, Objec, Position2D, RotPos2D, Scale2D, ScaleType } from '../objec';
 
 const width = 0.8;
 const height = 0.4;
-const margin = 0.05;
+const margin_px = -40;
 const x = 0;
 const y = -0.5;
 
@@ -16,11 +16,7 @@ export class DialogBox {
       new Objec({
         model,
         rotpos: new RotPos2D({
-          position: new Position2D(
-            { type: Position2DType.Percent, value: x },
-            { type: Position2DType.Percent, value: y },
-            0,
-          ),
+          position: new Position2D({ value: x }, { value: y }, 0),
           scale: Scale2D.of_width_percent(width, { type: ScaleType.Percent, value: height }),
         }),
         texId: white_tex_id,
@@ -28,15 +24,16 @@ export class DialogBox {
       new Objec({
         model,
         rotpos: new RotPos2D({
-          position: new Position2D(
-            { type: Position2DType.Percent, value: x },
-            { type: Position2DType.Percent, value: y },
-            0,
+          position: new Position2D({ value: x }, { value: y }, 0),
+          scale: Scale2D.of_width_percent(
+            width,
+            {
+              type: ScaleType.Percent,
+              value: height,
+              px_mod: margin_px,
+            },
+            margin_px,
           ),
-          scale: Scale2D.of_width_percent(width - margin, {
-            type: ScaleType.Percent,
-            value: height - margin,
-          }),
         }),
         texId: black_tex_id,
       }),
@@ -44,7 +41,7 @@ export class DialogBox {
 
     this.box_objecs.forEach((box_objec) => model.create_objec(box_objec));
 
-    this.text_block = new TextBlock(font, model, -950, -0.3, 21, text);
+    this.text_block = new TextBlock(font, model, { value: -width, px_mod: 200 }, -0.3, 21, text);
   }
 
   Destructor() {
