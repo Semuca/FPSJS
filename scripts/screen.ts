@@ -30,7 +30,7 @@ export class FScreen {
   shaders: Shader[] = [];
 
   camera_tree!: CameraTree<Camera>;
-  cameras!: Camera[];
+  cameras: Camera[] = [];
 
   margin: number = 5;
   resizing_lines?: [HorizontalCameraLine<Camera>[], VerticalCameraLine<Camera>[]];

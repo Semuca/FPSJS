@@ -149,7 +149,7 @@ async function Setup() {
     requestAnimationFrame(RenderLoop);
   };
 
-  scene.keyDownCallbacks['Minus'] = () => {
+  scene.keyDownCallbacks['Escape'] = () => {
     dialog_box.Destructor();
     scene.keyDownCallbacks = base_keydown_callbacks;
     requestAnimationFrame(RenderLoop);

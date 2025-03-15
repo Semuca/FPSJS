@@ -95,7 +95,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     const dungeon_sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
     const dungeon_texture_atlas = new TextureAtlas(dungeon_sprite_sheet, 16, 16);
 
-    //Map loading
+    // Map loading
     Object.entries(tile_data_map).forEach(([x_string, entry]) => {
       const x = parseInt(x_string);
       Object.entries(entry).forEach(([y_string, { tile }]) => {
@@ -132,7 +132,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
 
   const player = modelData.objects[0];
 
-  scene.keyDownCallbacks['KeyE'] = () => {
+  scene.keyDownCallbacks['e'] = () => {
     const tile_pos = add_direction_to_point(
       direction,
       new Point2D((player.rotpos.position as vec3)[0], (player.rotpos.position as vec3)[1]),
@@ -148,7 +148,13 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     const set_frame = ([event_step, ...tail]: EventStep[]) => {
       switch (event_step.type) {
         case 'DialogStep': {
-          const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, event_step.text);
+          const dialog_box = new DialogBox(
+            font,
+            ui_sprite,
+            white_tex_id,
+            black_tex_id,
+            event_step.text,
+          );
           scene.keyDownCallbacks['Enter'] = () => {
             dialog_box.Destructor();
             scene.keyDownCallbacks['Enter'] = () => {};
@@ -213,10 +219,10 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       let movX = 0.0;
       let movY = 0.0;
 
-      if (screen.keysDown['KeyW'] === true) movY += 1.0;
-      if (screen.keysDown['KeyA'] === true) movX += 1.0;
-      if (screen.keysDown['KeyS'] === true) movY -= 1.0;
-      if (screen.keysDown['KeyD'] === true) movX -= 1.0;
+      if (screen.keysDown['w'] === true) movY += 1.0;
+      if (screen.keysDown['a'] === true) movX += 1.0;
+      if (screen.keysDown['s'] === true) movY -= 1.0;
+      if (screen.keysDown['d'] === true) movX -= 1.0;
 
       if (movX != 0.0) {
         play_animation(movX === 1 ? Direction.Left : Direction.Right);
