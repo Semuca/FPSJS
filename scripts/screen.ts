@@ -147,8 +147,6 @@ export class FScreen {
           });
         });
 
-        console.log(this.cameras.map((camera) => camera.camera_data.tlCorner));
-
         this.on_resize();
         this.draw();
 
