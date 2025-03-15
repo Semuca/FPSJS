@@ -255,10 +255,11 @@ export class Scale2D {
         this.dim[1] = this.height.value + (this.height.px_mod ?? 0) / camera.pxHeight;
         break;
       case ScaleType.Ratio:
-        this.dim[1] = this.height.value * this.dim[0];
+        this.dim[1] = (this.dim[0] * camera.pxWidth * this.height.value) / camera.pxHeight;
         break;
     }
 
-    if (this.width.type === ScaleType.Ratio) this.dim[0] = this.width.value * this.dim[1];
+    if (this.width.type === ScaleType.Ratio)
+      this.dim[0] = (this.dim[1] * camera.pxHeight * this.width.value) / camera.pxWidth;
   }
 }

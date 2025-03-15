@@ -148,7 +148,7 @@ export class Line {
         }),
         texId: this.font.texture_atlas.tex_id,
         overridden_attribs: {
-          aTextureCoord: this.font.texture_atlas.get_from_num(this.font.chars[char]),
+          aTextureCoord: this.font.texture_atlas.get_from_index(this.font.chars[char]),
         },
       });
       this.model.create_objec(objec);

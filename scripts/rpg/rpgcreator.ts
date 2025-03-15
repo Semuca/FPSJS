@@ -6,8 +6,8 @@ import { Scene, TextureAtlas } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
 import { serialize_tilemap, TileMap } from './types';
 import { DialogBox } from './dialog';
-import { vec3 } from 'gl-matrix';
 import { Font } from '../font';
+import { Palette, PaletteCamera } from './creator/palette';
 
 const MODES = {
   MOVE: 0,
@@ -16,13 +16,10 @@ const MODES = {
 
 let mode = MODES.PLACE;
 
-let tile = 0;
+let palette_camera: PaletteCamera;
 const tilemap: TileMap = {};
 
 const num_squares_wide = 16;
-let texture_atlas: TextureAtlas;
-
-let selector: Objec;
 
 const scene = new Scene();
 const cam_bounds = new ZoomCameraBound(100);
@@ -104,28 +101,14 @@ async function Setup() {
 
   // Load sidebar
   const tileset = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
-  texture_atlas = new TextureAtlas(tileset, num_squares_wide, num_squares_wide);
-  sprite.create_objec(
-    new Objec({
-      model: sprite,
-      rotpos: new RotPos({
-        scale: [num_squares_wide / 2, num_squares_wide / 2, 1],
-      }),
-      texId: tileset,
-      worldIndex: 1,
-    }),
-  );
-
   const tframe_tex = await LoadTexture(scene, 'tframe.png');
-  selector = new Objec({
-    model: sprite,
-    rotpos: new RotPos({
-      scale: [0.5, 0.5, 1],
-    }),
-    texId: tframe_tex,
-    worldIndex: 1,
-  });
-  sprite.create_objec(selector);
+  palette_camera = new PaletteCamera(
+    [new Palette(new TextureAtlas(tileset, 16, 16))],
+    0,
+    sprite,
+    tframe_tex,
+    1,
+  );
 
   const white_tex_id = await LoadTexture(scene, 'white.png');
   const black_tex_id = await LoadTexture(scene, 'black.png');
@@ -160,7 +143,7 @@ async function Setup() {
 
 const [sprite_shader] = await Setup();
 const screen = new FScreen('canvas', scene);
-select_tile(0, 0);
+palette_camera!.select_tile(0, 0);
 requestAnimationFrame(RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
@@ -214,7 +197,7 @@ cam.onMouseDown = (e) => {
     return;
   }
 
-  const texture_attribute = texture_atlas.get_from_num(tile);
+  const texture_attribute = palette_camera.get_texture_attribute();
 
   if (!tilemap[posX]) tilemap[posX] = {};
 
@@ -236,7 +219,7 @@ cam.onMouseDown = (e) => {
           aTextureCoord: texture_attribute,
         },
       }),
-      data: { tile },
+      data: { tile: palette_camera.current_pallet.selected_tile_index },
     };
 
     model.create_objec(tilemap[posX][posY].objec);
@@ -275,14 +258,8 @@ sidebar.onMouseDown = (e) => {
   const x = Math.floor(cursorWorldPosition.x + num_squares_wide / 2);
   const y = Math.floor(num_squares_wide / 2 - cursorWorldPosition.y);
 
-  if (y < num_squares_wide) select_tile(x, y);
+  if (y < num_squares_wide) {
+    palette_camera.select_tile(x, y);
+    requestAnimationFrame(RenderLoop);
+  }
 };
-
-function select_tile(x: number, y: number) {
-  (selector.rotpos.position as vec3)[0] = num_squares_wide / 2 - x - 0.5;
-  (selector.rotpos.position as vec3)[1] = num_squares_wide / 2 - y - 0.5;
-
-  tile = y * num_squares_wide + x;
-
-  requestAnimationFrame(RenderLoop);
-}

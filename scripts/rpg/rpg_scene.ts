@@ -87,7 +87,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
         rotpos: new RotPos({ scale: [0.5, 0.5, 1] }),
         texId: sprite_sheet,
         overridden_attribs: {
-          aTextureCoord: texture_atlas.get_from_num(7),
+          aTextureCoord: texture_atlas.get_from_index(7),
         },
       }),
     );
@@ -109,7 +109,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
             }),
             texId: dungeon_sprite_sheet,
             overridden_attribs: {
-              aTextureCoord: dungeon_texture_atlas.get_from_num(tile),
+              aTextureCoord: dungeon_texture_atlas.get_from_index(tile),
             },
           }),
         );
@@ -199,7 +199,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   function play_animation(dir: Direction) {
     const set_frame = ([head, ...tail]: number[]) => {
       player.overridden_attribs = {
-        aTextureCoord: texture_atlas.get_from_num(head),
+        aTextureCoord: texture_atlas.get_from_index(head),
       };
 
       if (tail.length === 0) return;
