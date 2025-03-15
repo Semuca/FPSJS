@@ -24,17 +24,6 @@ const num_squares_wide = 16;
 const scene = new Scene();
 const cam_bounds = new ZoomCameraBound(100);
 const cam = new CameraData({ scene, width: 0.8, bounds: cam_bounds, worldIndex: 0 });
-const sidebar = new CameraData({
-  scene,
-  tlCorner: [0.8, 0.0],
-  width: 0.2,
-  height: 0.5,
-  bounds: new HorizontalCameraBound(num_squares_wide / 2, -num_squares_wide / 2, {
-    type: TopOrBottom.Top,
-    value: num_squares_wide / 2,
-  }),
-  worldIndex: 1,
-});
 const other_sidebar = new CameraData({
   scene,
   tlCorner: [0.8, 0.5],
@@ -46,9 +35,6 @@ const other_sidebar = new CameraData({
   }),
   worldIndex: 1,
 });
-scene.AddCameraTree([
-  new VerticalCameraLine(cam, new HorizontalCameraLine(sidebar, other_sidebar, 0.5), 0.8),
-]);
 
 const base_keydown_callbacks: Record<string, () => void> = {};
 
@@ -77,6 +63,11 @@ base_keydown_callbacks['u'] = async () => {
   requestAnimationFrame(RenderLoop);
 };
 
+base_keydown_callbacks['b'] = async () => {
+  palette_camera.select_pallette(1);
+  requestAnimationFrame(RenderLoop);
+};
+
 base_keydown_callbacks['Enter'] = () => {
   toggleFullScreen();
 };
@@ -100,15 +91,27 @@ async function Setup() {
   const ui_sprite = await LoadModel(ui_shader, 'verSprite.json');
 
   // Load sidebar
-  const tileset = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
+  const tileset_tex = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
+  const faces_tex = await LoadTexture(scene, '../rtp/Graphics/Faces/Actor1.png');
   const tframe_tex = await LoadTexture(scene, 'tframe.png');
   palette_camera = new PaletteCamera(
-    [new Palette(new TextureAtlas(tileset, 16, 16))],
-    0,
+    scene,
+    [
+      new Palette(new TextureAtlas(tileset_tex, 16, 16)),
+      new Palette(new TextureAtlas(faces_tex, 4, 2)),
+    ],
     sprite,
     tframe_tex,
     1,
   );
+
+  scene.AddCameraTree([
+    new VerticalCameraLine(
+      cam,
+      new HorizontalCameraLine(palette_camera.camera_data, other_sidebar, 0.5),
+      0.8,
+    ),
+  ]);
 
   const white_tex_id = await LoadTexture(scene, 'white.png');
   const black_tex_id = await LoadTexture(scene, 'black.png');
@@ -143,7 +146,6 @@ async function Setup() {
 
 const [sprite_shader] = await Setup();
 const screen = new FScreen('canvas', scene);
-palette_camera!.select_tile(0, 0);
 requestAnimationFrame(RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
@@ -155,7 +157,7 @@ function RenderLoop() {
 cam.onMouseDown = (e) => {
   if (mode === MODES.MOVE) {
     document.body.style.cursor = 'grab';
-    return;
+    return false;
   }
 
   const cursorWorldPosition = screen.cameras[0].CursorToWorldPosition([e.pageX, e.pageY]);
@@ -170,9 +172,9 @@ cam.onMouseDown = (e) => {
       tilemap[posX][posY].objec.Destructor();
       delete tilemap[posX][posY];
 
-      requestAnimationFrame(RenderLoop);
+      return true;
     }
-    return;
+    return false;
   }
 
   if (screen.keysDown['KeyE'] == true) {
@@ -193,8 +195,7 @@ cam.onMouseDown = (e) => {
       }),
     );
 
-    requestAnimationFrame(RenderLoop);
-    return;
+    return true;
   }
 
   const texture_attribute = palette_camera.get_texture_attribute();
@@ -225,7 +226,7 @@ cam.onMouseDown = (e) => {
     model.create_objec(tilemap[posX][posY].objec);
   }
 
-  requestAnimationFrame(RenderLoop);
+  return true;
 };
 
 cam.onMouseMove = (e) => {
@@ -249,17 +250,4 @@ cam.onWheel = (e) => {
   cam_bounds.zoom = Math.max(40, cam_bounds.zoom);
 
   requestAnimationFrame(RenderLoop);
-};
-
-sidebar.onMouseDown = (e) => {
-  // TODO: I reckon this code would be simpler if the square was aligned on the top-left corner
-  const cursorWorldPosition = screen.cameras[1].CursorToWorldPosition([e.pageX, e.pageY]);
-
-  const x = Math.floor(cursorWorldPosition.x + num_squares_wide / 2);
-  const y = Math.floor(num_squares_wide / 2 - cursorWorldPosition.y);
-
-  if (y < num_squares_wide) {
-    palette_camera.select_tile(x, y);
-    requestAnimationFrame(RenderLoop);
-  }
 };

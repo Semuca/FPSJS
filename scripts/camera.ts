@@ -52,7 +52,7 @@ export class CameraData {
 
   rotpos: RotPos = new RotPos({});
 
-  onMouseDown: (e: MouseEvent) => void = () => {};
+  onMouseDown: (e: MouseEvent, camera: Camera) => boolean = () => false;
   onMouseMove: (e: MouseEvent) => void = () => {};
   onMouseUp: (e: MouseEvent) => void = () => {};
   onWheel: (e: WheelEvent) => void = () => {};

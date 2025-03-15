@@ -68,7 +68,7 @@ export class FScreen {
           hovered_cameras,
         );
       } else if (hovered_cameras.length == 1) {
-        hovered_cameras.at(0)?.camera_data.onMouseDown(e);
+        if (hovered_cameras.at(0)?.camera_data.onMouseDown(e, hovered_cameras.at(0)!)) this.draw(); // requestAnimationFrame?
       }
     });
 
