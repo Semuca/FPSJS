@@ -8,6 +8,7 @@ import { serialize_tilemap, TileMap } from './types';
 import { DialogBox } from './dialog';
 import { Font } from '../font';
 import { Palette, PaletteCamera } from './creator/palette';
+import { ShaderData } from '../shader';
 
 const MODES = {
   MOVE: 0,
@@ -38,6 +39,12 @@ const other_sidebar = new CameraData({
 
 const base_keydown_callbacks: Record<string, () => void> = {};
 
+let sprite_shader: ShaderData;
+let font: Font;
+let ui_sprite: Model;
+let white_tex_id: number;
+let black_tex_id: number;
+
 // Downloads the map
 base_keydown_callbacks['c'] = () => {
   const element = document.createElement('a');
@@ -63,11 +70,6 @@ base_keydown_callbacks['u'] = async () => {
   requestAnimationFrame(RenderLoop);
 };
 
-base_keydown_callbacks['b'] = async () => {
-  palette_camera.select_pallette(1);
-  requestAnimationFrame(RenderLoop);
-};
-
 base_keydown_callbacks['Enter'] = () => {
   toggleFullScreen();
 };
@@ -83,12 +85,12 @@ async function Setup() {
   grid_versprite.create_objec(new Objec({ model: grid_versprite, rotpos: new RotPos2D({}) }));
 
   // Load 2d shader, plus the model
-  const sprite_shader = await LoadShader(scene, '2DspriteVertexShader.vs', 'fragmentShader.fs');
+  sprite_shader = await LoadShader(scene, '2DspriteVertexShader.vs', 'fragmentShader.fs');
   const sprite = await LoadModel(sprite_shader, 'verSprite.json');
 
   // Load ui shader, plus the model
   const ui_shader = await LoadShader(scene, 'ui.vs', 'fragmentShader.fs');
-  const ui_sprite = await LoadModel(ui_shader, 'verSprite.json');
+  ui_sprite = await LoadModel(ui_shader, 'verSprite.json');
 
   // Load sidebar
   const tileset_tex = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
@@ -113,14 +115,25 @@ async function Setup() {
     ),
   ]);
 
-  const white_tex_id = await LoadTexture(scene, 'white.png');
-  const black_tex_id = await LoadTexture(scene, 'black.png');
+  white_tex_id = await LoadTexture(scene, 'white.png');
+  black_tex_id = await LoadTexture(scene, 'black.png');
 
-  const font = new Font(
+  font = new Font(
     new TextureAtlas(await LoadTexture(scene, 'def.png'), 8, 8),
     JSON.parse(await LoadFileText('textures/def.json')),
   );
-  const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, '* HELLO WORLD!');
+}
+
+await Setup();
+const screen = new FScreen('canvas', scene);
+requestAnimationFrame(RenderLoop);
+
+function add_event() {
+  const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, '');
+
+  palette_camera.select_pallette(1, (texture_atlas, number) =>
+    dialog_box.set_portrait(texture_atlas, number),
+  );
 
   ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[¥]^_'.split('').forEach((char) => {
     scene.keyDownCallbacks[char.toLowerCase()] = () => {
@@ -138,15 +151,10 @@ async function Setup() {
   scene.keyDownCallbacks['Escape'] = () => {
     dialog_box.Destructor();
     scene.keyDownCallbacks = base_keydown_callbacks;
+    palette_camera.select_pallette(0);
     requestAnimationFrame(RenderLoop);
   };
-
-  return [sprite_shader];
 }
-
-const [sprite_shader] = await Setup();
-const screen = new FScreen('canvas', scene);
-requestAnimationFrame(RenderLoop);
 
 //Should only be called once per animation frame. Starts a loop of updating shaders.
 function RenderLoop() {
@@ -167,7 +175,7 @@ cam.onMouseDown = (e) => {
   //Positions on the grid
 
   // Delete tile on Z
-  if (screen.keysDown['KeyZ'] == true) {
+  if (screen.keysDown['z'] == true) {
     if (tilemap[posX][posY] != undefined) {
       tilemap[posX][posY].objec.Destructor();
       delete tilemap[posX][posY];
@@ -177,7 +185,7 @@ cam.onMouseDown = (e) => {
     return false;
   }
 
-  if (screen.keysDown['KeyE'] == true) {
+  if (e.button === 2) {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
 
     model.create_objec(
@@ -194,6 +202,8 @@ cam.onMouseDown = (e) => {
         texId: scene.texIds['tframe.png'],
       }),
     );
+
+    add_event();
 
     return true;
   }

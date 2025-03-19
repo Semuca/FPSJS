@@ -58,6 +58,10 @@ export class FScreen {
       return;
     }
 
+    document.addEventListener('contextmenu', function (event) {
+      event.preventDefault();
+    });
+
     document.addEventListener('mousedown', (e) => {
       const hovered_cameras = this.getCamerasFromCursor(e);
 

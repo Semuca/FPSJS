@@ -7,6 +7,8 @@ export class PaletteCamera {
   palettes: Palette[];
   current_pallet!: Palette;
 
+  on_click: (texture_atlas: TextureAtlas, index: number) => void = () => {};
+
   camera_data: CameraData;
 
   tileset: Objec;
@@ -49,10 +51,9 @@ export class PaletteCamera {
         this.current_pallet.texture_atlas.tiles_wide / 2 - cursorWorldPosition.y,
       );
 
-      console.log(x, y);
-
       if (y < this.current_pallet.texture_atlas.tiles_wide) {
         this.select_tile(x, y);
+        this.on_click(this.current_pallet.texture_atlas, this.current_pallet.selected_tile_index);
         return true;
       }
 
@@ -72,8 +73,10 @@ export class PaletteCamera {
     this.select_tile(0, 0);
   }
 
-  select_pallette(index: number) {
+  select_pallette(index: number, on_click?: (texture_atlas: TextureAtlas, index: number) => void) {
     this.current_pallet = this.palettes[index];
+    this.on_click = on_click ?? (() => {});
+
     this.camera_data.bounds = new HorizontalCameraBound(
       this.current_pallet.texture_atlas.tiles_wide / 2,
       -this.current_pallet.texture_atlas.tiles_wide / 2,
