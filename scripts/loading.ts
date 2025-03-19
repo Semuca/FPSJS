@@ -65,7 +65,7 @@ export async function LoadModel(shader_data: ShaderData, url: string): Promise<M
     ).toString();
   }
 
-  const model = new Model(url, model_data);
+  const model = new Model(shader_data.scene, url, model_data);
   shader_data.add_model(model);
 
   return model;
@@ -128,7 +128,6 @@ export async function LoadMap(
         texId: object.texture ? scene.texIds[object.texture] : undefined,
         tags,
       });
-      model.create_objec(objec);
 
       tags.forEach((tag) => {
         if (callbackFunctions[tag]) {

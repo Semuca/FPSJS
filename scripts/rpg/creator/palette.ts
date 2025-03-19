@@ -28,7 +28,6 @@ export class PaletteCamera {
       rotpos: new RotPos({}),
       worldIndex: world_index,
     });
-    sprite.create_objec(this.tileset);
 
     this.camera_data = new CameraData({
       scene,
@@ -48,10 +47,10 @@ export class PaletteCamera {
         cursorWorldPosition.x + this.current_pallet.texture_atlas.tiles_wide / 2,
       );
       const y = Math.floor(
-        this.current_pallet.texture_atlas.tiles_wide / 2 - cursorWorldPosition.y,
+        this.current_pallet.texture_atlas.tiles_high / 2 - cursorWorldPosition.y,
       );
 
-      if (y < this.current_pallet.texture_atlas.tiles_wide) {
+      if (y < this.current_pallet.texture_atlas.tiles_high) {
         this.select_tile(x, y);
         this.on_click(this.current_pallet.texture_atlas, this.current_pallet.selected_tile_index);
         return true;
@@ -68,7 +67,6 @@ export class PaletteCamera {
       texId: tframe_tex,
       worldIndex: world_index,
     });
-    sprite.create_objec(this.selector);
 
     this.select_tile(0, 0);
   }
@@ -97,7 +95,7 @@ export class PaletteCamera {
     (this.selector.rotpos.position as vec3)[0] =
       this.current_pallet.texture_atlas.tiles_wide / 2 - x - 0.5;
     (this.selector.rotpos.position as vec3)[1] =
-      this.current_pallet.texture_atlas.tiles_wide / 2 - y - 0.5;
+      this.current_pallet.texture_atlas.tiles_high / 2 - y - 0.5;
 
     this.current_pallet.selected_tile_index = y * this.current_pallet.texture_atlas.tiles_wide + x;
   }

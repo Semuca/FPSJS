@@ -82,7 +82,7 @@ base_keydown_callbacks[' '] = () => {
 async function Setup() {
   const grid_shader = await LoadShader(scene, 'ui.vs', 'grid.fs');
   const grid_versprite = await LoadModel(grid_shader, 'verSprite.json');
-  grid_versprite.create_objec(new Objec({ model: grid_versprite, rotpos: new RotPos2D({}) }));
+  new Objec({ model: grid_versprite, rotpos: new RotPos2D({}) });
 
   // Load 2d shader, plus the model
   sprite_shader = await LoadShader(scene, '2DspriteVertexShader.vs', 'fragmentShader.fs');
@@ -188,7 +188,7 @@ cam.onMouseDown = (e) => {
   if (e.button === 2) {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
 
-    model.create_objec(
+
       new Objec({
         model,
         rotpos: new RotPos2D({
@@ -200,8 +200,7 @@ cam.onMouseDown = (e) => {
           scale: Scale2D.of_px(0.5, 0.5),
         }),
         texId: scene.texIds['tframe.png'],
-      }),
-    );
+      });
 
     add_event();
 
@@ -232,8 +231,6 @@ cam.onMouseDown = (e) => {
       }),
       data: { tile: palette_camera.current_pallet.selected_tile_index },
     };
-
-    model.create_objec(tilemap[posX][posY].objec);
   }
 
   return true;

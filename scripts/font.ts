@@ -133,7 +133,7 @@ export class Line {
 
   add_characters(chars: string) {
     chars.split('').forEach((char) => {
-      const objec = new Objec({
+      this.objecs.push(new Objec({
         model: this.model,
         rotpos: new RotPos2D({
           position: new Position2D(
@@ -150,9 +150,7 @@ export class Line {
         overridden_attribs: {
           aTextureCoord: this.font.texture_atlas.get_from_index(this.font.chars[char]),
         },
-      });
-      this.model.create_objec(objec);
-      this.objecs.push(objec);
+      }));
     });
   }
 

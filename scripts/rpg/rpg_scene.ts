@@ -81,7 +81,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     texture_atlas = new TextureAtlas(sprite_sheet, 12, 8);
 
     const modelData = await LoadModel(sprite_shader, 'verSprite.json');
-    modelData.create_objec(
+
       new Objec({
         model: modelData,
         rotpos: new RotPos({ scale: [0.5, 0.5, 1] }),
@@ -89,7 +89,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
         overridden_attribs: {
           aTextureCoord: texture_atlas.get_from_index(7),
         },
-      }),
+      }
     );
 
     const dungeon_sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
@@ -100,7 +100,6 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       const x = parseInt(x_string);
       Object.entries(entry).forEach(([y_string, { tile }]) => {
         const y = parseInt(y_string);
-        modelData.create_objec(
           new Objec({
             model: modelData,
             rotpos: new RotPos({
@@ -111,7 +110,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
             overridden_attribs: {
               aTextureCoord: dungeon_texture_atlas.get_from_index(tile),
             },
-          }),
+          }
         );
       });
     });

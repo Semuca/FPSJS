@@ -238,7 +238,10 @@ export class FScreen {
       shader.Destructor();
     });
 
+    this.scene.screen = undefined;
     this.scene = scene;
+    this.scene.screen = this;
+
     this.shaders = this.scene.shader_data.map((shader_data) => new Shader(this, shader_data));
 
     const camera_tree_walk_horiz = (

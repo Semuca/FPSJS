@@ -1,8 +1,10 @@
 import { CameraData } from './camera';
-import { CameraTree } from './screen';
+import { CameraTree, FScreen } from './screen';
 import { ShaderData } from './shader';
 
 export class Scene {
+  screen?: FScreen;
+
   shader_data: ShaderData[] = [];
   camera_tree: CameraTree<CameraData> = [];
 

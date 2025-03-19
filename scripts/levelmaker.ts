@@ -150,7 +150,6 @@ async function Setup() {
     texId: scene.texIds['tframe.png'],
   });
   highlighter.hidden = true;
-  modelData.create_objec(highlighter);
 
   secondHighlighter = new Objec({
     model: modelData,
@@ -158,7 +157,6 @@ async function Setup() {
     texId: scene.texIds['tframe.png'],
   });
   secondHighlighter.hidden = true;
-  modelData.create_objec(secondHighlighter);
 
   hover = new Objec({
     model: modelData,
@@ -166,7 +164,6 @@ async function Setup() {
     texId: scene.texIds['texture.png'],
   });
   hover.hidden = true;
-  modelData.create_objec(hover);
 
   //Load line models
   const line_shader = await LoadShader(scene, '2DflatlineVertexShader.vs', 'lineFragmentShader.fs');
@@ -175,11 +172,10 @@ async function Setup() {
     model: modelData,
     rotpos: new RotPos2D([0, 0, 0], undefined, Scale2D.of_px(0, 0)),
   });
-  modelData.create_objec(line);
 
   const grid_shader = await LoadShader(scene, 'grid.vs', 'grid.fs');
   const plane = await LoadModel(grid_shader, 'verSprite.json');
-  plane.create_objec(new Objec({ model: plane, rotpos: new RotPos2D([0, 0, 0]) }));
+  new Objec({ model: plane, rotpos: new RotPos2D([0, 0, 0]) });
 
   return [modelData, plane];
 }
@@ -272,7 +268,6 @@ cam.onMouseDown = () => {
       ),
     );
 
-    plane.create_objec(
       new Objec({
         model: plane,
         rotpos: new RotPos2D(
@@ -281,7 +276,7 @@ cam.onMouseDown = () => {
           Scale2D.of_px(0.5, 0.5),
         ),
         texId: scene.texIds[sidepanes[currentSidepaneIndex].textures[tile]],
-      }),
+      }
     );
 
     requestAnimationFrame(RenderLoop);
@@ -466,7 +461,7 @@ scene.keyDownCallbacks['KeyU'] = () => {
             sidepanes[currentSidepaneIndex].tags,
           ),
         );
-        plane.create_objec(
+
           new Objec({
             model: plane,
             rotpos: new RotPos2D(
@@ -475,7 +470,7 @@ scene.keyDownCallbacks['KeyU'] = () => {
               Scale2D.of_px(1, 1),
             ),
             texId: scene.texIds[object.texture],
-          }),
+          }
         );
       }
     });

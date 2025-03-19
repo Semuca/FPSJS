@@ -48,8 +48,6 @@ export class DialogBox {
       }),
     ];
 
-    this.box_objecs.forEach((box_objec) => this.model.create_objec(box_objec));
-
     this.text_block = new TextBlock(
       font,
       this.model,
@@ -78,8 +76,6 @@ export class DialogBox {
         aTextureCoord: texture_atlas.get_from_index(index),
       },
     });
-
-    this.model.create_objec(this.portrait_obj);
   }
 
   Destructor() {

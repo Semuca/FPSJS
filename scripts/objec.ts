@@ -2,6 +2,7 @@ import { mat4, quat, vec2, vec3 } from 'gl-matrix';
 // import { PhysicsObjec, PhysicsScene } from "./physics.js";
 import { FScreen } from './screen';
 import { Camera } from './camera';
+import { Scene } from './scene';
 
 export interface ModelData {
   ARRAY_BUFFER: Record<string, [number[], number, number, number]>;
@@ -11,6 +12,8 @@ export interface ModelData {
 
 // Stores data about an unloaded, uninstantiated object that is generic. I.e what shaders does this object work with?
 export class Model {
+  scene: Scene;
+
   name: string;
   modelData: ModelData;
 
@@ -22,14 +25,11 @@ export class Model {
 
   textureId?: number;
 
-  constructor(name: string, modelData: ModelData, vao?: WebGLVertexArrayObject) {
+  constructor(scene: Scene, name: string, modelData: ModelData, vao?: WebGLVertexArrayObject) {
+    this.scene = scene;
     this.name = name;
     this.modelData = modelData;
     this.vao = vao;
-  }
-
-  create_objec(objec: Objec) {
-    this.objects.push(objec);
   }
 }
 
@@ -70,6 +70,11 @@ export class Objec {
     this.overridden_attribs = overridden_attribs;
     this.worldIndex = worldIndex;
     tags.forEach((tag) => this.tags.add(tag));
+    this.model.objects.push(this);
+
+    if (this.rotpos instanceof RotPos2D && this.model.scene.screen) {
+      this.rotpos.calculate_dim(this.model.scene.screen.cameras.find((camera) => camera.camera_data.worldIndex === this.worldIndex)!);
+    }
   }
 
   // TiePhysicsObjec(physicsScene: PhysicsScene): void {

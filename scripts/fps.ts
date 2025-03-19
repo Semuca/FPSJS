@@ -182,13 +182,10 @@ cam.onMouseDown = () => {
 
   const model = screen.shaders[0].shader_data.models[scene.texIds['plane.json']];
 
-  const objec = new Objec({
+  decals.push(new Objec({
     model,
     rotpos: new RotPos([hit.intersection.y, 0, hit.intersection.x], rotation, [0.1, 0.1, 0.1]),
-  });
-
-  model.create_objec(objec);
-  decals.push(objec);
+  }));
 
   // Trigger a shot landed call on whatever object the shot lands on
 };
