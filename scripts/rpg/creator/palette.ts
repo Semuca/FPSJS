@@ -49,6 +49,8 @@ export class PaletteCamera {
         this.current_pallet.texture_atlas.tiles_wide / 2 - cursorWorldPosition.y,
       );
 
+      console.log(x, y);
+
       if (y < this.current_pallet.texture_atlas.tiles_wide) {
         this.select_tile(x, y);
         return true;
@@ -77,12 +79,12 @@ export class PaletteCamera {
       -this.current_pallet.texture_atlas.tiles_wide / 2,
       {
         type: TopOrBottom.Top,
-        value: this.current_pallet.texture_atlas.tiles_wide / 2,
+        value: this.current_pallet.texture_atlas.tiles_high / 2,
       },
     );
     (this.tileset.rotpos.scale as vec3) = [
       this.current_pallet.texture_atlas.tiles_wide / 2,
-      this.current_pallet.texture_atlas.tiles_wide / 2,
+      this.current_pallet.texture_atlas.tiles_high / 2,
       1,
     ];
     this.tileset.texId = this.current_pallet.texture_atlas.tex_id;
