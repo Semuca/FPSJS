@@ -1,6 +1,6 @@
 import { FScreen, HorizontalCameraLine, toggleFullScreen, VerticalCameraLine } from '../screen';
 import { LoadTexture, LoadModel, LoadShader, LoadFileText } from '../loading';
-import { Model, Objec, Position2D, RotPos, RotPos2D, Scale2D } from '../objec';
+import { Model, Objec, RotPos, RotPos2D } from '../objec';
 import { run_rpg } from './rpg_scene';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
@@ -190,13 +190,9 @@ cam.onMouseDown = (e) => {
 
       new Objec({
         model,
-        rotpos: new RotPos2D({
-          position: new Position2D(
-            { value: 0, px_mod: -posX - 0.5 },
-            { value: 0, px_mod: posY + 0.5 },
-            0,
-          ),
-          scale: Scale2D.of_px(0.5, 0.5),
+        rotpos: new RotPos({
+          position: [-posX - 0.5, posY + 0.5, 0.5],
+          scale: [0.5, 0.5, 1],
         }),
         texId: scene.texIds['tframe.png'],
       });
