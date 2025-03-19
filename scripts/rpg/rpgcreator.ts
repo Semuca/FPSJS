@@ -138,7 +138,6 @@ function add_event() {
   ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[¥]^_'.split('').forEach((char) => {
     scene.keyDownCallbacks[char.toLowerCase()] = () => {
       dialog_box.text_block.add_characters(char);
-      screen.on_resize();
       requestAnimationFrame(RenderLoop);
     };
   });

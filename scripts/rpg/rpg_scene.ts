@@ -163,7 +163,6 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
             }
             setTimeout(() => set_frame(tail), 40);
           };
-          screen.on_resize();
           break;
         }
         default:
