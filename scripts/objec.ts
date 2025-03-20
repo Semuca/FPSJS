@@ -73,7 +73,11 @@ export class Objec {
     this.model.objects.push(this);
 
     if (this.rotpos instanceof RotPos2D && this.model.scene.screen) {
-      this.rotpos.calculate_dim(this.model.scene.screen.cameras.find((camera) => camera.camera_data.worldIndex === this.worldIndex)!);
+      this.rotpos.calculate_dim(
+        this.model.scene.screen.cameras.find(
+          (camera) => camera.camera_data.worldIndex === this.worldIndex,
+        )!,
+      );
     }
   }
 

@@ -133,24 +133,26 @@ export class Line {
 
   add_characters(chars: string) {
     chars.split('').forEach((char) => {
-      this.objecs.push(new Objec({
-        model: this.model,
-        rotpos: new RotPos2D({
-          position: new Position2D(
-            {
-              value: this.x.value,
-              px_mod: (this.x.px_mod ?? 0) + letter_size * this.objecs.length,
-            },
-            { value: this.y },
-            0,
-          ),
-          scale: Scale2D.of_px(letter_size, letter_size),
+      this.objecs.push(
+        new Objec({
+          model: this.model,
+          rotpos: new RotPos2D({
+            position: new Position2D(
+              {
+                value: this.x.value,
+                px_mod: (this.x.px_mod ?? 0) + letter_size * this.objecs.length,
+              },
+              { value: this.y },
+              0,
+            ),
+            scale: Scale2D.of_px(letter_size, letter_size),
+          }),
+          texId: this.font.texture_atlas.tex_id,
+          overridden_attribs: {
+            aTextureCoord: this.font.texture_atlas.get_from_index(this.font.chars[char]),
+          },
         }),
-        texId: this.font.texture_atlas.tex_id,
-        overridden_attribs: {
-          aTextureCoord: this.font.texture_atlas.get_from_index(this.font.chars[char]),
-        },
-      }));
+      );
     });
   }
 

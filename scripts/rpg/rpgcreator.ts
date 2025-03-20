@@ -99,7 +99,7 @@ async function Setup() {
   palette_camera = new PaletteCamera(
     scene,
     [
-      new Palette(new TextureAtlas(tileset_tex, 16, 16)),
+      new Palette(new TextureAtlas(tileset_tex, 16, 16), 0),
       new Palette(new TextureAtlas(faces_tex, 4, 2)),
     ],
     sprite,
@@ -187,22 +187,21 @@ cam.onMouseDown = (e) => {
   if (e.button === 2) {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
 
-
-      new Objec({
-        model,
-        rotpos: new RotPos({
-          position: [-posX - 0.5, posY + 0.5, 0.5],
-          scale: [0.5, 0.5, 1],
-        }),
-        texId: scene.texIds['tframe.png'],
-      });
+    new Objec({
+      model,
+      rotpos: new RotPos({
+        position: [-posX - 0.5, posY + 0.5, 0.5],
+        scale: [0.5, 0.5, 1],
+      }),
+      texId: scene.texIds['tframe.png'],
+    });
 
     add_event();
 
     return true;
   }
 
-  const texture_attribute = palette_camera.get_texture_attribute();
+  const texture_attribute = palette_camera.get_texture_attribute()!;
 
   if (!tilemap[posX]) tilemap[posX] = {};
 
@@ -224,7 +223,7 @@ cam.onMouseDown = (e) => {
           aTextureCoord: texture_attribute,
         },
       }),
-      data: { tile: palette_camera.current_pallet.selected_tile_index },
+      data: { tile: palette_camera.current_pallet.selected_tile_index! },
     };
   }
 

@@ -510,7 +510,12 @@ export function IntersectionRoundedSegmentAndSegment(
     Math.PI,
   );
 
-  const segmentIntersections = [segment1, segment2].map((_segment) => IntersectionSegmentAndSegment(_segment, segment));
+  const segmentIntersections = [segment1, segment2].map((_segment) =>
+    IntersectionSegmentAndSegment(_segment, segment),
+  );
   const arcIntersections = [arc1, arc2].map((arc) => IntersectionArcAndSegment(arc, segment));
-  return [...segmentIntersections, ...arcIntersections].flat().filter(Boolean) as [Point2D, Point2D] | [Point2D] | [];
+  return [...segmentIntersections, ...arcIntersections].flat().filter(Boolean) as
+    | [Point2D, Point2D]
+    | [Point2D]
+    | [];
 }

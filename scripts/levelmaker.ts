@@ -268,16 +268,15 @@ cam.onMouseDown = () => {
       ),
     );
 
-      new Objec({
-        model: plane,
-        rotpos: new RotPos2D(
-          [highlighter.rotpos.position[0], highlighter.rotpos.position[1], 0],
-          Math.PI,
-          Scale2D.of_px(0.5, 0.5),
-        ),
-        texId: scene.texIds[sidepanes[currentSidepaneIndex].textures[tile]],
-      }
-    );
+    new Objec({
+      model: plane,
+      rotpos: new RotPos2D(
+        [highlighter.rotpos.position[0], highlighter.rotpos.position[1], 0],
+        Math.PI,
+        Scale2D.of_px(0.5, 0.5),
+      ),
+      texId: scene.texIds[sidepanes[currentSidepaneIndex].textures[tile]],
+    });
 
     requestAnimationFrame(RenderLoop);
   } else if (sidepanes[currentSidepaneIndex].place === 'line') {
@@ -462,16 +461,15 @@ scene.keyDownCallbacks['KeyU'] = () => {
           ),
         );
 
-          new Objec({
-            model: plane,
-            rotpos: new RotPos2D(
-              [object.position[0], object.position[2], 0],
-              Math.PI,
-              Scale2D.of_px(1, 1),
-            ),
-            texId: scene.texIds[object.texture],
-          }
-        );
+        new Objec({
+          model: plane,
+          rotpos: new RotPos2D(
+            [object.position[0], object.position[2], 0],
+            Math.PI,
+            Scale2D.of_px(1, 1),
+          ),
+          texId: scene.texIds[object.texture],
+        });
       }
     });
   };

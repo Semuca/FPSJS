@@ -82,15 +82,14 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
 
     const modelData = await LoadModel(sprite_shader, 'verSprite.json');
 
-      new Objec({
-        model: modelData,
-        rotpos: new RotPos({ scale: [0.5, 0.5, 1] }),
-        texId: sprite_sheet,
-        overridden_attribs: {
-          aTextureCoord: texture_atlas.get_from_index(7),
-        },
-      }
-    );
+    new Objec({
+      model: modelData,
+      rotpos: new RotPos({ scale: [0.5, 0.5, 1] }),
+      texId: sprite_sheet,
+      overridden_attribs: {
+        aTextureCoord: texture_atlas.get_from_index(7),
+      },
+    });
 
     const dungeon_sprite_sheet = await LoadTexture(scene, '../rtp/Graphics/Tilesets/Dungeon_B.png');
     const dungeon_texture_atlas = new TextureAtlas(dungeon_sprite_sheet, 16, 16);
@@ -100,18 +99,17 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       const x = parseInt(x_string);
       Object.entries(entry).forEach(([y_string, { tile }]) => {
         const y = parseInt(y_string);
-          new Objec({
-            model: modelData,
-            rotpos: new RotPos({
-              position: [x, y, tile_info_map[tile]?.layer ?? 0],
-              scale: [0.5, 0.5, 1],
-            }),
-            texId: dungeon_sprite_sheet,
-            overridden_attribs: {
-              aTextureCoord: dungeon_texture_atlas.get_from_index(tile),
-            },
-          }
-        );
+        new Objec({
+          model: modelData,
+          rotpos: new RotPos({
+            position: [x, y, tile_info_map[tile]?.layer ?? 0],
+            scale: [0.5, 0.5, 1],
+          }),
+          texId: dungeon_sprite_sheet,
+          overridden_attribs: {
+            aTextureCoord: dungeon_texture_atlas.get_from_index(tile),
+          },
+        });
       });
     });
 

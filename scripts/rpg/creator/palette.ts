@@ -37,6 +37,15 @@ export class PaletteCamera {
       worldIndex: world_index,
     });
 
+    this.selector = new Objec({
+      model: sprite,
+      rotpos: new RotPos({
+        scale: [0.5, 0.5, 1],
+      }),
+      texId: tframe_tex,
+      worldIndex: world_index,
+    });
+
     this.select_pallette(0);
 
     this.camera_data.onMouseDown = (e, camera) => {
@@ -52,23 +61,12 @@ export class PaletteCamera {
 
       if (y < this.current_pallet.texture_atlas.tiles_high) {
         this.select_tile(x, y);
-        this.on_click(this.current_pallet.texture_atlas, this.current_pallet.selected_tile_index);
+        this.on_click(this.current_pallet.texture_atlas, this.current_pallet.selected_tile_index!);
         return true;
       }
 
       return false;
     };
-
-    this.selector = new Objec({
-      model: sprite,
-      rotpos: new RotPos({
-        scale: [0.5, 0.5, 1],
-      }),
-      texId: tframe_tex,
-      worldIndex: world_index,
-    });
-
-    this.select_tile(0, 0);
   }
 
   select_pallette(index: number, on_click?: (texture_atlas: TextureAtlas, index: number) => void) {
@@ -89,9 +87,24 @@ export class PaletteCamera {
       1,
     ];
     this.tileset.texId = this.current_pallet.texture_atlas.tex_id;
+
+    if (this.current_pallet.selected_tile_index === undefined) {
+      this.selector.hidden = true;
+      return;
+    }
+
+    const x =
+      this.current_pallet.selected_tile_index % this.current_pallet.texture_atlas.tiles_wide;
+    const y = Math.floor(
+      this.current_pallet.selected_tile_index / this.current_pallet.texture_atlas.tiles_wide,
+    );
+
+    this.select_tile(x, y);
   }
 
   select_tile(x: number, y: number) {
+    this.selector.hidden = false;
+
     (this.selector.rotpos.position as vec3)[0] =
       this.current_pallet.texture_atlas.tiles_wide / 2 - x - 0.5;
     (this.selector.rotpos.position as vec3)[1] =
@@ -101,6 +114,8 @@ export class PaletteCamera {
   }
 
   get_texture_attribute() {
+    if (this.current_pallet.selected_tile_index == undefined) return undefined;
+
     return this.current_pallet.texture_atlas.get_from_index(
       this.current_pallet.selected_tile_index,
     );
@@ -110,9 +125,10 @@ export class PaletteCamera {
 export class Palette {
   texture_atlas: TextureAtlas;
 
-  selected_tile_index: number = 0;
+  selected_tile_index?: number;
 
-  constructor(texture_atlas: TextureAtlas) {
+  constructor(texture_atlas: TextureAtlas, selected_tile_index?: number) {
     this.texture_atlas = texture_atlas;
+    this.selected_tile_index = selected_tile_index;
   }
 }
