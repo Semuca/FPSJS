@@ -1,6 +1,6 @@
 import { CameraData, HorizontalCameraBound, TopOrBottom } from '../../camera';
 import { Model, Objec, RotPos } from '../../objec';
-import { Scene } from '../../scene';
+import { Scene, TextureAtlas } from '../../scene';
 import { DialogBox } from '../dialog';
 import { DialogStep, EventStep } from '../types';
 
@@ -70,6 +70,11 @@ export class EventCamera {
 
   set_event(event: EventStep[]) {
     event.forEach((event_step) => this.add_step(event_step));
+  }
+
+  set_portrait(texture_atlas: TextureAtlas, number: number) {
+    (this.event[this.current_step_index] as DialogStep).portrait = number;
+    this.dialog_box?.set_portrait(texture_atlas, number);
   }
 
   add_characters(chars: string) {

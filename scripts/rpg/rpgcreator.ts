@@ -159,7 +159,7 @@ function enter_event_mode(posX: number, posY: number) {
   event_camera.set_event(tilemap[posX][posY].data.on_step ?? [{ type: 'DialogStep', text: '' }]);
 
   palette_camera.select_pallette(1, (texture_atlas, number) =>
-    event_camera.dialog_box!.set_portrait(texture_atlas, number),
+    event_camera.set_portrait(texture_atlas, number),
   );
 
   ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[¥]^_'.split('').forEach((char) => {

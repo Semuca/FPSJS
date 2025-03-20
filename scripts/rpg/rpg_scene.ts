@@ -57,6 +57,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
   let white_tex_id: number;
   let black_tex_id: number;
   let font: Font;
+  let faces_texture_atlas: TextureAtlas;
 
   let can_move: boolean = true;
 
@@ -120,6 +121,12 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     white_tex_id = await LoadTexture(scene, 'white.png');
     black_tex_id = await LoadTexture(scene, 'black.png');
 
+    faces_texture_atlas = new TextureAtlas(
+      await LoadTexture(scene, '../rtp/Graphics/Faces/Actor1.png'),
+      4,
+      2,
+    );
+
     font = new Font(
       new TextureAtlas(await LoadTexture(scene, 'def.png'), 8, 8),
       JSON.parse(await LoadFileText('textures/def.json')),
@@ -152,6 +159,10 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
             black_tex_id,
             event_step.text,
           );
+
+          if (event_step.portrait)
+            dialog_box.set_portrait(faces_texture_atlas, event_step.portrait);
+
           scene.keyDownCallbacks['Enter'] = () => {
             dialog_box.Destructor();
             scene.keyDownCallbacks['Enter'] = () => {};

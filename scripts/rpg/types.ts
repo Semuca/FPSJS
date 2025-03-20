@@ -3,6 +3,7 @@ import { Objec } from '../objec';
 export interface DialogStep {
   type: 'DialogStep';
   text: string;
+  portrait?: number;
 }
 
 export interface ChoiceStep {
