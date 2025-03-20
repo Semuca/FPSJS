@@ -3,12 +3,13 @@ import { LoadTexture, LoadModel, LoadShader, LoadFileText } from '../loading';
 import { Model, Objec, RotPos, RotPos2D } from '../objec';
 import { run_rpg } from './rpg_scene';
 import { Scene, TextureAtlas } from '../scene';
-import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
-import { DialogStep, serialize_tilemap, TileMap } from './types';
+import { CameraData, ZoomCameraBound } from '../camera';
+import { serialize_tilemap, TileMap } from './types';
 import { DialogBox } from './dialog';
 import { Font } from '../font';
 import { Palette, PaletteCamera } from './creator/palette';
 import { ShaderData } from '../shader';
+import { EventCamera } from './creator/event';
 
 const MODES = {
   MOVE: 0,
@@ -18,24 +19,12 @@ const MODES = {
 let mode = MODES.PLACE;
 
 let palette_camera: PaletteCamera;
+let event_camera: EventCamera;
 const tilemap: TileMap = {};
-
-const num_squares_wide = 16;
 
 const scene = new Scene();
 const cam_bounds = new ZoomCameraBound(100);
 const cam = new CameraData({ scene, width: 0.8, bounds: cam_bounds, worldIndex: 0 });
-const other_sidebar = new CameraData({
-  scene,
-  tlCorner: [0.8, 0.5],
-  width: 0.2,
-  height: 0.5,
-  bounds: new HorizontalCameraBound(num_squares_wide / 2, -num_squares_wide / 2, {
-    type: TopOrBottom.Top,
-    value: num_squares_wide / 2,
-  }),
-  worldIndex: 1,
-});
 
 const base_keydown_callbacks: Record<string, () => void> = {};
 
@@ -107,10 +96,16 @@ async function Setup() {
     1,
   );
 
+  event_camera = new EventCamera(
+    scene,
+    sprite,
+    (text) => new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, text),
+  );
+
   scene.AddCameraTree([
     new VerticalCameraLine(
       cam,
-      new HorizontalCameraLine(palette_camera.camera_data, other_sidebar, 0.5),
+      new HorizontalCameraLine(palette_camera.camera_data, event_camera.camera_data, 0.5),
       0.8,
     ),
   ]);
@@ -159,46 +154,30 @@ function enter_event_mode(posX: number, posY: number) {
       }),
       texId: scene.texIds['tframe.png'],
     });
-
-    tilemap[posX][posY].data.on_step = [
-      {
-        type: 'DialogStep',
-        text: '',
-      },
-    ];
   }
 
-  const dialog_box = new DialogBox(
-    font,
-    ui_sprite,
-    white_tex_id,
-    black_tex_id,
-    (tilemap[posX][posY].data.on_step[0] as DialogStep).text,
-  );
+  event_camera.set_event([{ type: 'DialogStep', text: '' }]);
 
   palette_camera.select_pallette(1, (texture_atlas, number) =>
-    dialog_box.set_portrait(texture_atlas, number),
+    event_camera.dialog_box!.set_portrait(texture_atlas, number),
   );
 
   ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[¥]^_'.split('').forEach((char) => {
     scene.keyDownCallbacks[char.toLowerCase()] = () => {
-      dialog_box.text_block.add_characters(char);
-      (tilemap[posX][posY].data.on_step![0] as DialogStep).text += char;
+      event_camera.add_characters(char);
       requestAnimationFrame(RenderLoop);
     };
   });
 
   scene.keyDownCallbacks['Backspace'] = () => {
-    dialog_box.text_block.delete_character();
-    (tilemap[posX][posY].data.on_step![0] as DialogStep).text = (
-      tilemap[posX][posY].data.on_step![0] as DialogStep
-    ).text.slice(0, -1);
+    event_camera.delete_character();
     requestAnimationFrame(RenderLoop);
   };
 
   scene.keyDownCallbacks['Escape'] = () => {
-    dialog_box.Destructor();
+    event_camera.Destructor();
     scene.keyDownCallbacks = base_keydown_callbacks;
+    tilemap[posX][posY].data.on_step = event_camera.event;
     palette_camera.select_pallette(0);
     requestAnimationFrame(RenderLoop);
   };
