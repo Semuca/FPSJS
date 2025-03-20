@@ -85,6 +85,10 @@ export class EventCamera {
   }
 
   Destructor() {
+    this.event = [];
+
     this.dialog_box?.Destructor();
+    this.objecs.forEach((objec) => objec.Destructor());
+    this.objecs = [];
   }
 }

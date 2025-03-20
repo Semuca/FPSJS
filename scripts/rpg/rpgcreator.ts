@@ -156,7 +156,7 @@ function enter_event_mode(posX: number, posY: number) {
     });
   }
 
-  event_camera.set_event([{ type: 'DialogStep', text: '' }]);
+  event_camera.set_event(tilemap[posX][posY].data.on_step ?? [{ type: 'DialogStep', text: '' }]);
 
   palette_camera.select_pallette(1, (texture_atlas, number) =>
     event_camera.dialog_box!.set_portrait(texture_atlas, number),
@@ -175,9 +175,9 @@ function enter_event_mode(posX: number, posY: number) {
   };
 
   scene.keyDownCallbacks['Escape'] = () => {
-    event_camera.Destructor();
     scene.keyDownCallbacks = base_keydown_callbacks;
     tilemap[posX][posY].data.on_step = event_camera.event;
+    event_camera.Destructor();
     palette_camera.select_pallette(0);
     requestAnimationFrame(RenderLoop);
   };
@@ -190,6 +190,8 @@ function RenderLoop() {
 
 //For placing tiles
 cam.onMouseDown = (e) => {
+  if (event_camera.event.length) return false;
+
   if (mode === MODES.MOVE) {
     document.body.style.cursor = 'grab';
     return false;
