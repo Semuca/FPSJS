@@ -4,7 +4,7 @@ import { Model, Objec, RotPos, RotPos2D } from '../objec';
 import { run_rpg } from './rpg_scene';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom, ZoomCameraBound } from '../camera';
-import { serialize_tilemap, TileMap } from './types';
+import { DialogStep, serialize_tilemap, TileMap } from './types';
 import { DialogBox } from './dialog';
 import { Font } from '../font';
 import { Palette, PaletteCamera } from './creator/palette';
@@ -128,8 +128,53 @@ await Setup();
 const screen = new FScreen('canvas', scene);
 requestAnimationFrame(RenderLoop);
 
-function add_event() {
-  const dialog_box = new DialogBox(font, ui_sprite, white_tex_id, black_tex_id, '');
+function enter_event_mode(posX: number, posY: number) {
+  const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
+
+  if (!tilemap[posX]) tilemap[posX] = {};
+
+  if (tilemap[posX][posY] === undefined) {
+    tilemap[posX][posY] = {
+      data: { tile: 0 },
+      objec: new Objec({
+        model,
+        rotpos: new RotPos({
+          position: [-posX - 0.5, posY + 0.5, 0.5],
+          scale: [0.5, 0.5, 1],
+        }),
+        texId: scene.texIds['../rtp/Graphics/Tilesets/Dungeon_B.png'],
+        overridden_attribs: {
+          aTextureCoord: palette_camera.get_texture_attribute()!,
+        },
+      }),
+    };
+  }
+
+  if (tilemap[posX][posY].data.on_step === undefined) {
+    new Objec({
+      model,
+      rotpos: new RotPos({
+        position: [-posX - 0.5, posY + 0.5, 0.5],
+        scale: [0.5, 0.5, 1],
+      }),
+      texId: scene.texIds['tframe.png'],
+    });
+
+    tilemap[posX][posY].data.on_step = [
+      {
+        type: 'DialogStep',
+        text: '',
+      },
+    ];
+  }
+
+  const dialog_box = new DialogBox(
+    font,
+    ui_sprite,
+    white_tex_id,
+    black_tex_id,
+    (tilemap[posX][posY].data.on_step[0] as DialogStep).text,
+  );
 
   palette_camera.select_pallette(1, (texture_atlas, number) =>
     dialog_box.set_portrait(texture_atlas, number),
@@ -138,12 +183,16 @@ function add_event() {
   ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[¥]^_'.split('').forEach((char) => {
     scene.keyDownCallbacks[char.toLowerCase()] = () => {
       dialog_box.text_block.add_characters(char);
+      (tilemap[posX][posY].data.on_step![0] as DialogStep).text += char;
       requestAnimationFrame(RenderLoop);
     };
   });
 
   scene.keyDownCallbacks['Backspace'] = () => {
     dialog_box.text_block.delete_character();
+    (tilemap[posX][posY].data.on_step![0] as DialogStep).text = (
+      tilemap[posX][posY].data.on_step![0] as DialogStep
+    ).text.slice(0, -1);
     requestAnimationFrame(RenderLoop);
   };
 
@@ -185,18 +234,7 @@ cam.onMouseDown = (e) => {
   }
 
   if (e.button === 2) {
-    const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
-
-    new Objec({
-      model,
-      rotpos: new RotPos({
-        position: [-posX - 0.5, posY + 0.5, 0.5],
-        scale: [0.5, 0.5, 1],
-      }),
-      texId: scene.texIds['tframe.png'],
-    });
-
-    add_event();
+    enter_event_mode(posX, posY);
 
     return true;
   }
