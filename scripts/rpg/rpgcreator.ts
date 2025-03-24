@@ -59,6 +59,11 @@ base_keydown_callbacks['u'] = async () => {
   requestAnimationFrame(RenderLoop);
 };
 
+base_keydown_callbacks['l'] = async () => {
+  palette_camera.toggle_edit_layer_mode();
+  requestAnimationFrame(RenderLoop);
+};
+
 base_keydown_callbacks['Enter'] = () => {
   toggleFullScreen();
 };
@@ -67,6 +72,8 @@ base_keydown_callbacks[' '] = () => {
   mode = mode === MODES.MOVE ? MODES.PLACE : MODES.MOVE;
   document.body.style.cursor = mode === MODES.MOVE ? 'grab' : 'pointer';
 };
+
+scene.keyDownCallbacks = base_keydown_callbacks;
 
 async function Setup() {
   const grid_shader = await LoadShader(scene, 'ui.vs', 'grid.fs');
@@ -88,8 +95,8 @@ async function Setup() {
   palette_camera = new PaletteCamera(
     scene,
     [
-      new Palette(new TextureAtlas(tileset_tex, 16, 16), 0),
-      new Palette(new TextureAtlas(faces_tex, 4, 2)),
+      new Palette(new TextureAtlas(tileset_tex, 16, 16), true, 0),
+      new Palette(new TextureAtlas(faces_tex, 4, 2), false),
     ],
     sprite,
     tframe_tex,

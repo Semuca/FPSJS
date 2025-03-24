@@ -11,8 +11,13 @@ export class PaletteCamera {
 
   camera_data: CameraData;
 
+  sprite: Model;
+
   tileset: Objec;
   selector: Objec;
+
+  layer_mode: boolean = false;
+  layer_mode_objecs: Objec[] = [];
 
   constructor(
     scene: Scene,
@@ -22,6 +27,7 @@ export class PaletteCamera {
     world_index: number,
   ) {
     this.palettes = palettes;
+    this.sprite = sprite;
 
     this.tileset = new Objec({
       model: sprite,
@@ -120,15 +126,54 @@ export class PaletteCamera {
       this.current_pallet.selected_tile_index,
     );
   }
+
+  toggle_edit_layer_mode() {
+    if (!this.layer_mode) this.start_edit_layer_mode();
+    else this.end_edit_layer_mode();
+  }
+
+  start_edit_layer_mode() {
+    const width = this.current_pallet.texture_atlas.tiles_high / 2;
+    const height = this.current_pallet.texture_atlas.tiles_wide / 2;
+    for (let y = -width; y < width; y++) {
+      for (let x = -height; x < height; x++) {
+        this.layer_mode_objecs.push(
+          new Objec({
+            model: this.sprite,
+            rotpos: new RotPos({
+              position: [y + 0.5, x + 0.5, 0],
+              scale: [0.5, 0.5, 1],
+            }),
+            worldIndex: 1,
+          }),
+        );
+      }
+    }
+    this.layer_mode = true;
+  }
+
+  end_edit_layer_mode() {
+    this.layer_mode_objecs.forEach((layer_mode_objec) => {
+      layer_mode_objec.Destructor();
+    });
+    this.layer_mode_objecs = [];
+    this.layer_mode = false;
+  }
 }
 
 export class Palette {
   texture_atlas: TextureAtlas;
 
+  layer_editor_enabled: boolean;
   selected_tile_index?: number;
 
-  constructor(texture_atlas: TextureAtlas, selected_tile_index?: number) {
+  constructor(
+    texture_atlas: TextureAtlas,
+    layer_editor_enabled: boolean = true,
+    selected_tile_index?: number,
+  ) {
     this.texture_atlas = texture_atlas;
+    this.layer_editor_enabled = layer_editor_enabled;
     this.selected_tile_index = selected_tile_index;
   }
 }
