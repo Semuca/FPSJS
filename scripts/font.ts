@@ -1,4 +1,4 @@
-import { Model, Objec, Position2D, Position2DValue, RotPos2D, Scale2D } from './objec';
+import { Model, Objec, Position2D, Position2DValue, RotPos, RotPos2D, Scale2D } from './objec';
 import { TextureAtlas } from './scene';
 
 export class Font {
@@ -118,15 +118,27 @@ export class TextBlock {
 export class Line {
   font: Font;
   model: Model;
-  x: Position2DValue;
+
+  x: Position2DValue | number;
   y: number;
+  world_index: number;
+
   objecs: Objec[] = [];
 
-  constructor(font: Font, model: Model, x: Position2DValue, y: number, text: string) {
+  constructor(
+    font: Font,
+    model: Model,
+    x: Position2DValue | number,
+    y: number,
+    text: string,
+    world_index: number = 0,
+  ) {
     this.font = font;
     this.model = model;
+
     this.x = x;
     this.y = y;
+    this.world_index = world_index;
 
     this.add_characters(text);
   }
@@ -136,21 +148,25 @@ export class Line {
       this.objecs.push(
         new Objec({
           model: this.model,
-          rotpos: new RotPos2D({
-            position: new Position2D(
-              {
-                value: this.x.value,
-                px_mod: (this.x.px_mod ?? 0) + letter_size * this.objecs.length,
-              },
-              { value: this.y },
-              0,
-            ),
-            scale: Scale2D.of_px(letter_size, letter_size),
-          }),
+          rotpos:
+            typeof this.x === 'number'
+              ? new RotPos({ position: [this.x + this.objecs.length, this.y, 0] })
+              : new RotPos2D({
+                  position: new Position2D(
+                    {
+                      value: this.x.value,
+                      px_mod: (this.x.px_mod ?? 0) + letter_size * this.objecs.length,
+                    },
+                    { value: this.y },
+                    0,
+                  ),
+                  scale: Scale2D.of_px(letter_size, letter_size),
+                }),
           texId: this.font.texture_atlas.tex_id,
           overridden_attribs: {
             aTextureCoord: this.font.texture_atlas.get_from_index(this.font.chars[char]),
           },
+          worldIndex: this.world_index,
         }),
       );
     });

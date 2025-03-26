@@ -76,6 +76,14 @@ base_keydown_callbacks[' '] = () => {
 scene.keyDownCallbacks = base_keydown_callbacks;
 
 async function Setup() {
+  white_tex_id = await LoadTexture(scene, 'white.png');
+  black_tex_id = await LoadTexture(scene, 'black.png');
+
+  font = new Font(
+    new TextureAtlas(await LoadTexture(scene, 'def.png'), 8, 8),
+    JSON.parse(await LoadFileText('textures/def.json')),
+  );
+
   const grid_shader = await LoadShader(scene, 'ui.vs', 'grid.fs');
   const grid_versprite = await LoadModel(grid_shader, 'verSprite.json');
   new Objec({ model: grid_versprite, rotpos: new RotPos2D({}) });
@@ -98,6 +106,7 @@ async function Setup() {
       new Palette(new TextureAtlas(tileset_tex, 16, 16), true, 0),
       new Palette(new TextureAtlas(faces_tex, 4, 2), false),
     ],
+    font,
     sprite,
     tframe_tex,
     1,
@@ -116,14 +125,6 @@ async function Setup() {
       0.8,
     ),
   ]);
-
-  white_tex_id = await LoadTexture(scene, 'white.png');
-  black_tex_id = await LoadTexture(scene, 'black.png');
-
-  font = new Font(
-    new TextureAtlas(await LoadTexture(scene, 'def.png'), 8, 8),
-    JSON.parse(await LoadFileText('textures/def.json')),
-  );
 }
 
 await Setup();

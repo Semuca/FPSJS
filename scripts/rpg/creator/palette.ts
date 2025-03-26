@@ -2,6 +2,7 @@ import { vec3 } from 'gl-matrix';
 import { Model, Objec, RotPos } from '../../objec';
 import { Scene, TextureAtlas } from '../../scene';
 import { CameraData, HorizontalCameraBound, TopOrBottom } from '../../camera';
+import { Font, Line } from '../../font';
 
 export class PaletteCamera {
   palettes: Palette[];
@@ -11,22 +12,25 @@ export class PaletteCamera {
 
   camera_data: CameraData;
 
+  font: Font;
   sprite: Model;
 
   tileset: Objec;
   selector: Objec;
 
   layer_mode: boolean = false;
-  layer_mode_objecs: Objec[] = [];
+  layer_mode_objecs: Line[] = [];
 
   constructor(
     scene: Scene,
     palettes: Palette[],
+    font: Font,
     sprite: Model,
     tframe_tex: number,
     world_index: number,
   ) {
     this.palettes = palettes;
+    this.font = font;
     this.sprite = sprite;
 
     this.tileset = new Objec({
@@ -137,16 +141,7 @@ export class PaletteCamera {
     const height = this.current_pallet.texture_atlas.tiles_wide / 2;
     for (let y = -width; y < width; y++) {
       for (let x = -height; x < height; x++) {
-        this.layer_mode_objecs.push(
-          new Objec({
-            model: this.sprite,
-            rotpos: new RotPos({
-              position: [y + 0.5, x + 0.5, 0],
-              scale: [0.5, 0.5, 1],
-            }),
-            worldIndex: 1,
-          }),
-        );
+        this.layer_mode_objecs.push(new Line(this.font, this.sprite, x, y, '1', 1));
       }
     }
     this.layer_mode = true;
