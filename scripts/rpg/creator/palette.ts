@@ -75,15 +75,15 @@ export class PaletteCamera {
             this.layer_mode_objecs.length -
             (y * this.current_pallet.texture_atlas.tiles_wide + x) -
             1;
-          const sentence = this.layer_mode_objecs[index];
 
-          if (e.button === 0) {
-            sentence.delete_characters(1);
-            sentence.add_characters('2');
-          } else {
-            sentence.delete_characters(1);
-            sentence.add_characters('1');
-          }
+          const sentence = this.layer_mode_objecs[index];
+          const prev_layer = this.current_pallet.layers[index];
+          const new_layer =
+            e.button === 2 ? Math.max(0, prev_layer - 1) : Math.min(prev_layer + 1, 9);
+
+          this.current_pallet.layers[index] = new_layer;
+          sentence.delete_characters(1);
+          sentence.add_characters(new_layer.toString());
 
           return true;
         }
@@ -193,7 +193,7 @@ export class Palette {
 
     for (let y = 0; y < this.texture_atlas.tiles_high; y++) {
       for (let x = 0; x < this.texture_atlas.tiles_wide; x++) {
-        this.layers[this.texture_atlas.xy_to_index(x, y)];
+        this.layers[this.texture_atlas.xy_to_index(x, y)] = 1;
       }
     }
   }

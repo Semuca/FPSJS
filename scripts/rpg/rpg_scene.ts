@@ -229,7 +229,8 @@ export async function run_rpg(map_data: MapData, _screen?: FScreen) {
         const new_x = position[0] + movX;
         const new_y = position[1];
         const new_tile = map_data.tiles[new_x]?.[new_y];
-        if (new_tile === undefined || map_data.layers[new_tile.tile] == 1) {
+        console.log(map_data.layers[new_tile.tile]);
+        if (new_tile === undefined || map_data.layers[new_tile.tile] < 1) {
           move_objec({
             objec: player,
             to: new Point2D(new_x, new_y),
@@ -242,7 +243,7 @@ export async function run_rpg(map_data: MapData, _screen?: FScreen) {
         const new_x = position[0];
         const new_y = position[1] + movY;
         const new_tile = map_data.tiles[new_x]?.[new_y];
-        if (new_tile === undefined || map_data.layers[new_tile.tile] == 1) {
+        if (new_tile === undefined || map_data.layers[new_tile.tile] < 1) {
           move_objec({
             objec: player,
             to: new Point2D(new_x, new_y),

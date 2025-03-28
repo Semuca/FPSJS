@@ -4,7 +4,7 @@ import { Model, Objec, RotPos, RotPos2D } from '../objec';
 import { run_rpg } from './rpg_scene';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, ZoomCameraBound } from '../camera';
-import { serialize_tilemap, TileMap } from './types';
+import { serialize_tilemap, Tile } from './types';
 import { DialogBox } from './dialog';
 import { Font } from '../font';
 import { Palette, PaletteCamera } from './creator/palette';
@@ -20,7 +20,7 @@ let mode = MODES.PLACE;
 
 let palette_camera: PaletteCamera;
 let event_camera: EventCamera;
-const tilemap: TileMap = { tiles: {}, layers: {} };
+const tilemap: Record<number, Record<number, Tile>> = {};
 
 const scene = new Scene();
 const cam_bounds = new ZoomCameraBound(100);
@@ -41,7 +41,11 @@ base_keydown_callbacks['c'] = () => {
   element.setAttribute(
     'href',
     'data:text/plain;charset=utf-8,' +
-      encodeURIComponent(JSON.stringify(serialize_tilemap(tilemap))),
+      encodeURIComponent(
+        JSON.stringify(
+          serialize_tilemap({ tiles: tilemap, layers: palette_camera.current_pallet.layers }),
+        ),
+      ),
   );
   element.setAttribute('download', 'map');
 
@@ -54,7 +58,10 @@ base_keydown_callbacks['c'] = () => {
 };
 
 base_keydown_callbacks['u'] = async () => {
-  await run_rpg(serialize_tilemap(tilemap), screen);
+  await run_rpg(
+    serialize_tilemap({ tiles: tilemap, layers: palette_camera.current_pallet.layers }),
+    screen,
+  );
   screen.set_scene(scene);
   requestAnimationFrame(RenderLoop);
 };
@@ -134,10 +141,10 @@ requestAnimationFrame(RenderLoop);
 function enter_event_mode(posX: number, posY: number) {
   const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
 
-  if (!tilemap.tiles[posX]) tilemap.tiles[posX] = {};
+  if (!tilemap[posX]) tilemap[posX] = {};
 
-  if (tilemap.tiles[posX][posY] === undefined) {
-    tilemap.tiles[posX][posY] = {
+  if (tilemap[posX][posY] === undefined) {
+    tilemap[posX][posY] = {
       data: { tile: 0 },
       objec: new Objec({
         model,
@@ -153,7 +160,7 @@ function enter_event_mode(posX: number, posY: number) {
     };
   }
 
-  if (tilemap.tiles[posX][posY].data.on_step === undefined) {
+  if (tilemap[posX][posY].data.on_step === undefined) {
     new Objec({
       model,
       rotpos: new RotPos({
@@ -164,9 +171,7 @@ function enter_event_mode(posX: number, posY: number) {
     });
   }
 
-  event_camera.set_event(
-    tilemap.tiles[posX][posY].data.on_step ?? [{ type: 'DialogStep', text: '' }],
-  );
+  event_camera.set_event(tilemap[posX][posY].data.on_step ?? [{ type: 'DialogStep', text: '' }]);
 
   palette_camera.select_pallette(1, (texture_atlas, number) =>
     event_camera.set_portrait(texture_atlas, number),
@@ -186,7 +191,7 @@ function enter_event_mode(posX: number, posY: number) {
 
   scene.keyDownCallbacks['Escape'] = () => {
     scene.keyDownCallbacks = base_keydown_callbacks;
-    tilemap.tiles[posX][posY].data.on_step = event_camera.event;
+    tilemap[posX][posY].data.on_step = event_camera.event;
     event_camera.Destructor();
     palette_camera.select_pallette(0);
     requestAnimationFrame(RenderLoop);
@@ -215,9 +220,9 @@ cam.onMouseDown = (e) => {
 
   // Delete tile on Z
   if (screen.keysDown['z'] == true) {
-    if (tilemap.tiles[posX][posY] != undefined) {
-      tilemap.tiles[posX][posY].objec.Destructor();
-      delete tilemap.tiles[posX][posY];
+    if (tilemap[posX][posY] != undefined) {
+      tilemap[posX][posY].objec.Destructor();
+      delete tilemap[posX][posY];
 
       return true;
     }
@@ -232,15 +237,15 @@ cam.onMouseDown = (e) => {
 
   const texture_attribute = palette_camera.get_texture_attribute()!;
 
-  if (!tilemap.tiles[posX]) tilemap.tiles[posX] = {};
+  if (!tilemap[posX]) tilemap[posX] = {};
 
-  if (tilemap.tiles[posX][posY] != undefined) {
-    tilemap.tiles[posX][posY].objec.overridden_attribs = {
+  if (tilemap[posX][posY] != undefined) {
+    tilemap[posX][posY].objec.overridden_attribs = {
       aTextureCoord: texture_attribute,
     };
   } else {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
-    tilemap.tiles[posX][posY] = {
+    tilemap[posX][posY] = {
       objec: new Objec({
         model,
         rotpos: new RotPos({
