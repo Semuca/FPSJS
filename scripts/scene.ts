@@ -40,6 +40,10 @@ export class TextureAtlas {
     public tiles_high: number,
   ) {}
 
+  xy_to_index(x: number, y: number) {
+    return y * this.tiles_wide + x;
+  }
+
   get_from_index(tile: number) {
     const tex_x = (tile % this.tiles_wide) / this.tiles_wide;
     const tex_y = Math.floor(tile / this.tiles_wide) / this.tiles_high;

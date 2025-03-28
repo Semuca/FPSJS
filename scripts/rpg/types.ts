@@ -40,13 +40,6 @@ export type EventStep =
   | IfHasItemStep
   | RemoveItemStep;
 
-export interface TileInfo {
-  passable: boolean;
-  layer: number;
-}
-
-export type TileInfoMap = Record<number, TileInfo>;
-
 export interface TileData {
   tile: number;
   on_step?: EventStep[];
@@ -55,18 +48,29 @@ export interface TileData {
 
 export type TileDataMap = Record<number, Record<number, TileData>>;
 
+export interface MapData {
+  tiles: Record<number, Record<number, TileData>>;
+  layers: Record<number, number>;
+}
+
 export interface Tile {
   objec: Objec;
   data: TileData;
 }
 
-export type TileMap = Record<number, Record<number, Tile>>;
+export interface TileMap {
+  tiles: Record<number, Record<number, Tile>>;
+  layers: Record<number, number>;
+}
 
 export function serialize_tilemap(tilemap: TileMap) {
-  return Object.fromEntries(
-    Object.entries(tilemap).map(([key, entry]) => [
-      key,
-      Object.fromEntries(Object.entries(entry).map(([key, entry]) => [key, entry.data])),
-    ]),
-  );
+  return {
+    tiles: Object.fromEntries(
+      Object.entries(tilemap.tiles).map(([key, entry]) => [
+        key,
+        Object.fromEntries(Object.entries(entry).map(([key, entry]) => [key, entry.data])),
+      ]),
+    ),
+    layers: tilemap.layers,
+  };
 }

@@ -70,6 +70,24 @@ export class PaletteCamera {
       );
 
       if (y < this.current_pallet.texture_atlas.tiles_high) {
+        if (this.layer_mode) {
+          const index =
+            this.layer_mode_objecs.length -
+            (y * this.current_pallet.texture_atlas.tiles_wide + x) -
+            1;
+          const sentence = this.layer_mode_objecs[index];
+
+          if (e.button === 0) {
+            sentence.delete_characters(1);
+            sentence.add_characters('2');
+          } else {
+            sentence.delete_characters(1);
+            sentence.add_characters('1');
+          }
+
+          return true;
+        }
+
         this.select_tile(x, y);
         this.on_click(this.current_pallet.texture_atlas, this.current_pallet.selected_tile_index!);
         return true;
@@ -139,8 +157,8 @@ export class PaletteCamera {
   start_edit_layer_mode() {
     const width = this.current_pallet.texture_atlas.tiles_high / 2;
     const height = this.current_pallet.texture_atlas.tiles_wide / 2;
-    for (let y = -width; y < width; y++) {
-      for (let x = -height; x < height; x++) {
+    for (let y = -height; y < height; y++) {
+      for (let x = -width; x < width; x++) {
         this.layer_mode_objecs.push(new Line(this.font, this.sprite, x, y, '1', 1));
       }
     }
@@ -160,6 +178,8 @@ export class Palette {
   texture_atlas: TextureAtlas;
 
   layer_editor_enabled: boolean;
+  layers: Record<number, number> = {};
+
   selected_tile_index?: number;
 
   constructor(
@@ -170,5 +190,11 @@ export class Palette {
     this.texture_atlas = texture_atlas;
     this.layer_editor_enabled = layer_editor_enabled;
     this.selected_tile_index = selected_tile_index;
+
+    for (let y = 0; y < this.texture_atlas.tiles_high; y++) {
+      for (let x = 0; x < this.texture_atlas.tiles_wide; x++) {
+        this.layers[this.texture_atlas.xy_to_index(x, y)];
+      }
+    }
   }
 }

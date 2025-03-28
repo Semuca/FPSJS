@@ -20,7 +20,7 @@ let mode = MODES.PLACE;
 
 let palette_camera: PaletteCamera;
 let event_camera: EventCamera;
-const tilemap: TileMap = {};
+const tilemap: TileMap = { tiles: {}, layers: {} };
 
 const scene = new Scene();
 const cam_bounds = new ZoomCameraBound(100);
@@ -134,10 +134,10 @@ requestAnimationFrame(RenderLoop);
 function enter_event_mode(posX: number, posY: number) {
   const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
 
-  if (!tilemap[posX]) tilemap[posX] = {};
+  if (!tilemap.tiles[posX]) tilemap.tiles[posX] = {};
 
-  if (tilemap[posX][posY] === undefined) {
-    tilemap[posX][posY] = {
+  if (tilemap.tiles[posX][posY] === undefined) {
+    tilemap.tiles[posX][posY] = {
       data: { tile: 0 },
       objec: new Objec({
         model,
@@ -153,7 +153,7 @@ function enter_event_mode(posX: number, posY: number) {
     };
   }
 
-  if (tilemap[posX][posY].data.on_step === undefined) {
+  if (tilemap.tiles[posX][posY].data.on_step === undefined) {
     new Objec({
       model,
       rotpos: new RotPos({
@@ -164,7 +164,9 @@ function enter_event_mode(posX: number, posY: number) {
     });
   }
 
-  event_camera.set_event(tilemap[posX][posY].data.on_step ?? [{ type: 'DialogStep', text: '' }]);
+  event_camera.set_event(
+    tilemap.tiles[posX][posY].data.on_step ?? [{ type: 'DialogStep', text: '' }],
+  );
 
   palette_camera.select_pallette(1, (texture_atlas, number) =>
     event_camera.set_portrait(texture_atlas, number),
@@ -184,7 +186,7 @@ function enter_event_mode(posX: number, posY: number) {
 
   scene.keyDownCallbacks['Escape'] = () => {
     scene.keyDownCallbacks = base_keydown_callbacks;
-    tilemap[posX][posY].data.on_step = event_camera.event;
+    tilemap.tiles[posX][posY].data.on_step = event_camera.event;
     event_camera.Destructor();
     palette_camera.select_pallette(0);
     requestAnimationFrame(RenderLoop);
@@ -213,9 +215,9 @@ cam.onMouseDown = (e) => {
 
   // Delete tile on Z
   if (screen.keysDown['z'] == true) {
-    if (tilemap[posX][posY] != undefined) {
-      tilemap[posX][posY].objec.Destructor();
-      delete tilemap[posX][posY];
+    if (tilemap.tiles[posX][posY] != undefined) {
+      tilemap.tiles[posX][posY].objec.Destructor();
+      delete tilemap.tiles[posX][posY];
 
       return true;
     }
@@ -230,15 +232,15 @@ cam.onMouseDown = (e) => {
 
   const texture_attribute = palette_camera.get_texture_attribute()!;
 
-  if (!tilemap[posX]) tilemap[posX] = {};
+  if (!tilemap.tiles[posX]) tilemap.tiles[posX] = {};
 
-  if (tilemap[posX][posY] != undefined) {
-    tilemap[posX][posY].objec.overridden_attribs = {
+  if (tilemap.tiles[posX][posY] != undefined) {
+    tilemap.tiles[posX][posY].objec.overridden_attribs = {
       aTextureCoord: texture_attribute,
     };
   } else {
     const model = sprite_shader.models.find((model) => model.name === 'verSprite.json') as Model;
-    tilemap[posX][posY] = {
+    tilemap.tiles[posX][posY] = {
       objec: new Objec({
         model,
         rotpos: new RotPos({

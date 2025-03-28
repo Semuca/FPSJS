@@ -3,19 +3,11 @@ import { LoadTexture, LoadModel, LoadShader, LoadFileText } from '../loading';
 import { Model, Objec, RotPos } from '../objec';
 import { Scene, TextureAtlas } from '../scene';
 import { CameraData, ZoomCameraBound } from '../camera';
-import { EventStep, TileDataMap, TileInfoMap } from './types';
+import { EventStep, MapData } from './types';
 import { distancePointToPoint, Point2D } from '../geometry';
 import { vec2, vec3 } from 'gl-matrix';
 import { Font } from '../font';
 import { DialogBox } from './dialog';
-
-const tile_info_map: TileInfoMap = {
-  34: { passable: true, layer: -1 },
-  65: { passable: true, layer: -1 },
-  88: { passable: true, layer: 0 },
-  104: { passable: false, layer: 0 },
-  236: { passable: false, layer: 0 },
-};
 
 enum Direction {
   Up,
@@ -46,7 +38,7 @@ function add_direction_to_point(direction: Direction, point: Point2D) {
 
 let direction = Direction.Down;
 
-export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
+export async function run_rpg(map_data: MapData, _screen?: FScreen) {
   const scene = new Scene();
   const screen = _screen ?? new FScreen('canvas', scene);
   const cam = new CameraData({ scene, bounds: new ZoomCameraBound(100) });
@@ -96,14 +88,14 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
     const dungeon_texture_atlas = new TextureAtlas(dungeon_sprite_sheet, 16, 16);
 
     // Map loading
-    Object.entries(tile_data_map).forEach(([x_string, entry]) => {
+    Object.entries(map_data.tiles).forEach(([x_string, entry]) => {
       const x = parseInt(x_string);
       Object.entries(entry).forEach(([y_string, { tile }]) => {
         const y = parseInt(y_string);
         new Objec({
           model: modelData,
           rotpos: new RotPos({
-            position: [x, y, tile_info_map[tile]?.layer ?? 0],
+            position: [x, y, map_data.layers[tile] ?? 0],
             scale: [0.5, 0.5, 1],
           }),
           texId: dungeon_sprite_sheet,
@@ -141,7 +133,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
       direction,
       new Point2D((player.rotpos.position as vec3)[0], (player.rotpos.position as vec3)[1]),
     );
-    const on_interact = tile_data_map[tile_pos.x]?.[tile_pos.y]?.on_interact;
+    const on_interact = map_data.tiles[tile_pos.x]?.[tile_pos.y]?.on_interact;
     if (on_interact) {
       can_move = false;
       run_event(on_interact);
@@ -236,8 +228,8 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
 
         const new_x = position[0] + movX;
         const new_y = position[1];
-        const new_tile = tile_data_map[new_x]?.[new_y];
-        if (new_tile === undefined || tile_info_map[new_tile.tile]?.passable) {
+        const new_tile = map_data.tiles[new_x]?.[new_y];
+        if (new_tile === undefined || map_data.layers[new_tile.tile] == 1) {
           move_objec({
             objec: player,
             to: new Point2D(new_x, new_y),
@@ -249,8 +241,8 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
 
         const new_x = position[0];
         const new_y = position[1] + movY;
-        const new_tile = tile_data_map[new_x]?.[new_y];
-        if (new_tile === undefined || tile_info_map[new_tile.tile]?.passable) {
+        const new_tile = map_data.tiles[new_x]?.[new_y];
+        if (new_tile === undefined || map_data.layers[new_tile.tile] == 1) {
           move_objec({
             objec: player,
             to: new Point2D(new_x, new_y),
@@ -266,7 +258,7 @@ export async function run_rpg(tile_data_map: TileDataMap, _screen?: FScreen) {
         pos[0] = to.x;
         pos[1] = to.y;
 
-        const on_step = tile_data_map[to.x]?.[to.y]?.on_step;
+        const on_step = map_data.tiles[to.x]?.[to.y]?.on_step;
         if (on_step) {
           can_move = false;
           run_event(on_step);
