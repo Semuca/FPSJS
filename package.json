@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
+    "dev:fps": "vite --open fps.html",
+    "dev:rpg": "vite --open rpg.html",
     "test": "vitest"
   },
   "author": "Semuca",
